@@ -20,16 +20,14 @@
 		try {
 			port = await (navigator as any).serial.requestPort({
 				filters: [
-					{ usbVendorId: 0x2341 } // Arduino (remove if your device is different)
+					{ usbVendorId: 0x2341 } // Arduino
 				]
 			});
 			await port.open({ baudRate: 115200 });
 
-			// 1) Wire serial bytes -> decoder
 			const decoder = new TextDecoderStream();
 			const readableStreamClosed = port.readable!.pipeTo(decoder.writable);
 
-			// 2) Declare buffer before using it; build line splitter
 			let buffer = '';
 			const lineStream = decoder.readable.pipeThrough(
 				new TransformStream<string, string>({
@@ -57,8 +55,7 @@
 						if (done) break;
 						if (!value) continue;
 
-						// 3) Use the decoded line (or just count an event)
-						handlePassEvent(value);
+						handlePassEvent();
 					}
 				} catch (e) {
 					console.error(e);
@@ -66,6 +63,7 @@
 				} finally {
 					connected = false;
 					log('Disconnected');
+
 					// Close the piping cleanly
 					try {
 						await readableStreamClosed.catch(() => {});
@@ -86,11 +84,10 @@
 		}
 	}
 
-	function handlePassEvent(line?: string) {
+	function handlePassEvent() {
 		const time = Date.now();
 		addFinish(time);
-		// 4) Fix template string
-		log(`Pass @ ${time}${line ? ` — ${line}` : ''}`);
+		log(`Pass @ ${time}`);
 	}
 
 	async function disconnect() {
