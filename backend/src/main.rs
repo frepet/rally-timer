@@ -13,31 +13,32 @@ mod server;
 /// Simple finish-line bridge: reads a serial device and serves passes over HTTP.
 ///
 /// Examples:
-///   rally-timer-finish /dev/ttyACM0
-///   rally-timer-finish /dev/ttyUSB0 --listen 0.0.0.0:8080 --debounce 1000
+///   rally-timer-finish /dev/ttyUSB0 --port 8080 --debounce 1000
 ///
 /// Env overrides (optional):
-///   RALLY_LISTEN=0.0.0.0:8080
-///   RALLY_DEBOUNCE=1000
+///   RALLY_FINISH_HTTP_PORT=8080
+///   RALLY_FINISH_DEBOUNCE=1000
 #[derive(Debug, Parser)]
 #[command(name = "rally-timer-finish", version, about, long_about = None)]
 struct Args {
     /// Serial port path (e.g., /dev/ttyACM0, /dev/ttyUSB0, COM3)
     #[arg(value_hint = ValueHint::FilePath)]
-    port: String,
+    serial_port: String,
 
     /// HTTP listen address
     #[arg(
-        short, long,
-        env = "RALLY_LISTEN",
-        default_value = "0.0.0.0:8080",
+        id="port",
+        short,
+        long,
+        env = "RALLY_FINISH_HTTP_PORT",
+        default_value = "8080",
         value_parser = clap::builder::ValueParser::new(parse_socket_addr),
         value_hint = ValueHint::Other
     )]
-    listen: SocketAddr,
+    http_addr: SocketAddr,
 
     /// Debounce in milliseconds (ignore re-triggers within this window)
-    #[arg(short, long, env = "RALLY_DEBOUNCE", default_value_t = 1000u64)]
+    #[arg(short, long, env = "RALLY_FINISH_DEBOUNCE", default_value_t = 1000u64)]
     debounce: u64,
 }
 
@@ -52,14 +53,17 @@ struct AppState {
 }
 
 fn parse_socket_addr(s: &str) -> std::result::Result<SocketAddr, String> {
-    s.parse().map_err(|_| "invalid socket address".to_string())
+    let url_string = format!("0.0.0.0:{s}");
+    url_string
+        .parse()
+        .map_err(|_| "invalid socket address".to_string())
 }
 
 #[tokio::main]
 async fn main() -> Result<()> {
     let Args {
-        port,
-        listen,
+        serial_port,
+        http_addr,
         debounce,
     } = Args::parse();
 
@@ -71,13 +75,13 @@ async fn main() -> Result<()> {
     thread::Builder::new()
         .name("serial-reader".into())
         .spawn(move || {
-            if let Err(e) = serial_reader_loop(serial_state, port, debounce) {
+            if let Err(e) = serial_reader_loop(serial_state, serial_port, debounce) {
                 eprintln!("Serial reader error: {e:?}");
             }
         })
         .context("failed to spawn serial reader thread")?;
 
     // HTTP server
-    serve(state, listen).await?;
+    serve(state, http_addr).await?;
     Ok(())
 }

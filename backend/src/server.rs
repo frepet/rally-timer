@@ -15,7 +15,7 @@ use crate::AppState;
 
 pub async fn serve(state: AppState, listen_addr: SocketAddr) -> anyhow::Result<()> {
     let router = Router::new()
-        .route("/passes", get(sse_passes))
+        .route("/", get(sse_passes))
         .with_state(state)
         .layer(
             CorsLayer::new()
