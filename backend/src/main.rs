@@ -1,27 +1,26 @@
 use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use clap::{Parser, ValueHint};
-use routes::serve;
 use serde::{Deserialize, Serialize};
 use serial::serial_reader_loop;
+use server::serve;
 use std::{net::SocketAddr, thread};
 use tokio::sync::broadcast;
 
-mod routes;
 mod serial;
+mod server;
 
 /// Simple finish-line bridge: reads a serial device and serves passes over HTTP.
 ///
 /// Examples:
-///   rally-timer /dev/ttyACM0
-///   rally-timer /dev/ttyUSB0 --listen 0.0.0.0:8080 --log /var/lib/rally/passes.ndjson --debounce 1000
+///   rally-timer-finish /dev/ttyACM0
+///   rally-timer-finish /dev/ttyUSB0 --listen 0.0.0.0:8080 --debounce 1000
 ///
 /// Env overrides (optional):
 ///   RALLY_LISTEN=0.0.0.0:8080
-///   RALLY_LOG=/var/lib/rally/passes.ndjson
 ///   RALLY_DEBOUNCE=1000
 #[derive(Debug, Parser)]
-#[command(name = "rally-finishline", version, about, long_about = None)]
+#[command(name = "rally-timer-finish", version, about, long_about = None)]
 struct Args {
     /// Serial port path (e.g., /dev/ttyACM0, /dev/ttyUSB0, COM3)
     #[arg(value_hint = ValueHint::FilePath)]
@@ -37,15 +36,6 @@ struct Args {
     )]
     listen: SocketAddr,
 
-    /// Path to append-only NDJSON log file
-    #[arg(
-        short = 'L', long = "log",
-        env = "RALLY_LOG",
-        default_value = "passes.ndjson",
-        value_hint = ValueHint::FilePath
-    )]
-    log_path: String,
-
     /// Debounce in milliseconds (ignore re-triggers within this window)
     #[arg(short, long, env = "RALLY_DEBOUNCE", default_value_t = 1000u64)]
     debounce: u64,
@@ -59,7 +49,6 @@ pub struct PassEvent {
 #[derive(Clone)]
 struct AppState {
     events_tx: broadcast::Sender<PassEvent>,
-    log_path: String,
 }
 
 fn parse_socket_addr(s: &str) -> std::result::Result<SocketAddr, String> {
@@ -71,15 +60,11 @@ async fn main() -> Result<()> {
     let Args {
         port,
         listen,
-        log_path,
         debounce,
     } = Args::parse();
 
     let (events_tx, _) = broadcast::channel::<PassEvent>(1024);
-    let state = AppState {
-        events_tx,
-        log_path: log_path.clone(),
-    };
+    let state = AppState { events_tx };
 
     // Spawn the blocking serial reader on a dedicated thread.
     let serial_state = state.clone();
