@@ -24,10 +24,10 @@
 	});
 </script>
 
-<h1>Finish Events</h1>
+<h1>Finish Event Queue</h1>
 
-<ul>
+<ol>
 	{#each $finishes as f}
 		<li>ID:{f.id}, TIME:{f.ts_utc}</li>
 	{/each}
-</ul>
+</ol>
