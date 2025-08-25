@@ -30,12 +30,24 @@ pub async fn serve(state: AppState, listen_addr: SocketAddr) -> anyhow::Result<(
     Ok(())
 }
 
+#[derive(serde::Serialize)]
+struct Payload {
+    ts_utc: String,
+    id: String,
+}
+
 async fn sse_passes(
     State(state): State<AppState>,
 ) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
     let rx = state.events_tx.subscribe();
-    let stream = BroadcastStream::new(rx).map(|evt| match evt {
-        Ok(ev) => Ok(Event::default().data(serde_json::to_string(&ev).unwrap())),
+    let stream = BroadcastStream::new(rx).map(move |evt| match evt {
+        Ok(ev) => {
+            let payload = Payload {
+                ts_utc: ev.ts_utc.to_rfc3339(),
+                id: state.id.clone(),
+            };
+            Ok(Event::default().data(serde_json::to_string(&payload).unwrap()))
+        }
         Err(_) => Ok(Event::default().comment("lagged")),
     });
     Sse::new(stream)
