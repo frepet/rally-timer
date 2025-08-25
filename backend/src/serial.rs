@@ -1,6 +1,5 @@
 use std::{
-    fs::OpenOptions,
-    io::{BufRead, BufReader, Write},
+    io::{BufRead, BufReader},
     time::Duration,
 };
 
@@ -14,13 +13,6 @@ pub fn serial_reader_loop(
     port_name: String,
     debounce_ms: u64,
 ) -> anyhow::Result<()> {
-    // Open log for append
-    let mut file = OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(&*state.log_path)
-        .with_context(|| format!("open log {}", &*state.log_path))?;
-
     // Open serial
     let port = serialport::new(port_name.clone(), 115_200)
         .timeout(Duration::from_millis(200))
@@ -31,7 +23,7 @@ pub fn serial_reader_loop(
     let mut line = String::new();
     let mut last_emit = Utc::now() - chrono::TimeDelta::milliseconds(debounce_ms as i64);
 
-    println!("Serial OK. Logging to {}", &*state.log_path);
+    println!("Serial OK!");
 
     loop {
         line.clear();
@@ -40,23 +32,15 @@ pub fn serial_reader_loop(
             Ok(_) => {
                 let t = line.trim();
                 if t == "P" {
+                    // Debounce
                     let now = Utc::now();
                     if (now - last_emit).num_milliseconds() < debounce_ms as i64 {
-                        continue; // simple debounce
+                        continue;
                     }
                     last_emit = now;
 
-                    let ev = PassEvent { ts_utc: now };
-
-                    // append to NDJSON + flush
-                    let json = serde_json::to_string(&ev)?;
-                    writeln!(file, "{json}")?;
-                    file.flush()?; // durability first
-
-                    // broadcast to SSE listeners (best-effort)
-                    let _ = state.events_tx.send(ev.clone());
-
-                    println!("[{}] PASS", ev.ts_utc.format("%H:%M:%S%.3f"));
+                    // Broadcast
+                    let _ = state.events_tx.send(PassEvent { ts_utc: now });
                 }
             }
             Err(e) => {
