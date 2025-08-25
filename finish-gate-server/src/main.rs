@@ -6,6 +6,7 @@ use serial::serial_reader_loop;
 use server::serve;
 use std::{net::SocketAddr, thread};
 use tokio::sync::broadcast;
+use uuid::Uuid;
 
 mod serial;
 mod server;
@@ -13,17 +14,23 @@ mod server;
 /// Simple finish-line bridge: reads a serial device and serves passes over HTTP.
 ///
 /// Examples:
-///   rally-timer-finish /dev/ttyUSB0 --port 8080 --debounce 1000
+///   rally-timer-finish --serial_port=/dev/ttyUSB0 --id=1234 --port 8080 --debounce 1000
 ///
 /// Env overrides (optional):
 ///   RALLY_FINISH_HTTP_PORT=8080
 ///   RALLY_FINISH_DEBOUNCE=1000
+///   RALLY_FINISH_SERIAL_PORT=/dev/ttyUSB0
+///   RALLY_FINISH_ID=1234
 #[derive(Debug, Parser)]
 #[command(name = "rally-timer-finish", version, about, long_about = None)]
 struct Args {
     /// Serial port path (e.g., /dev/ttyACM0, /dev/ttyUSB0, COM3)
-    #[arg(value_hint = ValueHint::FilePath)]
+    #[arg(short, long, value_hint = ValueHint::FilePath)]
     serial_port: String,
+
+    /// ID of the gate
+    #[arg(short, long, env = "RALLY_FINISH_ID", default_value_t = Uuid::new_v4().to_string())]
+    id: String,
 
     /// HTTP listen address
     #[arg(
@@ -49,6 +56,7 @@ pub struct PassEvent {
 
 #[derive(Clone)]
 struct AppState {
+    id: String,
     events_tx: broadcast::Sender<PassEvent>,
 }
 
@@ -62,13 +70,14 @@ fn parse_socket_addr(s: &str) -> std::result::Result<SocketAddr, String> {
 #[tokio::main]
 async fn main() -> Result<()> {
     let Args {
+        id,
         serial_port,
         http_addr,
         debounce,
     } = Args::parse();
 
     let (events_tx, _) = broadcast::channel::<PassEvent>(1024);
-    let state = AppState { events_tx };
+    let state = AppState { events_tx, id };
 
     // Spawn the blocking serial reader on a dedicated thread.
     let serial_state = state.clone();
