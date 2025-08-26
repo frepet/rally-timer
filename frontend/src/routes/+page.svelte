@@ -9,10 +9,11 @@
 		// Example: listen to gate stream
 		const es = new EventSource('http://localhost:8080/');
 		es.onmessage = async (msg) => {
+			const parsed = JSON.parse(msg.data);
 			await eventHelpers.beamBreak({
 				ts: new Date().toISOString(),
 				src: 'localhost',
-				gate: msg.data.id
+				gate: parsed.id
 			});
 		};
 
@@ -65,7 +66,19 @@
 <ol>
 	{#each $events as e}
 		<li>
-			<pre><code>{@html highlightJson(e)}</code></pre>
+			<details>
+				<summary>
+					{#if e.type === 'rfid_blip'}
+						<strong>RFID blip</strong> — {e.payload?.tag}
+					{:else if e.type === 'beam_break'}
+						<strong>Beam break</strong> — {e.payload?.gate}
+					{:else}
+						<strong>{e.type}</strong> — {new Date(e.ts).toLocaleTimeString()}
+					{/if}
+				</summary>
+
+				<pre><code>{@html highlightJson(e)}</code></pre>
+			</details>
 		</li>
 	{/each}
 </ol>
@@ -74,6 +87,14 @@
 	:global(code) {
 		font-family: monospace;
 		font-size: 0.9rem;
+	}
+
+	:global(details) {
+		margin-bottom: 0.5rem;
+	}
+
+	:global(summary) {
+		cursor: pointer;
 	}
 
 	:global(.string) {
