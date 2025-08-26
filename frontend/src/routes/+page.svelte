@@ -3,13 +3,11 @@
 	import { events, eventHelpers } from '$lib/stores/events';
 	import { startRfidWedge, type RfidStopFn } from '$lib/input/rfidWedge';
 
-	let url = 'http://localhost:8080/'; // your gate
-
 	let stopRfid: RfidStopFn | null = null;
 
 	onMount(() => {
-		// SSE: push ISO → Date
-		const es = new EventSource(url);
+		// Example: listen to gate stream
+		const es = new EventSource('http://localhost:8080/');
 		es.onmessage = async (msg) => {
 			await eventHelpers.beamBreak({
 				ts: new Date().toISOString(),
@@ -18,47 +16,45 @@
 			});
 		};
 
-		// RFID wedge listener
+		// RFID keyboard wedge
 		stopRfid = startRfidWedge(
 			(tag) => {
 				eventHelpers.rfidBlip({ ts: new Date().toISOString(), src: 'localhost', tag });
 			},
 			{
-				minLength: 3, // typical tags > 6 chars
+				minLength: 3,
 				idleResetMs: 500,
 				maxBurstMs: 3000,
 				terminators: ['Enter', 'Tab']
-				// allowed: /^[0-9]$/     // uncomment if your tags are digits-only
 			}
 		);
 
 		return () => {
 			es.close();
-			if (stopRfid) stopRfid();
+			stopRfid?.();
 		};
 	});
 
-	function syntaxHighlight(json: any) {
-		if (typeof json != 'string') {
-			json = JSON.stringify(json, undefined, 2);
-		}
+	// Utility: safe syntax highlighting
+	export function highlightJson(input: unknown): string {
+		let json = typeof input === 'string' ? input : JSON.stringify(input, undefined, 2);
+
+		// escape HTML first
 		json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+		// add spans around tokens
 		return json.replace(
 			/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
-			function (match: any) {
-				var cls = 'number';
+			(match: string) => {
+				let cls = 'number';
 				if (/^"/.test(match)) {
-					if (/:$/.test(match)) {
-						cls = 'key';
-					} else {
-						cls = 'string';
-					}
+					cls = /:$/.test(match) ? 'key' : 'string';
 				} else if (/true|false/.test(match)) {
 					cls = 'boolean';
 				} else if (/null/.test(match)) {
 					cls = 'null';
 				}
-				return '<span class="' + cls + '">' + match + '</span>';
+				return `<span class="${cls}">${match}</span>`;
 			}
 		);
 	}
@@ -69,12 +65,17 @@
 <ol>
 	{#each $events as e}
 		<li>
-			<pre>{@html syntaxHighlight(e)}</pre>
+			<pre><code>{@html highlightJson(e)}</code></pre>
 		</li>
 	{/each}
 </ol>
 
 <style>
+	:global(code) {
+		font-family: monospace;
+		font-size: 0.9rem;
+	}
+
 	:global(.string) {
 		color: green;
 	}
