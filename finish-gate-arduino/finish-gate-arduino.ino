@@ -10,8 +10,8 @@ const unsigned long MEASURE_TIMEOUT_MICROS = 25000UL; // ~4.3m max, we only need
 const float SOUND_SPEED_CM_PER_US = 0.0343f / 2.0f;  // /2 because pulseIn measures round trip
 const int SAMPLES = 5;
 
-const float THRESHOLD_CM = 100.0f;   // Trigger when closer than this
-const float RELEASE_CM   = 100.0f;   // Hysteresis: must go above this to re-arm
+const float THRESHOLD_CM = 40.0f;   // Trigger when closer than this
+const float RELEASE_CM   = 50.0f;   // Hysteresis: must go above this to re-arm
 const unsigned long COOLDOWN_MS = 100UL; // Minimum time between triggers
 
 unsigned long lastTriggerMs = 0;
