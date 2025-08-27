@@ -6,17 +6,6 @@
 	let stopRfid: RfidStopFn | null = null;
 
 	onMount(() => {
-		// Example: listen to gate stream
-		const es = new EventSource('http://localhost:8080/');
-		es.onmessage = async (msg) => {
-			const parsed = JSON.parse(msg.data);
-			await eventHelpers.beamBreak({
-				ts: new Date().toISOString(),
-				src: 'localhost',
-				gate: parsed.id
-			});
-		};
-
 		// RFID keyboard wedge
 		stopRfid = startRfidWedge(
 			(tag) => {
@@ -31,7 +20,6 @@
 		);
 
 		return () => {
-			es.close();
 			stopRfid?.();
 		};
 	});
