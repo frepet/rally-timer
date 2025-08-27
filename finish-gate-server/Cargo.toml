@@ -15,3 +15,4 @@ rumqttc = { version = "0.24", default-features = true, features = [
   "websocket",
   "use-rustls",
 ] }
+reqwest = { version = "0.12.23", features = ["json"] }
