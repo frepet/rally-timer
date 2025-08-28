@@ -8,14 +8,12 @@ export async function POST(event: RequestEvent): Promise<Response> {
   const passing = NewPassing.parse(await event.request.json());
 
   db.pragma('journal_mode = WAL');
-  let result = db.prepare("INSERT INTO passings(gate_id, timestamp) VALUES(?,?) returning *;").get(event.params.gate_id, passing.timestamp);
+  let result = db.prepare("INSERT INTO gate_events(gate_id, timestamp) VALUES(?,?) returning *;").get(event.params.gate_id, passing.timestamp);
 
   return json(result);
 }
 
 export async function DELETE(event: RequestEvent): Promise<Response> {
-  console.log("Deleting passings for gate", event.params.gate_id);
-  let result = db.prepare("DELETE FROM passings WHERE id = ?;").run(event.params.gate_id);
-  console.log("Deleted", result.changes, "rows");
+  let result = db.prepare("DELETE FROM gate_events WHERE id = ?;").run(event.params.gate_id);
   return json(result);
 }

@@ -12,12 +12,12 @@
 	} from 'flowbite-svelte';
 	import { TrashBinSolid } from 'flowbite-svelte-icons';
 	let { data }: PageProps = $props();
-	let passings = $state(data.passings);
+	let gateEvents = $state(data.gateEvents);
 
 	$effect(() => {
 		const timeout = setInterval(async () => {
 			let result = await fetch('/api/gate');
-			passings = await result.json();
+			gateEvents = await result.json();
 		}, 1000);
 		return () => {
 			clearTimeout(timeout);
@@ -27,7 +27,7 @@
 	async function clearAllPassings() {
 		await fetch('/api/gate', { method: 'DELETE' });
 		let result = await fetch('/api/gate');
-		passings = await result.json();
+		gateEvents = await result.json();
 	}
 </script>
 
@@ -35,7 +35,7 @@
 	<Card class="max-w-none p-4 sm:p-6 md:p-8">
 		<div class="mb-2 flex">
 			<h5 class="mb-2 flex-1 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
-				Passings
+				Gate Events
 			</h5>
 			<Button class="w-32" onclick={clearAllPassings}>Clear All</Button>
 		</div>
@@ -46,21 +46,21 @@
 				<TableHeadCell class="flex justify-end">Actions</TableHeadCell>
 			</TableHead>
 			<TableBody>
-				{#each passings as passing}
+				{#each gateEvents as e}
 					<TableBodyRow>
 						<TableBodyCell>
-							{passing.gate_id}
+							{e.gate_id}
 						</TableBodyCell>
 						<TableBodyCell>
-							{passing.timestamp}
+							{e.timestamp}
 						</TableBodyCell>
 						<TableBodyCell class="flex justify-end">
 							<Button
 								size="xs"
 								onclick={async () => {
-									await fetch(`/api/gate/${passing.id}`, { method: 'DELETE' });
+									await fetch(`/api/gate/${e.id}`, { method: 'DELETE' });
 									let result = await fetch('/api/gate');
-									passings = await result.json();
+									gateEvents = await result.json();
 								}}><TrashBinSolid /></Button
 							>
 						</TableBodyCell>
