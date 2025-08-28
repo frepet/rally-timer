@@ -35,7 +35,7 @@
 	<Card class="max-w-none p-4 sm:p-6 md:p-8">
 		<div class="mb-2 flex">
 			<h5 class="mb-2 flex-1 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
-				Gate Events
+				Blip Events
 			</h5>
 			<Button class="w-32" onclick={clearAll}>Clear All</Button>
 		</div>
