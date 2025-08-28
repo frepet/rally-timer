@@ -5,9 +5,9 @@ const db = new Database('database.sqlite', { fileMustExist: true });
 
 export async function GET(event: RequestEvent): Promise<Response> {
   db.pragma('journal_mode = WAL');
-  let passings = db.prepare("SELECT id, blip_id AS blipId, timestamp, tag FROM blip_events ORDER BY(timestamp)").all();
+  let blipEvents = db.prepare("SELECT id, blip_id AS blipId, timestamp, tag FROM blip_events ORDER BY(timestamp)").all();
 
-  return json(passings);
+  return json(blipEvents);
 }
 
 export async function DELETE(event: RequestEvent): Promise<Response> {
