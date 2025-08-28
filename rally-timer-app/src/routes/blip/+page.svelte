@@ -12,12 +12,12 @@
 	} from 'flowbite-svelte';
 	import { TrashBinSolid } from 'flowbite-svelte-icons';
 	let { data }: PageProps = $props();
-	let gateEvents = $state(data.gateEvents);
+	let blipEvents = $state(data.blipEvents);
 
 	$effect(() => {
 		const timeout = setInterval(async () => {
-			let result = await fetch('/api/gate');
-			gateEvents = await result.json();
+			let result = await fetch('/api/blip');
+			blipEvents = await result.json();
 		}, 1000);
 		return () => {
 			clearTimeout(timeout);
@@ -25,9 +25,9 @@
 	});
 
 	async function clearAllPassings() {
-		await fetch('/api/gate', { method: 'DELETE' });
-		let result = await fetch('/api/gate');
-		gateEvents = await result.json();
+		await fetch('/api/blip', { method: 'DELETE' });
+		let result = await fetch('/api/blip');
+		blipEvents = await result.json();
 	}
 </script>
 
@@ -41,26 +41,30 @@
 		</div>
 		<Table hoverable={true}>
 			<TableHead>
-				<TableHeadCell>Gate</TableHeadCell>
+				<TableHeadCell>Blipper</TableHeadCell>
 				<TableHeadCell>Timestamp</TableHeadCell>
+				<TableHeadCell>Tag</TableHeadCell>
 				<TableHeadCell class="flex justify-end">Actions</TableHeadCell>
 			</TableHead>
 			<TableBody>
-				{#each gateEvents as e}
+				{#each blipEvents as e}
 					<TableBodyRow>
 						<TableBodyCell>
-							{e.gateId}
+							{e.blipId}
 						</TableBodyCell>
 						<TableBodyCell>
 							{e.timestamp}
+						</TableBodyCell>
+						<TableBodyCell>
+							{e.tag}
 						</TableBodyCell>
 						<TableBodyCell class="flex justify-end">
 							<Button
 								size="xs"
 								onclick={async () => {
-									await fetch(`/api/gate-events/${e.id}`, { method: 'DELETE' });
-									let result = await fetch('/api/gate');
-									gateEvents = await result.json();
+									await fetch(`/api/blip-events/${e.id}`, { method: 'DELETE' });
+									let result = await fetch('/api/blip');
+									blipEvents = await result.json();
 								}}><TrashBinSolid /></Button
 							>
 						</TableBodyCell>

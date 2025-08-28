@@ -5,12 +5,14 @@ const db = new Database('database.sqlite', { fileMustExist: true });
 
 export async function GET(event: RequestEvent): Promise<Response> {
   db.pragma('journal_mode = WAL');
-  let gateEvents = db.prepare("SELECT id, gate_id AS gateId, timestamp FROM gate_events ORDER BY(timestamp)").all();
-  return json(gateEvents);
+  let passings = db.prepare("SELECT id, blip_id AS blipId, timestamp, tag FROM blip_events ORDER BY(timestamp)").all();
+
+  return json(passings);
 }
 
 export async function DELETE(event: RequestEvent): Promise<Response> {
   db.pragma('journal_mode = WAL');
-  db.exec("DELETE FROM gate_events");
+  db.exec("DELETE FROM blip_events");
+
   return new Response(null, { status: 204 });
 }
