@@ -18,6 +18,7 @@
 	<NavUl>
 		<NavLi href="/">Home</NavLi>
 		<NavLi href="/gate">Gate Events</NavLi>
+		<NavLi href="/blip">Blip Events</NavLi>
 		<DarkMode class="flex-1" />
 	</NavUl>
 </Navbar>
