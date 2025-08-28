@@ -18,9 +18,7 @@
 	<NavUl>
 		<NavLi href="/">Home</NavLi>
 		<NavLi href="/gate">Gate Events</NavLi>
-		<NavLi>
-			<DarkMode class="flex-1" />
-		</NavLi>
+		<DarkMode class="flex-1" />
 	</NavUl>
 </Navbar>
 {@render children?.()}
