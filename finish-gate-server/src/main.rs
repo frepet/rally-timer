@@ -53,7 +53,7 @@ async fn main() -> Result<()> {
                     .post(format!("{}/api/gate/{device_id}", args.backend))
                     .json(&payload)
                     .send()
-                    .await?;
+                    .await;
             }
         }
     }
