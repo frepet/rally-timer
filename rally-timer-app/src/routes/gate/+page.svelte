@@ -24,7 +24,7 @@
 		};
 	});
 
-	async function clearAllPassings() {
+	async function clearAll() {
 		await fetch('/api/gate', { method: 'DELETE' });
 		let result = await fetch('/api/gate');
 		gateEvents = await result.json();
@@ -37,7 +37,7 @@
 			<h5 class="mb-2 flex-1 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
 				Gate Events
 			</h5>
-			<Button class="w-32" onclick={clearAllPassings}>Clear All</Button>
+			<Button class="w-32" onclick={clearAll}>Clear All</Button>
 		</div>
 		<Table hoverable={true}>
 			<TableHead>
