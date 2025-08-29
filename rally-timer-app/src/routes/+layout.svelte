@@ -17,6 +17,7 @@
 	<NavHamburger />
 	<NavUl>
 		<NavLi href="/">Home</NavLi>
+		<NavLi href="/drivers">Drivers</NavLi>
 		<NavLi href="/blipper">Blipper</NavLi>
 		<NavLi href="/gate">Gate Events</NavLi>
 		<NavLi href="/blip">Blip Events</NavLi>
