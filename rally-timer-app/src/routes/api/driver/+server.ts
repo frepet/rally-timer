@@ -1,30 +1,34 @@
 import { json, type RequestEvent } from "@sveltejs/kit";
 import Database from "better-sqlite3";
-import { z } from "zod";
 
 const db = new Database('database.sqlite', { fileMustExist: true });
-const NewDriver = z.object({ name: z.string().trim().min(1).max(200) });
 
 export async function POST(event: RequestEvent): Promise<Response> {
-  const body = await event.request.json();
-  const parsed = NewDriver.safeParse(body);
-  if (!parsed.success) return json({ error: parsed.error.flatten() }, { status: 400 });
+  const { name, class_id, tag } = await event.request.json();
+  if (!name || !class_id || !tag) return json({ error: 'name, class_id, tag required' }, { status: 400 });
 
   db.pragma('journal_mode = WAL');
-  const created = db.prepare(
-    "INSERT INTO drivers(name) VALUES(?) RETURNING id, name;"
-  ).get(parsed.data.name);
+  const row = db.prepare(`
+    INSERT INTO drivers(name, class_id, tag)
+    VALUES(?, ?, ?)
+    RETURNING id, name, class_id, tag;
+  `).get(name.trim(), Number(class_id), String(tag).trim());
 
-  return json(created, { status: 201 });
+  return json(row, { status: 201 });
 }
 
-export async function GET(_event: RequestEvent): Promise<Response> {
+export async function GET(): Promise<Response> {
   db.pragma('journal_mode = WAL');
-  const drivers = db.prepare("SELECT id, name FROM drivers ORDER BY id;").all();
-  return json(drivers);
+  const rows = db.prepare(`
+    SELECT d.id, d.name, d.class_id, d.tag, c.name AS class_name
+    FROM drivers d
+    LEFT JOIN classes c ON c.id = d.class_id
+    ORDER BY d.id;
+  `).all();
+  return json(rows);
 }
 
-export async function DELETE(_event: RequestEvent): Promise<Response> {
+export async function DELETE(): Promise<Response> {
   db.pragma('journal_mode = WAL');
   db.exec("DELETE FROM drivers");
   return new Response(null, { status: 204 });
