@@ -22,3 +22,11 @@ export const NewBlipEvent = z.object({
   tag: z.string(),
 });
 
+export const Driver = z.object({
+  id: z.number(),
+  name: z.string(),
+});
+export type DriverType = z.infer<typeof Driver>;
+export const NewDriver = z.object({
+  name: z.string(),
+});
