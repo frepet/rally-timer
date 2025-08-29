@@ -4,6 +4,5 @@ import type { GateEventType } from '../lib/types';
 export const load: PageLoad = async ({ fetch }) => {
   let response = await fetch('/api/gate');
   let gateEvents = await response.json() as GateEventType[];
-  console.log(gateEvents)
   return { gateEvents: gateEvents };
 }
