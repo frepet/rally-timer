@@ -4,17 +4,22 @@
 	import { onMount } from 'svelte';
 
 	type Driver = { id: number; name: string; class_name?: string; tag: string };
+	type Rally = { id: number; name: string };
+	type Stage = { id: number; name: string };
 
 	let rallyId = $state<number>(0);
 	let stageId = $state<number>(0);
+
+	let rally: Rally | null = $state(null);
+	let stages: Stage[] = $state([]);
+	let stage: Stage | null = $state(null);
+
 	let drivers = $state<Driver[]>([]);
-	let idx = $state(0); // current driver index
+	let idx = $state(0);
 	let running = $state(false);
 	let paused = $state(false);
-	let gapSeconds = $state(10); // time between launches
+	let gapSeconds = $state(10);
 	let remainingMs = $state(0);
-
-	// LEDs 3-2-1-0
 	const leds = $state([false, false, false, false]);
 	let timer: ReturnType<typeof setInterval> | undefined;
 
@@ -40,8 +45,20 @@
 		rallyId = Number($page.params.rallyId);
 		stageId = Number($page.params.stageId);
 
-		const res = await fetch(`/api/rally/${rallyId}/drivers`);
-		drivers = res.ok ? await res.json() : [];
+		const res = await fetch(`/api/rally/${rallyId}/bundle`);
+		if (!res.ok) return;
+
+		const bundle = (await res.json()) as {
+			rally: Rally;
+			drivers: Driver[];
+			stages: Stage[];
+		};
+
+		rally = bundle.rally;
+		stages = bundle.stages;
+		stage = stages.find((s) => s.id === stageId) ?? null;
+		drivers = bundle.drivers;
+
 		idx = 0;
 	}
 
@@ -131,8 +148,8 @@
 	<!-- Current + Next two -->
 	<Card class="flex w-full flex-col p-5">
 		<div>
-			<div class="text-sm opacity-70">Stage</div>
-			<div class="text-xl font-semibold">#{stageId}</div>
+			<div class="text-sm opacity-70">{rally?.name || 'Rally'}</div>
+			<div class="text-xl font-semibold">{stage?.name || `#${stageId}`}</div>
 		</div>
 		<div class="flex items-center">
 			<!-- LEDs -->

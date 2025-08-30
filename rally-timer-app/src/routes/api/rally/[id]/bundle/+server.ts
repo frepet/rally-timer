@@ -10,6 +10,10 @@ export const GET: RequestHandler = ({ params }) => {
     return json({ error: 'Invalid rallyId' }, { status: 400 });
   }
 
+  // The rallies
+  const rally = db.prepare(`SELECT id, name FROM rallies WHERE id = ?`).get(rallyId);
+
+
   // Drivers signed up for this rally, with class names
   const drivers = db.prepare(`
 		SELECT d.id, d.name, d.tag AS rfid_tag, d.class_id, c.name AS class_name
@@ -51,5 +55,5 @@ export const GET: RequestHandler = ({ params }) => {
 		WHERE s.rally_id = ?
 	`).all(rallyId);
 
-  return json({ drivers, stages, start_events, gate_events, blip_events });
+  return json({ rally, drivers, stages, start_events, gate_events, blip_events });
 };
