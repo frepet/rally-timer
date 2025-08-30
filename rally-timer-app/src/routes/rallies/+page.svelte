@@ -64,16 +64,18 @@
 
 	async function loadRallies() {
 		rallies = await fetchJSON<Rally[]>('/api/rally');
-		// auto-select last used if available
 		const last = recallRally();
+
 		if (last !== '' && rallies.some((r) => r.id === last)) {
 			selectedRallyId = last;
-			await loadStages(last);
+			await Promise.all([loadStages(last), loadAssigned(last)]);
 		} else if (selectedRallyId !== null && rallies.some((r) => r.id === selectedRallyId)) {
-			await loadStages(Number(selectedRallyId));
+			const id = Number(selectedRallyId);
+			await Promise.all([loadStages(id), loadAssigned(id)]);
 		} else {
 			selectedRallyId = null;
 			stages = [];
+			assigned = []; // ← clear assigned list
 		}
 	}
 
@@ -99,11 +101,12 @@
 	async function onSelectRally() {
 		if (selectedRallyId === null) {
 			stages = [];
+			assigned = [];
 			return;
 		}
 		const id = Number(selectedRallyId);
 		rememberRally(id);
-		await loadStages(id);
+		await Promise.all([loadAllDrivers(), loadAssigned(id), loadStages(id)]);
 	}
 
 	async function createStage() {
@@ -158,8 +161,12 @@
 
 	$effect(() => {
 		loadRallies();
-		const t = setInterval(() => {
-			if (selectedRallyId !== null) loadStages(Number(selectedRallyId));
+		loadAllDrivers();
+		const t = setInterval(async () => {
+			if (selectedRallyId !== null) {
+				const id = Number(selectedRallyId);
+				await Promise.all([loadStages(id), loadAssigned(id)]); // ← refresh both
+			}
 		}, 5000);
 		return () => clearInterval(t);
 	});
@@ -255,9 +262,8 @@
 									class="flex items-center justify-between gap-2 rounded border border-zinc-700 p-2"
 								>
 									<span>{d.name} — {d.class_name || ''}</span>
-									<button
-										class="rounded bg-red-600 px-2 py-1"
-										on:click={() => removeFromRally(d.id)}>Remove</button
+									<button class="rounded bg-red-600 px-2 py-1" onclick={() => removeFromRally(d.id)}
+										>Remove</button
 									>
 								</li>
 							{/each}
@@ -276,7 +282,7 @@
 									class="flex items-center justify-between gap-2 rounded border border-zinc-700 p-2"
 								>
 									<span>{d.name} — {d.class_name || ''}</span>
-									<button class="rounded bg-emerald-600 px-2 py-1" on:click={() => addToRally(d.id)}
+									<button class="rounded bg-emerald-600 px-2 py-1" onclick={() => addToRally(d.id)}
 										>Add</button
 									>
 								</li>
