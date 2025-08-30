@@ -13,7 +13,7 @@
 	} from 'flowbite-svelte';
 
 	type Rally = { id: number; name: string };
-	type Stage = { id: number; rally_id: number; name: string; gate_id: string; blip_id: string };
+	type Stage = { id: number; rally_id: number; name: string };
 
 	// --- state
 	let rallies = $state<Rally[]>([]);
@@ -26,14 +26,10 @@
 
 	// Create stage
 	let newStageName = $state('');
-	let newStageGate = $state('');
-	let newStageBlip = $state('');
 
 	// Edit stage
 	let editingId = $state<number | null>(null);
 	let editName = $state('');
-	let editGate = $state('');
-	let editBlip = $state('');
 
 	type Driver = {
 		id: number;
@@ -75,7 +71,7 @@
 		} else {
 			selectedRallyId = null;
 			stages = [];
-			assigned = []; // ← clear assigned list
+			assigned = [];
 		}
 	}
 
@@ -113,34 +109,28 @@
 		if (selectedRallyId === null) return;
 		const rallyId = Number(selectedRallyId);
 		const name = newStageName.trim();
-		const gate_id = newStageGate.trim();
-		const blip_id = newStageBlip.trim();
-		if (!name || !gate_id || !blip_id) return;
+		if (!name) return;
 
 		await fetchJSON(`/api/rally/${rallyId}/stages`, {
 			method: 'POST',
 			headers: { 'content-type': 'application/json' },
-			body: JSON.stringify({ name, gate_id, blip_id })
+			body: JSON.stringify({ name })
 		});
-		newStageName = newStageGate = newStageBlip = '';
+		newStageName = '';
 		await loadStages(rallyId);
 	}
 
 	function startEdit(s: Stage) {
 		editingId = s.id;
 		editName = s.name;
-		editGate = s.gate_id;
-		editBlip = s.blip_id;
 	}
 	function cancelEdit() {
 		editingId = null;
-		editName = editGate = editBlip = '';
+		editName = '';
 	}
 	async function saveEdit(id: number) {
 		const patch: Record<string, unknown> = {};
 		if (editName.trim()) patch.name = editName.trim();
-		if (editGate.trim()) patch.gate_id = editGate.trim();
-		if (editBlip.trim()) patch.blip_id = editBlip.trim();
 		if (Object.keys(patch).length === 0) {
 			cancelEdit();
 			return;
@@ -165,7 +155,7 @@
 		const t = setInterval(async () => {
 			if (selectedRallyId !== null) {
 				const id = Number(selectedRallyId);
-				await Promise.all([loadStages(id), loadAssigned(id)]); // ← refresh both
+				await Promise.all([loadStages(id), loadAssigned(id)]);
 			}
 		}, 5000);
 		return () => clearInterval(t);
@@ -177,8 +167,6 @@
 	async function loadAllDrivers() {
 		allDrivers = await fetchJSON<Driver[]>(`/api/driver`);
 	}
-	// update your effect: after selecting rally, call both
-	// await loadAllDrivers(); await loadAssigned(id);
 
 	function availableDrivers(): Driver[] {
 		const assignedIds = new Set(assigned.map((d) => d.id));
@@ -211,10 +199,7 @@
 		<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
 			<!-- Select Rally -->
 			<div>
-				<label
-					for="rallySelect"
-					class="mb-2 block text-sm font-medium text-gray-900 dark:text-white">Select rally</label
-				>
+				<label for="rallySelect" class="mb-2 block text-sm font-medium">Select rally</label>
 				<Select id="rallySelect" bind:value={selectedRallyId} onchange={onSelectRally}>
 					<option value="">— Choose rally —</option>
 					{#each rallies as r}
@@ -225,9 +210,7 @@
 
 			<!-- Create Rally -->
 			<div>
-				<label for="newRally" class="mb-2 block text-sm font-medium text-gray-900 dark:text-white"
-					>Create rally</label
-				>
+				<label for="newRally" class="mb-2 block text-sm font-medium">Create rally</label>
 				<div class="flex gap-2">
 					<Input
 						id="newRally"
@@ -241,101 +224,63 @@
 		</div>
 	</Card>
 
-	<!-- Stages for selected rally -->
 	{#if selectedRallyId !== null}
-		<script lang="ts">
-		</script>
-
-		{#if selectedRallyId !== null}
-			<Card class="max-w-none p-4 sm:p-6 md:p-8">
-				<h5 class="mb-4 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
-					Assign drivers to rally
-				</h5>
-
-				<div class="grid grid-cols-1 gap-6 md:grid-cols-2">
-					<!-- Assigned -->
-					<div>
-						<h6 class="mb-2 text-lg font-semibold">Assigned</h6>
-						<ul class="space-y-2">
-							{#each assigned as d}
-								<li
-									class="flex items-center justify-between gap-2 rounded border border-zinc-700 p-2"
+		<Card class="max-w-none p-4 sm:p-6 md:p-8">
+			<h5 class="mb-4 text-2xl font-bold">Assign drivers to rally</h5>
+			<div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+				<div>
+					<h6 class="mb-2 text-lg font-semibold">Assigned</h6>
+					<ul class="space-y-2">
+						{#each assigned as d}
+							<li class="flex items-center justify-between gap-2 rounded border p-2">
+								<span>{d.name} — {d.class_name || ''}</span>
+								<button class="rounded bg-red-600 px-2 py-1" onclick={() => removeFromRally(d.id)}
+									>Remove</button
 								>
-									<span>{d.name} — {d.class_name || ''}</span>
-									<button class="rounded bg-red-600 px-2 py-1" onclick={() => removeFromRally(d.id)}
-										>Remove</button
-									>
-								</li>
-							{/each}
-							{#if !assigned.length}
-								<li class="opacity-70">No drivers assigned.</li>
-							{/if}
-						</ul>
-					</div>
-
-					<!-- Available -->
-					<div>
-						<h6 class="mb-2 text-lg font-semibold">Available</h6>
-						<ul class="space-y-2">
-							{#each availableDrivers() as d}
-								<li
-									class="flex items-center justify-between gap-2 rounded border border-zinc-700 p-2"
-								>
-									<span>{d.name} — {d.class_name || ''}</span>
-									<button class="rounded bg-emerald-600 px-2 py-1" onclick={() => addToRally(d.id)}
-										>Add</button
-									>
-								</li>
-							{/each}
-							{#if !availableDrivers().length}
-								<li class="opacity-70">Everyone is assigned 🎉</li>
-							{/if}
-						</ul>
-					</div>
+							</li>
+						{/each}
+						{#if !assigned.length}
+							<li class="opacity-70">No drivers assigned.</li>
+						{/if}
+					</ul>
 				</div>
-			</Card>
-		{/if}
+
+				<a href={`/rallies/${selectedRallyId}/leaderboard`}>
+					<Button size="xs">View Leaderboard</Button>
+				</a>
+
+				<div>
+					<h6 class="mb-2 text-lg font-semibold">Available</h6>
+					<ul class="space-y-2">
+						{#each availableDrivers() as d}
+							<li class="flex items-center justify-between gap-2 rounded border p-2">
+								<span>{d.name} — {d.class_name || ''}</span>
+								<button class="rounded bg-emerald-600 px-2 py-1" onclick={() => addToRally(d.id)}
+									>Add</button
+								>
+							</li>
+						{/each}
+						{#if !availableDrivers().length}
+							<li class="opacity-70">Everyone is assigned 🎉</li>
+						{/if}
+					</ul>
+				</div>
+			</div>
+		</Card>
 
 		<Card class="max-w-none p-4 sm:p-6 md:p-8">
 			<div class="mb-4">
-				<h5 class="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Stages</h5>
+				<h5 class="text-2xl font-bold">Stages</h5>
 			</div>
 
 			<!-- Add Stage -->
-			<div class="mb-4 grid grid-cols-1 gap-3 md:grid-cols-4">
+			<div class="mb-4 grid grid-cols-1 gap-3 md:grid-cols-2">
 				<div>
-					<label
-						for="stageName"
-						class="mb-2 block text-sm font-medium text-gray-900 dark:text-white">Stage name</label
-					>
+					<label for="stageName" class="mb-2 block text-sm font-medium">Stage name</label>
 					<Input
 						id="stageName"
 						bind:value={newStageName}
 						placeholder="SS1"
-						onkeydown={(e) => e.key === 'Enter' && createStage()}
-					/>
-				</div>
-				<div>
-					<label
-						for="stageGate"
-						class="mb-2 block text-sm font-medium text-gray-900 dark:text-white">Gate ID</label
-					>
-					<Input
-						id="stageGate"
-						bind:value={newStageGate}
-						placeholder="gate01"
-						onkeydown={(e) => e.key === 'Enter' && createStage()}
-					/>
-				</div>
-				<div>
-					<label
-						for="stageBlip"
-						class="mb-2 block text-sm font-medium text-gray-900 dark:text-white">Blip ID</label
-					>
-					<Input
-						id="stageBlip"
-						bind:value={newStageBlip}
-						placeholder="blip01"
 						onkeydown={(e) => e.key === 'Enter' && createStage()}
 					/>
 				</div>
@@ -348,11 +293,8 @@
 			<Table hoverable={true}>
 				<TableHead>
 					<TableHeadCell>Name</TableHeadCell>
-					<TableHeadCell>Gate</TableHeadCell>
-					<TableHeadCell>Blip</TableHeadCell>
 					<TableHeadCell class="flex justify-end">Actions</TableHeadCell>
 				</TableHead>
-
 				<TableBody>
 					{#each stages as s}
 						<TableBodyRow>
@@ -365,29 +307,14 @@
 									/>
 								{:else}{s.name}{/if}
 							</TableBodyCell>
-							<TableBodyCell>
-								{#if editingId === s.id}
-									<Input
-										aria-label="Gate ID"
-										bind:value={editGate}
-										onkeydown={(e) => e.key === 'Enter' && saveEdit(s.id)}
-									/>
-								{:else}{s.gate_id}{/if}
-							</TableBodyCell>
-							<TableBodyCell>
-								{#if editingId === s.id}
-									<Input
-										aria-label="Blip ID"
-										bind:value={editBlip}
-										onkeydown={(e) => e.key === 'Enter' && saveEdit(s.id)}
-									/>
-								{:else}{s.blip_id}{/if}
-							</TableBodyCell>
 							<TableBodyCell class="flex justify-end gap-2">
 								{#if editingId === s.id}
 									<Button size="xs" onclick={() => saveEdit(s.id)}>Save</Button>
 									<Button size="xs" color="light" onclick={cancelEdit}>Cancel</Button>
 								{:else}
+									<a href={`/rallies/${selectedRallyId}/stages/${s.id}/events`}>
+										<Button size="xs">Events</Button>
+									</a>
 									<a class="inline-block" href={`/rallies/${selectedRallyId}/stages/${s.id}/start`}>
 										<Button size="xs">Open Start</Button>
 									</a>

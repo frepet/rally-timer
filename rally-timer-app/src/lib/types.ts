@@ -2,7 +2,8 @@ import * as z from 'zod';
 
 export const GateEvent = z.object({
   id: z.number(),
-  gateId: z.string(),
+  stage_name: z.string(),
+  rally_name: z.string(),
   timestamp: z.number(),
 });
 export type GateEventType = z.infer<typeof GateEvent>;
@@ -12,7 +13,8 @@ export const NewGateEvent = z.object({
 
 export const BlipEvent = z.object({
   id: z.number(),
-  blipId: z.string(),
+  stage_name: z.string(),
+  rally_name: z.string(),
   timestamp: z.number(),
   tag: z.string(),
 });

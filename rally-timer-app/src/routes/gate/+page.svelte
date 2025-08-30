@@ -49,10 +49,10 @@
 				{#each gateEvents as e}
 					<TableBodyRow>
 						<TableBodyCell>
-							{e.gateId}
+							{e.rally_name}/{e.stage_name}
 						</TableBodyCell>
 						<TableBodyCell>
-							{e.timestamp}
+							{new Date(e.timestamp).toLocaleString()}
 						</TableBodyCell>
 						<TableBodyCell class="flex justify-end">
 							<Button

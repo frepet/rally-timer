@@ -19,8 +19,6 @@
 		<NavLi href="/rallies ">Rallies</NavLi>
 		<NavLi href="/drivers">Drivers</NavLi>
 		<NavLi href="/blipper">Blipper</NavLi>
-		<NavLi href="/gate">Gate Events</NavLi>
-		<NavLi href="/blip">Blip Events</NavLi>
 		<DarkMode class="flex-1" />
 	</NavUl>
 </Navbar>
