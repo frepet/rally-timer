@@ -18,7 +18,7 @@
 	// --- state
 	let rallies = $state<Rally[]>([]);
 	let stages = $state<Stage[]>([]);
-	let selectedRallyId = $state<number | ''>('');
+	let selectedRallyId = $state<number | null>(null);
 	const LS_RALLY = 'rally:lastRallyId';
 
 	// Create rally
@@ -34,6 +34,17 @@
 	let editName = $state('');
 	let editGate = $state('');
 	let editBlip = $state('');
+
+	type Driver = {
+		id: number;
+		name: string;
+		tag: string;
+		class_id?: number;
+		class_name?: string;
+	};
+
+	let allDrivers = $state<Driver[]>([]);
+	let assigned = $state<Driver[]>([]);
 
 	function rememberRally(id: number) {
 		localStorage.setItem(LS_RALLY, String(id));
@@ -58,10 +69,10 @@
 		if (last !== '' && rallies.some((r) => r.id === last)) {
 			selectedRallyId = last;
 			await loadStages(last);
-		} else if (selectedRallyId !== '' && rallies.some((r) => r.id === selectedRallyId)) {
+		} else if (selectedRallyId !== null && rallies.some((r) => r.id === selectedRallyId)) {
 			await loadStages(Number(selectedRallyId));
 		} else {
-			selectedRallyId = '';
+			selectedRallyId = null;
 			stages = [];
 		}
 	}
@@ -86,7 +97,7 @@
 	}
 
 	async function onSelectRally() {
-		if (selectedRallyId === '') {
+		if (selectedRallyId === null) {
 			stages = [];
 			return;
 		}
@@ -96,7 +107,7 @@
 	}
 
 	async function createStage() {
-		if (selectedRallyId === '') return;
+		if (selectedRallyId === null) return;
 		const rallyId = Number(selectedRallyId);
 		const name = newStageName.trim();
 		const gate_id = newStageGate.trim();
@@ -138,20 +149,51 @@
 			body: JSON.stringify(patch)
 		});
 		cancelEdit();
-		if (selectedRallyId !== '') await loadStages(Number(selectedRallyId));
+		if (selectedRallyId !== null) await loadStages(Number(selectedRallyId));
 	}
 	async function deleteStage(id: number) {
 		await fetch(`/api/stage/${id}`, { method: 'DELETE' });
-		if (selectedRallyId !== '') await loadStages(Number(selectedRallyId));
+		if (selectedRallyId !== null) await loadStages(Number(selectedRallyId));
 	}
 
 	$effect(() => {
 		loadRallies();
 		const t = setInterval(() => {
-			if (selectedRallyId !== '') loadStages(Number(selectedRallyId));
+			if (selectedRallyId !== null) loadStages(Number(selectedRallyId));
 		}, 5000);
 		return () => clearInterval(t);
 	});
+
+	async function loadAssigned(rallyId: number) {
+		assigned = await fetchJSON<Driver[]>(`/api/rally/${rallyId}/drivers`);
+	}
+	async function loadAllDrivers() {
+		allDrivers = await fetchJSON<Driver[]>(`/api/driver`);
+	}
+	// update your effect: after selecting rally, call both
+	// await loadAllDrivers(); await loadAssigned(id);
+
+	function availableDrivers(): Driver[] {
+		const assignedIds = new Set(assigned.map((d) => d.id));
+		return allDrivers.filter((d) => !assignedIds.has(d.id));
+	}
+
+	async function addToRally(driverId: number) {
+		if (selectedRallyId === null) return;
+		const id = Number(selectedRallyId);
+		await fetchJSON(`/api/rally/${id}/drivers`, {
+			method: 'POST',
+			headers: { 'content-type': 'application/json' },
+			body: JSON.stringify({ driver_id: driverId })
+		});
+		await loadAssigned(id);
+	}
+	async function removeFromRally(driverId: number) {
+		if (selectedRallyId === null) return;
+		const id = Number(selectedRallyId);
+		await fetch(`/api/rally/${id}/drivers/${driverId}`, { method: 'DELETE' });
+		await loadAssigned(id);
+	}
 </script>
 
 <div class="w-full space-y-6 p-5">
@@ -193,7 +235,61 @@
 	</Card>
 
 	<!-- Stages for selected rally -->
-	{#if selectedRallyId !== ''}
+	{#if selectedRallyId !== null}
+		<script lang="ts">
+		</script>
+
+		{#if selectedRallyId !== null}
+			<Card class="max-w-none p-4 sm:p-6 md:p-8">
+				<h5 class="mb-4 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+					Assign drivers to rally
+				</h5>
+
+				<div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+					<!-- Assigned -->
+					<div>
+						<h6 class="mb-2 text-lg font-semibold">Assigned</h6>
+						<ul class="space-y-2">
+							{#each assigned as d}
+								<li
+									class="flex items-center justify-between gap-2 rounded border border-zinc-700 p-2"
+								>
+									<span>{d.name} — {d.class_name || ''}</span>
+									<button
+										class="rounded bg-red-600 px-2 py-1"
+										on:click={() => removeFromRally(d.id)}>Remove</button
+									>
+								</li>
+							{/each}
+							{#if !assigned.length}
+								<li class="opacity-70">No drivers assigned.</li>
+							{/if}
+						</ul>
+					</div>
+
+					<!-- Available -->
+					<div>
+						<h6 class="mb-2 text-lg font-semibold">Available</h6>
+						<ul class="space-y-2">
+							{#each availableDrivers() as d}
+								<li
+									class="flex items-center justify-between gap-2 rounded border border-zinc-700 p-2"
+								>
+									<span>{d.name} — {d.class_name || ''}</span>
+									<button class="rounded bg-emerald-600 px-2 py-1" on:click={() => addToRally(d.id)}
+										>Add</button
+									>
+								</li>
+							{/each}
+							{#if !availableDrivers().length}
+								<li class="opacity-70">Everyone is assigned 🎉</li>
+							{/if}
+						</ul>
+					</div>
+				</div>
+			</Card>
+		{/if}
+
 		<Card class="max-w-none p-4 sm:p-6 md:p-8">
 			<div class="mb-4">
 				<h5 class="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Stages</h5>
@@ -286,6 +382,9 @@
 									<Button size="xs" onclick={() => saveEdit(s.id)}>Save</Button>
 									<Button size="xs" color="light" onclick={cancelEdit}>Cancel</Button>
 								{:else}
+									<a class="inline-block" href={`/rallies/${selectedRallyId}/stages/${s.id}/start`}>
+										<Button size="xs">Open Start</Button>
+									</a>
 									<Button size="xs" onclick={() => startEdit(s)}>Edit</Button>
 									<Button size="xs" color="red" onclick={() => deleteStage(s.id)}>Delete</Button>
 								{/if}
