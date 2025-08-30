@@ -151,7 +151,7 @@
 			<div class="text-sm opacity-70">{rally?.name || 'Rally'}</div>
 			<div class="text-xl font-semibold">{stage?.name || `#${stageId}`}</div>
 		</div>
-		<div class="flex items-center">
+		<div class="flex flex-wrap items-center">
 			<!-- LEDs -->
 			<div class="flex flex-1 justify-center gap-3">
 				{#each [0, 1, 2, 3] as i}
@@ -203,7 +203,7 @@
 				<label for="gap" class="text-sm opacity-70">Gap (s)</label>
 				<Input id="gap" type="number" min="1" class="w-20 rounded p-2" bind:value={gapSeconds} />
 			</div>
-			<div class="flex w-full gap-2 p-2">
+			<div class="flex w-full flex-wrap gap-2 p-2">
 				<Button size="sm" onclick={start} disabled={running}>Start</Button>
 				<Button size="sm" onclick={pause} disabled={!running || paused}>Pause</Button>
 				<Button size="sm" onclick={resume} disabled={!running || !paused}>Resume</Button>
