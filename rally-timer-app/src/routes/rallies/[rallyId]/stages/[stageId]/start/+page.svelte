@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Card, Button } from 'flowbite-svelte';
+	import { Card, Button, Input } from 'flowbite-svelte';
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
 
@@ -54,8 +54,8 @@
 
 	async function launchCurrentDriver() {
 		if (!drivers[idx]) return;
-		// Long low beep on GO
-		beep(220, 600);
+		// Long high beep on GO
+		beep(1000, 600);
 		await fetch(`/api/stage/${stageId}/start`, {
 			method: 'POST',
 			headers: { 'content-type': 'application/json' },
@@ -127,68 +127,70 @@
 	onMount(loadQueue);
 </script>
 
-<div class="flex min-h-screen w-full flex-col gap-6 bg-black p-6 text-white">
-	<Card class="border-zinc-700 bg-zinc-900/60">
-		<div class="flex items-center justify-between">
-			<div>
-				<div class="text-sm opacity-70">Stage</div>
-				<div class="text-xl font-semibold">#{stageId}</div>
+<div class="flex w-full flex-col gap-6 p-6 text-white">
+	<!-- Current + Next two -->
+	<Card class="flex w-full flex-col p-5">
+		<div>
+			<div class="text-sm opacity-70">Stage</div>
+			<div class="text-xl font-semibold">#{stageId}</div>
+		</div>
+		<div class="flex items-center">
+			<!-- LEDs -->
+			<div class="flex flex-1 justify-center gap-3">
+				{#each [0, 1, 2, 3] as i}
+					<div
+						class="h-8 w-8 rounded-full border"
+						style={`background:${leds[i] ? (i < 3 ? '#16a34a' : '#dc2626') : 'transparent'}; box-shadow:${leds[i] ? '0 0 12px rgba(34,197,94,0.7)' : 'none'}`}
+					></div>
+				{/each}
 			</div>
-			<div class="flex items-center gap-2">
-				<label for="gap" class="text-sm opacity-70">Gap (s)</label>
-				<input
-					id="gap"
-					type="number"
-					min="1"
-					class="w-20 rounded bg-zinc-800 p-2"
-					bind:value={gapSeconds}
-				/>
+
+			<!-- Countdown -->
+			<div class="flex flex-row-reverse text-6xl">
+				{Math.ceil(remainingMs / 1000)}
 			</div>
-			<div class="flex gap-2">
-				<Button size="sm" onclick={start} disabled={running}>Start</Button>
-				<Button size="sm" onclick={pause} disabled={!running || paused}>Pause</Button>
-				<Button size="sm" onclick={resume} disabled={!running || !paused}>Resume</Button>
-				<Button size="sm" color="red" onclick={restart}>Restart</Button>
+		</div>
+
+		<!-- Current -->
+		<div class="md:col-span-2">
+			<div class="text-4xl font-extrabold tracking-wide">
+				{#if drivers[idx]}
+					{drivers[idx].name} <br />
+				{:else}
+					No more drivers
+				{/if}
+			</div>
+			<div class="text-2xl tracking-wide italic">
+				{#if drivers[idx]}
+					{drivers[idx].class_name || ''}
+				{/if}
 			</div>
 		</div>
 	</Card>
 
-	<!-- Current + Next two -->
-	<Card class="border-zinc-700 bg-zinc-900/60">
-		<div class="grid grid-cols-1 items-center gap-6 md:grid-cols-3">
-			<!-- Current -->
-			<div class="md:col-span-2">
-				<div class="text-4xl font-extrabold tracking-wide md:text-6xl">
-					{#if drivers[idx]}
-						{drivers[idx].name} — {drivers[idx].class_name || ''}
-					{:else}
-						No more drivers
-					{/if}
-				</div>
-
-				<div class="mt-6 flex items-center gap-4">
-					<!-- LEDs -->
-					<div class="flex gap-3">
-						{#each [0, 1, 2, 3] as i}
-							<div
-								class="h-8 w-8 rounded-full border border-zinc-600"
-								style={`background:${leds[i] ? (i < 3 ? '#16a34a' : '#dc2626') : 'transparent'}; box-shadow:${leds[i] ? '0 0 12px rgba(34,197,94,0.7)' : 'none'}`}
-							></div>
-						{/each}
-					</div>
-
-					<!-- Countdown -->
-					<div class="text-6xl tabular-nums">{Math.ceil(remainingMs / 1000)}</div>
-				</div>
+	<!-- Queue preview -->
+	<Card class="p-3">
+		<div class="">
+			<div class="text-sm opacity-70">Next up</div>
+			<div class="text-xl">{drivers[idx + 1]?.name} — {drivers[idx + 1]?.class_name || ''}</div>
+			<div class="text-lg opacity-80">
+				{drivers[idx + 2]?.name} — {drivers[idx + 2]?.class_name || ''}
 			</div>
+		</div>
+	</Card>
 
-			<!-- Queue preview -->
-			<div class="space-y-3">
-				<div class="text-sm opacity-70">Next up</div>
-				<div class="text-xl">{drivers[idx + 1]?.name} — {drivers[idx + 1]?.class_name || ''}</div>
-				<div class="text-lg opacity-80">
-					{drivers[idx + 2]?.name} — {drivers[idx + 2]?.class_name || ''}
-				</div>
+	<!-- Queue controls -->
+	<Card class="p-3">
+		<div class="flex flex-col items-center justify-between">
+			<div class="flex w-full flex-row items-center gap-2 p-2">
+				<label for="gap" class="text-sm opacity-70">Gap (s)</label>
+				<Input id="gap" type="number" min="1" class="w-20 rounded p-2" bind:value={gapSeconds} />
+			</div>
+			<div class="flex w-full gap-2 p-2">
+				<Button size="sm" onclick={start} disabled={running}>Start</Button>
+				<Button size="sm" onclick={pause} disabled={!running || paused}>Pause</Button>
+				<Button size="sm" onclick={resume} disabled={!running || !paused}>Resume</Button>
+				<Button size="sm" color="red" onclick={restart}>Restart</Button>
 			</div>
 		</div>
 	</Card>

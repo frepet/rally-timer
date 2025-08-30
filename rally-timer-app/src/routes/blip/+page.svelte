@@ -41,7 +41,7 @@
 		</div>
 		<Table hoverable={true}>
 			<TableHead>
-				<TableHeadCell>Blipper</TableHeadCell>
+				<TableHeadCell>Stage</TableHeadCell>
 				<TableHeadCell>Timestamp</TableHeadCell>
 				<TableHeadCell>Tag</TableHeadCell>
 				<TableHeadCell class="flex justify-end">Actions</TableHeadCell>
@@ -50,10 +50,10 @@
 				{#each blipEvents as e}
 					<TableBodyRow>
 						<TableBodyCell>
-							{e.blipId}
+							{e.rally_name}/{e.stage_name}
 						</TableBodyCell>
 						<TableBodyCell>
-							{e.timestamp}
+							{new Date(e.timestamp).toLocaleString()}
 						</TableBodyCell>
 						<TableBodyCell>
 							{e.tag}

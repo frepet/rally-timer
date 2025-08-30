@@ -1,30 +1,30 @@
-import { json } from "@sveltejs/kit";
-import Database from "better-sqlite3";
+import { json } from '@sveltejs/kit';
+import Database from 'better-sqlite3';
+import type { RequestEvent } from './$types';
 
 const db = new Database('database.sqlite', { fileMustExist: true });
 
-export async function GET({ params }) {
+// List stages for a rally
+export async function GET({ params }: RequestEvent) {
   const rallyId = Number(params.id);
-  db.pragma('journal_mode = WAL');
-  const rows = db.prepare(`
-    SELECT id, rally_id, name, gate_id, blip_id
-    FROM stages
-    WHERE rally_id = ?
-    ORDER BY id;
-  `).all(rallyId);
+  const rows = db
+    .prepare('SELECT id, rally_id, name FROM stages WHERE rally_id = ? ORDER BY id')
+    .all(rallyId);
   return json(rows);
 }
 
-export async function POST({ params, request }) {
+// Create stage (name only)
+export async function POST({ params, request }: RequestEvent) {
   const rallyId = Number(params.id);
-  const { name, gate_id, blip_id } = await request.json();
-  if (!name || !gate_id || !blip_id) return json({ error: 'name, gate_id, blip_id required' }, { status: 400 });
+  const { name } = await request.json();
 
-  db.pragma('journal_mode = WAL');
-  const row = db.prepare(`
-    INSERT INTO stages(rally_id, name, gate_id, blip_id)
-    VALUES(?, ?, ?, ?)
-    RETURNING id, rally_id, name, gate_id, blip_id;
-  `).get(rallyId, String(name).trim(), String(gate_id).trim(), String(blip_id).trim());
+  if (!name || !name.trim()) {
+    return json({ error: 'Stage name required' }, { status: 400 });
+  }
+
+  const row = db
+    .prepare('INSERT INTO stages (rally_id, name) VALUES (?, ?) RETURNING id, rally_id, name')
+    .get(rallyId, name.trim());
+
   return json(row, { status: 201 });
 }
