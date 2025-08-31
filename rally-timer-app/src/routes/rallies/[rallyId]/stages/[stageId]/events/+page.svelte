@@ -24,14 +24,17 @@
 	};
 
 	let events = $state<UnifiedEvent[]>([]);
-	let editingId = $state<number | null>(null);
-	let editTs = $state<string>(''); // text to allow both number ms and ISO input if you paste
+	let editingKey = $state<string | null>(null); // <-- kind:id
+	let editTs = $state<string>(''); // visible edit buffer
+
+	function keyOf(e: UnifiedEvent) {
+		return `${e.kind}:${e.id}`;
+	}
 
 	function fmtMs(ms: number): string {
 		const dt = new Date(ms);
-		return dt.toLocaleString(); // human view
+		return dt.toLocaleString();
 	}
-
 	function fmtKind(k: UnifiedEvent['kind']): string {
 		if (k === 'start') return 'Start';
 		if (k === 'gate') return 'Gate';
@@ -45,22 +48,24 @@
 	}
 
 	async function loadEvents() {
+		// Don’t refetch while editing to avoid cursor jumps and state desync.
+		if (editingKey) return;
 		events = await fetchJSON<UnifiedEvent[]>(`/api/stage/${data.stageId}/events`);
 	}
 
 	function startEdit(e: UnifiedEvent) {
-		editingId = e.id;
+		editingKey = keyOf(e);
 		editTs = String(e.timestamp);
 	}
 	function cancelEdit() {
-		editingId = null;
+		editingKey = null;
 		editTs = '';
 	}
 
 	function endpointFor(kind: UnifiedEvent['kind'], id: number): string {
 		if (kind === 'start') return `/api/start-events/${id}`;
 		if (kind === 'gate') return `/api/gate-events/${id}`;
-		return `/api/blip-events/${id}`;
+		return `/api/blip/${id}`;
 	}
 
 	async function saveEdit(ev: UnifiedEvent) {
@@ -111,12 +116,13 @@
 				<TableHeadCell class="flex justify-end">Actions</TableHeadCell>
 			</TableHead>
 			<TableBody>
-				{#each events as e}
+				{#each events as e (keyOf(e))}
+					<!-- KEYED BY kind:id -->
 					<TableBodyRow>
 						<TableBodyCell class="font-medium">{fmtKind(e.kind)}</TableBodyCell>
 
 						<TableBodyCell>
-							{#if editingId === e.id}
+							{#if editingKey === keyOf(e)}
 								<div class="text-sm opacity-70">{fmtMs(Number(editTs) || 0)}</div>
 							{:else}
 								{fmtMs(e.timestamp)}
@@ -124,7 +130,7 @@
 						</TableBodyCell>
 
 						<TableBodyCell class="font-mono">
-							{#if editingId === e.id}
+							{#if editingKey === keyOf(e)}
 								<Input aria-label="Epoch ms" bind:value={editTs} class="w-48" />
 							{:else}
 								{e.timestamp}
@@ -142,7 +148,7 @@
 						</TableBodyCell>
 
 						<TableBodyCell class="flex justify-end gap-2">
-							{#if editingId === e.id}
+							{#if editingKey === keyOf(e)}
 								<Button size="xs" onclick={() => saveEdit(e)}>Save</Button>
 								<Button size="xs" color="light" onclick={cancelEdit}>Cancel</Button>
 							{:else}
