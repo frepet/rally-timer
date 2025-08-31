@@ -64,7 +64,7 @@
 
 	function endpointFor(kind: UnifiedEvent['kind'], id: number): string {
 		if (kind === 'start') return `/api/start-events/${id}`;
-		if (kind === 'gate') return `/api/gate-events/${id}`;
+		if (kind === 'gate') return `/api/gate/${id}`;
 		return `/api/blip/${id}`;
 	}
 
