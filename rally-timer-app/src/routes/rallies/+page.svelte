@@ -9,7 +9,8 @@
 		TableBodyRow,
 		TableBodyCell,
 		Input,
-		Select
+		Select,
+		P
 	} from 'flowbite-svelte';
 
 	type Rally = { id: number; name: string };
@@ -194,12 +195,11 @@
 <div class="w-full space-y-6 p-5">
 	<!-- Rallies -->
 	<Card class="max-w-none p-4 sm:p-6 md:p-8">
-		<h5 class="mb-4 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Rallies</h5>
-
+		<P class="mb-4 text-2xl font-bold tracking-tight">Rallies</P>
 		<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
 			<!-- Select Rally -->
 			<div>
-				<label for="rallySelect" class="mb-2 block text-sm font-medium">Select rally</label>
+				<label for="rallySelect" class="mb-2 block text-sm font-medium"><P>Select rally</P></label>
 				<Select id="rallySelect" bind:value={selectedRallyId} onchange={onSelectRally}>
 					<option value="">— Choose rally —</option>
 					{#each rallies as r}
@@ -210,7 +210,7 @@
 
 			<!-- Create Rally -->
 			<div>
-				<label for="newRally" class="mb-2 block text-sm font-medium">Create rally</label>
+				<label for="newRally" class="mb-2 block text-sm font-medium"><P>New Rally</P></label>
 				<div class="flex gap-2">
 					<Input
 						id="newRally"
@@ -224,44 +224,46 @@
 		</div>
 	</Card>
 
+	<Card class="max-w-none p-4 sm:p-6 md:p-8">
+		<a href={`/rallies/${selectedRallyId}/leaderboard`}>
+			<Button size="xs">View Leaderboard</Button>
+		</a>
+	</Card>
+
 	{#if selectedRallyId !== null}
 		<Card class="max-w-none p-4 sm:p-6 md:p-8">
-			<h5 class="mb-4 text-2xl font-bold">Assign drivers to rally</h5>
+			<P class="mb-4 text-2xl font-bold">Assign drivers to rally</P>
 			<div class="grid grid-cols-1 gap-6 md:grid-cols-2">
 				<div>
-					<h6 class="mb-2 text-lg font-semibold">Assigned</h6>
+					<P class="mb-2 text-lg font-semibold">Assigned</P>
 					<ul class="space-y-2">
 						{#each assigned as d}
 							<li class="flex items-center justify-between gap-2 rounded border p-2">
-								<span>{d.name} — {d.class_name || ''}</span>
-								<button class="rounded bg-red-600 px-2 py-1" onclick={() => removeFromRally(d.id)}
-									>Remove</button
+								<P><span>{d.name} — {d.class_name || ''}</span></P>
+								<Button class="rounded bg-red-600 px-2 py-1" onclick={() => removeFromRally(d.id)}
+									>Remove</Button
 								>
 							</li>
 						{/each}
 						{#if !assigned.length}
-							<li class="opacity-70">No drivers assigned.</li>
+							<li class="opacity-70"><P>No drivers assigned.</P></li>
 						{/if}
 					</ul>
 				</div>
 
-				<a href={`/rallies/${selectedRallyId}/leaderboard`}>
-					<Button size="xs">View Leaderboard</Button>
-				</a>
-
 				<div>
-					<h6 class="mb-2 text-lg font-semibold">Available</h6>
+					<P class="mb-2 text-lg font-semibold">Available</P>
 					<ul class="space-y-2">
 						{#each availableDrivers() as d}
 							<li class="flex items-center justify-between gap-2 rounded border p-2">
-								<span>{d.name} — {d.class_name || ''}</span>
-								<button class="rounded bg-emerald-600 px-2 py-1" onclick={() => addToRally(d.id)}
-									>Add</button
+								<P><span>{d.name} — {d.class_name || ''}</span></P>
+								<Button class="rounded px-2 py-1" color="green" onclick={() => addToRally(d.id)}
+									>Add</Button
 								>
 							</li>
 						{/each}
 						{#if !availableDrivers().length}
-							<li class="opacity-70">Everyone is assigned 🎉</li>
+							<li class="opacity-70"><P>Everyone is assigned 🎉</P></li>
 						{/if}
 					</ul>
 				</div>
@@ -270,13 +272,13 @@
 
 		<Card class="max-w-none p-4 sm:p-6 md:p-8">
 			<div class="mb-4">
-				<h5 class="text-2xl font-bold">Stages</h5>
+				<P class="text-2xl font-bold">Stages</P>
 			</div>
 
 			<!-- Add Stage -->
 			<div class="mb-4 grid grid-cols-1 gap-3 md:grid-cols-2">
 				<div>
-					<label for="stageName" class="mb-2 block text-sm font-medium">Stage name</label>
+					<P><label for="stageName" class="mb-2 block text-sm font-medium">Stage name</label></P>
 					<Input
 						id="stageName"
 						bind:value={newStageName}
