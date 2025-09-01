@@ -17,8 +17,9 @@
 
 	<NavHamburger />
 	<NavUl>
-		<NavLi href="/rallies ">Rallies</NavLi>
-		<NavLi href="/drivers">Drivers</NavLi>
+		<NavLi href="/">Results</NavLi>
+		<NavLi href="/manage">Manage Rallies</NavLi>
+		<NavLi href="/drivers">Manage Drivers</NavLi>
 		<NavLi href="/blipper">Blipper</NavLi>
 		<DarkMode class="flex-1" />
 	</NavUl>

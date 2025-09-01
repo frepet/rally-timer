@@ -224,12 +224,6 @@
 		</div>
 	</Card>
 
-	<Card class="max-w-none p-4 sm:p-6 md:p-8">
-		<a href={`/rallies/${selectedRallyId}/leaderboard`}>
-			<Button size="xs">View Leaderboard</Button>
-		</a>
-	</Card>
-
 	{#if selectedRallyId !== null}
 		<Card class="max-w-none p-4 sm:p-6 md:p-8">
 			<P class="mb-4 text-2xl font-bold">Assign drivers to rally</P>
