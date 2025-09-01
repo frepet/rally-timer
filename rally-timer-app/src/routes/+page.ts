@@ -1,8 +1,17 @@
-import type { PageLoad } from '$types';
-import type { GateEventType } from '../lib/types';
+import type { PageLoad } from './$types';
 
-export const load: PageLoad = async ({ fetch }) => {
-  let response = await fetch('/api/gate');
-  let gateEvents = await response.json() as GateEventType[];
-  return { gateEvents: gateEvents };
-}
+type Rally = { id: number; name: string };
+
+export const load: PageLoad = async ({ fetch, url }) => {
+  const rParam = url.searchParams.get('r');
+  const rallyId = rParam ? Number(rParam) : null;
+
+  const rallies: Rally[] = await fetch('/api/rally').then((r) => r.json());
+
+  const effectiveId = rallyId ?? (rallies.length ? rallies[0].id : null);
+
+  return {
+    rallyId: effectiveId,
+    rallies
+  };
+};
