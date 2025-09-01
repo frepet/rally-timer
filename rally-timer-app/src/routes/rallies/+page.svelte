@@ -194,8 +194,7 @@
 
 <div class="w-full space-y-6 p-5">
 	<!-- Rallies -->
-	<Card class="max-w-none p-4 sm:p-6 md:p-8">
-		<P class="mb-4 text-2xl font-bold tracking-tight">Rallies</P>
+	<Card class="max-w-none p-4">
 		<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
 			<!-- Select Rally -->
 			<div>
@@ -225,7 +224,7 @@
 	</Card>
 
 	{#if selectedRallyId !== null}
-		<Card class="max-w-none p-4 sm:p-6 md:p-8">
+		<Card class="max-w-none p-4">
 			<P class="mb-4 text-2xl font-bold">Assign drivers to rally</P>
 			<div class="grid grid-cols-1 gap-6 md:grid-cols-2">
 				<div>
@@ -264,7 +263,7 @@
 			</div>
 		</Card>
 
-		<Card class="max-w-none p-4 sm:p-6 md:p-8">
+		<Card class="max-w-none p-4">
 			<div class="mb-4">
 				<P class="text-2xl font-bold">Stages</P>
 			</div>
