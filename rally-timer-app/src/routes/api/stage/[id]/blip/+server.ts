@@ -1,8 +1,6 @@
 import { json, type RequestEvent } from "@sveltejs/kit";
-import Database from "better-sqlite3";
 import { NewBlipEvent } from "../../../../../lib/types";
-
-const db = new Database('database.sqlite', { fileMustExist: true });
+import { db } from "../../../../../lib/server/db";
 
 export async function POST(event: RequestEvent): Promise<Response> {
   const newBlipEvent = NewBlipEvent.parse(await event.request.json());

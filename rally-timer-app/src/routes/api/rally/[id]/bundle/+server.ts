@@ -1,8 +1,6 @@
+import { db } from '../../../../../lib/server/db';
 import type { RequestHandler } from './$types';
 import { json } from '@sveltejs/kit';
-import Database from 'better-sqlite3';
-
-const db = new Database('database.sqlite', { fileMustExist: true });
 
 export const GET: RequestHandler = ({ params }) => {
   const rallyId = Number(params.id);

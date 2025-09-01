@@ -1,8 +1,6 @@
 import { json } from '@sveltejs/kit';
-import Database from 'better-sqlite3';
 import type { RequestEvent } from './$types';
-
-const db = new Database('database.sqlite', { fileMustExist: true });
+import { db } from '../../../../../lib/server/db';
 
 export async function GET({ params }: RequestEvent) {
   const rallyId = Number(params.id);
