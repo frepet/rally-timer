@@ -9,7 +9,8 @@
 		TableBodyRow,
 		TableBodyCell,
 		Button,
-		Input
+		Input,
+		P
 	} from 'flowbite-svelte';
 	import type { PageProps } from './$types';
 
@@ -102,9 +103,11 @@
 
 <div class="w-full space-y-6 p-5">
 	<Card class="max-w-none p-4 sm:p-6 md:p-8">
-		<h5 class="mb-4 text-2xl font-bold">Stage Events Timeline</h5>
+		<P class="mb-4 text-2xl font-bold">Stage Events Timeline</P>
 		<div class="mb-4 text-sm opacity-80">
-			Rally ID: {data.rallyId} • Stage ID: {data.stageId}
+			<P>
+				Rally ID: {data.rallyId} • Stage ID: {data.stageId}
+			</P>
 		</div>
 
 		<Table hoverable>
