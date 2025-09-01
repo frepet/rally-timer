@@ -1,7 +1,5 @@
 import { json, type RequestEvent } from "@sveltejs/kit";
-import Database from "better-sqlite3";
-
-const db = new Database('database.sqlite', { fileMustExist: true });
+import { db } from "../../../lib/server/db";
 
 export async function POST(event: RequestEvent): Promise<Response> {
   const { name, class_id, tag } = await event.request.json();

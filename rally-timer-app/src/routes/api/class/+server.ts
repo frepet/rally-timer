@@ -1,7 +1,5 @@
 import { json } from "@sveltejs/kit";
-import Database from "better-sqlite3";
-
-const db = new Database('database.sqlite', { fileMustExist: true });
+import { db } from "../../../lib/server/db";
 
 export async function GET() {
   db.pragma('journal_mode = WAL');

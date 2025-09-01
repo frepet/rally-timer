@@ -1,7 +1,5 @@
-import Database from 'better-sqlite3';
 import { json, type RequestEvent } from '@sveltejs/kit';
-
-const db = new Database('database.sqlite', { fileMustExist: true });
+import { db } from '../../../../lib/server/db';
 
 export async function DELETE(event: RequestEvent): Promise<Response> {
   const id = Number(event.params.id);

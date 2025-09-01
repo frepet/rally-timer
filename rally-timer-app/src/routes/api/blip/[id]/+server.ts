@@ -1,7 +1,5 @@
 import { json, type RequestEvent } from "@sveltejs/kit";
-import Database from "better-sqlite3";
-
-const db = new Database('database.sqlite', { fileMustExist: true });
+import { db } from "../../../../lib/server/db";
 
 export async function DELETE(event: RequestEvent): Promise<Response> {
   let result = db.prepare("DELETE FROM blip_events WHERE id = ?;").run(event.params.id);

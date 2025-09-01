@@ -1,8 +1,7 @@
 import { json } from '@sveltejs/kit';
-import Database from 'better-sqlite3';
 import type { RequestEvent } from './$types';
+import { db } from '../../../../../lib/server/db';
 
-const db = new Database('database.sqlite', { fileMustExist: true });
 
 export async function GET({ params }: RequestEvent) {
   const stageId = Number(params.id);
