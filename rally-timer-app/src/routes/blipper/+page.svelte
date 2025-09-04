@@ -124,15 +124,60 @@
 	let buffer = '';
 	let lastKeyTime = 0;
 	const GAP_RESET_MS = 500;
-	function isEditable(el: EventTarget | null): boolean {
+
+	let captureEl: HTMLInputElement | null = null;
+
+	function isTypingField(el: Element | null): boolean {
 		const e = el as HTMLElement | null;
-		return (
-			!!e &&
-			(e.tagName?.toLowerCase() === 'input' ||
-				e.tagName?.toLowerCase() === 'textarea' ||
-				e.isContentEditable)
-		);
+		if (!e) return false;
+		if (e.isContentEditable) return true;
+		const tag = e.tagName?.toLowerCase();
+		if (tag === 'textarea') return true;
+		if (tag === 'input') {
+			const t = (e as HTMLInputElement).type?.toLowerCase();
+			return ['text', 'search', 'password', 'email', 'number', 'url', 'tel'].includes(t);
+		}
+		return false;
 	}
+
+	function focusCapture() {
+		if (!captureEnabled || !captureEl) return;
+		const ae = document.activeElement as Element | null;
+		if (isTypingField(ae)) return; // don’t steal from real text fields
+		captureEl.focus();
+		// place caret at end
+		const len = captureEl.value.length;
+		try {
+			captureEl.setSelectionRange(len, len);
+		} catch {}
+	}
+
+	function handleCaptureKey(ev: KeyboardEvent) {
+		if (!captureEnabled) return;
+
+		const now = performance.now();
+		if (now - lastKeyTime > GAP_RESET_MS) buffer = '';
+		lastKeyTime = now;
+
+		if (ev.key === 'Enter' || ev.key === 'Tab') {
+			ev.preventDefault();
+			const tag = (buffer || captureEl?.value || '').trim();
+			buffer = '';
+			if (captureEl) captureEl.value = '';
+			if (tag) submitBlip(tag);
+			return;
+		}
+		if (ev.key === 'Escape') {
+			buffer = '';
+			if (captureEl) captureEl.value = '';
+			return;
+		}
+		if (ev.key.length === 1) {
+			buffer += ev.key;
+			if (captureEl) captureEl.value += ev.key; // keep mirror
+		}
+	}
+
 	async function submitBlip(tag: string) {
 		if (!stageId) return;
 		try {
@@ -162,39 +207,50 @@
 			triggerFlash('blip', driverName ? `${driverName} (${tag})` : tag);
 			cueBlip();
 			pushLog({ kind: 'blip', at: Date.now(), label: driverName ?? tag });
-		} catch (err) {
+		} catch {
 			lastStatus = 'Network error';
 		}
 	}
-	function handleKey(ev: KeyboardEvent) {
-		if (!captureEnabled || isEditable(ev.target)) return;
-		const now = performance.now();
-		if (now - lastKeyTime > GAP_RESET_MS) buffer = '';
-		lastKeyTime = now;
-		if (ev.key === 'Enter' || ev.key === 'Tab') {
-			ev.preventDefault();
-			const tag = buffer.trim();
-			buffer = '';
-			if (tag) submitBlip(tag);
-			return;
-		}
-		if (ev.key === 'Escape') {
-			buffer = '';
-			return;
-		}
-		if (ev.key.length === 1) buffer += ev.key;
-	}
-	onMount(async () => {
-		window.addEventListener('keydown', handleKey);
 
-		await loadRallies();
-		const savedRally = localStorage.getItem('blip:lastRallyId');
-		if (savedRally) {
-			rallyId = Number(savedRally);
-			await loadStages(rallyId);
+	onMount(() => {
+		// hook up the hidden input
+		captureEl?.addEventListener('keydown', handleCaptureKey, { capture: true });
+
+		// keep the hidden input focused whenever we click around / refocus
+		const keepFocus = () => focusCapture();
+		document.addEventListener('click', keepFocus, true);
+		document.addEventListener('focusin', keepFocus);
+
+		// initial focus for scanners
+		focusCapture();
+
+		// initial data
+		(async () => {
+			try {
+				await loadRallies();
+				const savedRally = localStorage.getItem('blip:lastRallyId');
+				if (savedRally) {
+					rallyId = Number(savedRally);
+					await loadStages(rallyId);
+				}
+				const savedStage = localStorage.getItem('blip:lastStageId');
+				if (savedStage) stageId = Number(savedStage);
+			} catch {}
+		})();
+
+		return () => {
+			captureEl?.removeEventListener('keydown', handleCaptureKey, { capture: true } as any);
+			document.removeEventListener('click', keepFocus, true);
+			document.removeEventListener('focusin', keepFocus);
+		};
+	});
+
+	$effect(() => {
+		// toggle capture focus as the user enables/disables it
+		if (captureEnabled) focusCapture();
+		else {
+			if (document.activeElement === captureEl) (document.activeElement as HTMLElement)?.blur();
 		}
-		const savedStage = localStorage.getItem('blip:lastStageId');
-		if (savedStage) stageId = Number(savedStage);
 	});
 
 	$effect(() => {
@@ -290,7 +346,18 @@
 	}
 </script>
 
-<div class="w-full space-y-6 p-5">
+<!-- Hidden capture input for wedge scanners: always focused when capture is enabled -->
+<input
+	id="blip-capture"
+	bind:this={captureEl}
+	autocomplete="off"
+	autocapitalize="off"
+	spellcheck="false"
+	inputmode="none"
+	style="position:fixed; left:-9999px; width:1px; height:1px; opacity:0; pointer-events:none;"
+/>
+
+<div id="blipper-root" class="w-full space-y-6 p-5">
 	{#if flash}
 		<div class={`flash ${flash.kind}`}>
 			{flash.kind === 'blip' ? 'BLIP: ' : 'GATE: '}
