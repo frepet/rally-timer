@@ -33,20 +33,17 @@
 	<NavHamburger />
 	<NavUl>
 		<NavLi href="/">Results</NavLi>
-		<NavLi href="/rallies">Manage Rallies</NavLi>
-		<NavLi href="/drivers">Manage Drivers</NavLi>
-		<NavLi href="/blipper">Blipper</NavLi>
+		{#if $isAdmin}
+			<NavLi href="/rallies">Manage Rallies</NavLi>
+			<NavLi href="/drivers">Manage Drivers</NavLi>
+			<NavLi href="/blipper">Blipper</NavLi>
+		{/if}
+		{#if $isAuthenticated}
+			<Button onclick={logout}>Logout</Button>
+		{:else}
+			<Button onclick={login}>Login</Button>
+		{/if}
 		<DarkMode class="flex-1" />
 	</NavUl>
 </Navbar>
-{#if $isAuthenticated}
-	<Button onclick={logout}>Logout</Button>
-	{#if $isAdmin}
-		<p>✅ You are an admin!</p>
-	{:else}
-		<p>👋 Logged in, but not an admin.</p>
-	{/if}
-{:else}
-	<Button onclick={login}>Login</Button>
-{/if}
 {@render children?.()}
