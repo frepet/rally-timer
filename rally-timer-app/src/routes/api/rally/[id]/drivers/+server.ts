@@ -1,5 +1,6 @@
 import { json } from '@sveltejs/kit';
 import { db } from '../../../../../lib/server/db';
+import { throwIfNotAdmin } from '../../../../../lib/server/keycloak';
 
 export async function GET({ params }) {
   const rallyId = Number(params.id);
@@ -20,9 +21,10 @@ export async function GET({ params }) {
   return json(rows);
 }
 
-export async function POST({ params, request }) {
-  const rallyId = Number(params.id);
-  const { driver_id } = await request.json();
+export async function POST(event) {
+  await throwIfNotAdmin(event);
+  const rallyId = Number(event.params.id);
+  const { driver_id } = await event.request.json();
   if (!rallyId || !driver_id)
     return json({ error: 'rallyId and driver_id required' }, { status: 400 });
 

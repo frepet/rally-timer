@@ -16,6 +16,7 @@
 	import { goto } from '$app/navigation';
 	import type { PageProps } from './$types';
 	import { initKeycloak } from '../lib/stores/auth';
+	import { kcFetch } from '../lib/kcFetch';
 
 	let { data }: PageProps = $props();
 
@@ -77,8 +78,8 @@
 		const cs = Math.floor((ms % 1000) / 10);
 		return `${m}:${String(s).padStart(2, '0')}.${String(cs).padStart(2, '0')}`;
 	}
-	async function fetchJSON<T>(url: string): Promise<T> {
-		const res = await fetch(url);
+	async function kcFetchJSON<T>(url: string): Promise<T> {
+		const res = await kcFetch(url);
 		if (!res.ok) throw new Error(await res.text());
 		return res.json() as Promise<T>;
 	}
@@ -87,7 +88,7 @@
 	async function loadAllRaw() {
 		if (!selectedRallyId) return;
 
-		const bundle = await fetchJSON<{
+		const bundle = await kcFetchJSON<{
 			drivers: Driver[];
 			stages: Stage[];
 			start_events: StartEvent[];

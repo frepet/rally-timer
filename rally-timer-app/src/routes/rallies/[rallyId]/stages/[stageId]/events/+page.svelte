@@ -13,6 +13,7 @@
 		P
 	} from 'flowbite-svelte';
 	import type { PageProps } from './$types';
+	import { kcFetch } from '../../../../../../lib/kcFetch';
 
 	let { data }: PageProps = $props();
 
@@ -42,16 +43,16 @@
 		return 'Blip';
 	}
 
-	async function fetchJSON<T>(url: string, init?: RequestInit): Promise<T> {
-		const res = await fetch(url, init);
+	async function kcFetchJSON<T>(url: string, init?: RequestInit): Promise<T> {
+		const res = await kcFetch(url, init);
 		if (!res.ok) throw new Error(await res.text());
 		return res.json();
 	}
 
 	async function loadEvents() {
-		// Don’t refetch while editing to avoid cursor jumps and state desync.
+		// Don’t rekcFetch while editing to avoid cursor jumps and state desync.
 		if (editingKey) return;
-		events = await fetchJSON<UnifiedEvent[]>(`/api/stage/${data.stageId}/events`);
+		events = await kcFetchJSON<UnifiedEvent[]>(`/api/stage/${data.stageId}/events`);
 	}
 
 	function startEdit(e: UnifiedEvent) {
@@ -75,7 +76,7 @@
 			alert('Enter timestamp in milliseconds since epoch (integer).');
 			return;
 		}
-		await fetchJSON(endpointFor(ev.kind, ev.id), {
+		await kcFetchJSON(endpointFor(ev.kind, ev.id), {
 			method: 'PATCH',
 			headers: { 'content-type': 'application/json' },
 			body: JSON.stringify({ timestamp: parsed })
@@ -86,7 +87,7 @@
 
 	async function deleteEvent(ev: UnifiedEvent) {
 		if (!confirm(`Delete ${ev.kind} #${ev.id}?`)) return;
-		await fetch(endpointFor(ev.kind, ev.id), { method: 'DELETE' });
+		await kcFetch(endpointFor(ev.kind, ev.id), { method: 'DELETE' });
 		await loadEvents();
 	}
 

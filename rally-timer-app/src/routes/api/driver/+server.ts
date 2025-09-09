@@ -1,7 +1,9 @@
 import { json, type RequestEvent } from "@sveltejs/kit";
 import { db } from "../../../lib/server/db";
+import { throwIfNotAdmin } from "../../../lib/server/keycloak";
 
 export async function POST(event: RequestEvent): Promise<Response> {
+  await throwIfNotAdmin(event);
   const { name, class_id, tag } = await event.request.json();
   if (!name || !class_id || !tag) return json({ error: 'name, class_id, tag required' }, { status: 400 });
 
@@ -26,7 +28,8 @@ export async function GET(): Promise<Response> {
   return json(rows);
 }
 
-export async function DELETE(): Promise<Response> {
+export async function DELETE(event): Promise<Response> {
+  await throwIfNotAdmin(event);
   db.pragma('journal_mode = WAL');
   db.exec("DELETE FROM drivers");
   return new Response(null, { status: 204 });

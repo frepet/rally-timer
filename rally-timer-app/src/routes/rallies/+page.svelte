@@ -12,6 +12,7 @@
 		Select,
 		P
 	} from 'flowbite-svelte';
+	import { kcFetch } from '../../lib/kcFetch';
 
 	type Rally = { id: number; name: string };
 	type Stage = { id: number; rally_id: number; name: string };
@@ -53,6 +54,12 @@
 	}
 
 	// --- API helpers
+	async function kcFetchJSON<T>(url: string, init?: RequestInit): Promise<T> {
+		const res = await kcFetch(url, init);
+		if (!res.ok) throw new Error(await res.text());
+		return res.json();
+	}
+
 	async function fetchJSON<T>(url: string, init?: RequestInit): Promise<T> {
 		const res = await fetch(url, init);
 		if (!res.ok) throw new Error(await res.text());
@@ -79,7 +86,7 @@
 	async function createRally() {
 		const name = newRallyName.trim();
 		if (!name) return;
-		const r = await fetchJSON<Rally>('/api/rally', {
+		const r = await kcFetchJSON<Rally>('/api/rally', {
 			method: 'POST',
 			headers: { 'content-type': 'application/json' },
 			body: JSON.stringify({ name })
@@ -112,7 +119,7 @@
 		const name = newStageName.trim();
 		if (!name) return;
 
-		await fetchJSON(`/api/rally/${rallyId}/stages`, {
+		await kcFetchJSON(`/api/rally/${rallyId}/stages`, {
 			method: 'POST',
 			headers: { 'content-type': 'application/json' },
 			body: JSON.stringify({ name })
@@ -137,7 +144,7 @@
 			return;
 		}
 
-		await fetchJSON(`/api/stage/${id}`, {
+		await kcFetchJSON(`/api/stage/${id}`, {
 			method: 'PATCH',
 			headers: { 'content-type': 'application/json' },
 			body: JSON.stringify(patch)
@@ -146,7 +153,7 @@
 		if (selectedRallyId !== null) await loadStages(Number(selectedRallyId));
 	}
 	async function deleteStage(id: number) {
-		await fetch(`/api/stage/${id}`, { method: 'DELETE' });
+		await kcFetch(`/api/stage/${id}`, { method: 'DELETE' });
 		if (selectedRallyId !== null) await loadStages(Number(selectedRallyId));
 	}
 
@@ -177,7 +184,7 @@
 	async function addToRally(driverId: number) {
 		if (selectedRallyId === null) return;
 		const id = Number(selectedRallyId);
-		await fetchJSON(`/api/rally/${id}/drivers`, {
+		await kcFetchJSON(`/api/rally/${id}/drivers`, {
 			method: 'POST',
 			headers: { 'content-type': 'application/json' },
 			body: JSON.stringify({ driver_id: driverId })
@@ -187,7 +194,7 @@
 	async function removeFromRally(driverId: number) {
 		if (selectedRallyId === null) return;
 		const id = Number(selectedRallyId);
-		await fetch(`/api/rally/${id}/drivers/${driverId}`, { method: 'DELETE' });
+		await kcFetch(`/api/rally/${id}/drivers/${driverId}`, { method: 'DELETE' });
 		await loadAssigned(id);
 	}
 </script>

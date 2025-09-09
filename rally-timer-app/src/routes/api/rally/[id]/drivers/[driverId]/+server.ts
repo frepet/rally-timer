@@ -1,8 +1,10 @@
 import { db } from "../../../../../../lib/server/db";
+import { throwIfNotAdmin } from "../../../../../../lib/server/keycloak";
 
-export async function DELETE({ params }) {
-  const rallyId = Number(params.id);
-  const driverId = Number(params.driverId);
+export async function DELETE(event) {
+  await throwIfNotAdmin(event);
+  const rallyId = Number(event.params.id);
+  const driverId = Number(event.params.driverId);
   db.pragma('journal_mode = WAL');
   const res = db
     .prepare(`DELETE FROM rally_drivers WHERE rally_id = ? AND driver_id = ?;`)
