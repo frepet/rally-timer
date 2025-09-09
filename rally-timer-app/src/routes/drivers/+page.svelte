@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { kcFetch } from '../../lib/kcFetch';
 	import type { PageProps } from './$types';
 	import {
 		Card,
@@ -46,7 +47,7 @@
 	let tagInputEl = $state<HTMLInputElement | undefined>(undefined);
 
 	async function loadClasses() {
-		const res = await fetch('/api/class');
+		const res = await kcFetch('/api/class');
 		if (res.ok) {
 			classes = await res.json();
 			// Preselect last used class if present in list
@@ -59,7 +60,7 @@
 	}
 
 	async function refresh() {
-		const res = await fetch(apiPath);
+		const res = await kcFetch(apiPath);
 		if (res.ok) drivers = await res.json();
 	}
 
@@ -69,7 +70,7 @@
 		const class_id = newClassId === '' ? null : Number(newClassId);
 		if (!name || !class_id || !tag) return;
 
-		const res = await fetch(apiPath, {
+		const res = await kcFetch(apiPath, {
 			method: 'POST',
 			headers: { 'content-type': 'application/json' },
 			body: JSON.stringify({ name, class_id, tag })
@@ -122,7 +123,7 @@
 			return;
 		}
 
-		const res = await fetch(`${apiPath}/${id}`, {
+		const res = await kcFetch(`${apiPath}/${id}`, {
 			method: 'PATCH',
 			headers: { 'content-type': 'application/json' },
 			body: JSON.stringify(patch)
@@ -135,11 +136,11 @@
 
 	// Deletes
 	async function deleteOne(id: number) {
-		await fetch(`${apiPath}/${id}`, { method: 'DELETE' });
+		await kcFetch(`${apiPath}/${id}`, { method: 'DELETE' });
 		await refresh();
 	}
 	async function clearAll() {
-		await fetch(apiPath, { method: 'DELETE' });
+		await kcFetch(apiPath, { method: 'DELETE' });
 		await refresh();
 	}
 

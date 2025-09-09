@@ -2,6 +2,7 @@
 	import { Card, Button, Input } from 'flowbite-svelte';
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
+	import { kcFetch } from '../../../../../../lib/kcFetch';
 
 	type Driver = { id: number; name: string; class_name?: string; tag: string };
 	type Rally = { id: number; name: string };
@@ -45,7 +46,7 @@
 		rallyId = Number($page.params.rallyId);
 		stageId = Number($page.params.stageId);
 
-		const res = await fetch(`/api/rally/${rallyId}/bundle`);
+		const res = await kcFetch(`/api/rally/${rallyId}/bundle`);
 		if (!res.ok) return;
 
 		const bundle = (await res.json()) as {
@@ -73,7 +74,7 @@
 		if (!drivers[idx]) return;
 		// Long high beep on GO
 		beep(1000, 600);
-		await fetch(`/api/stage/${stageId}/start`, {
+		await kcFetch(`/api/stage/${stageId}/start`, {
 			method: 'POST',
 			headers: { 'content-type': 'application/json' },
 			body: JSON.stringify({ driver_id: drivers[idx].id })

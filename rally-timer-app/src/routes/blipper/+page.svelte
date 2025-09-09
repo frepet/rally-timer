@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { Card, Button, Select, Toggle, Range, Badge, Heading, P } from 'flowbite-svelte';
+	import { kcFetch } from '../../lib/kcFetch';
 
 	type Rally = { id: number; name: string };
 	type Stage = { id: number; rally_id: number; name: string };
@@ -84,7 +85,7 @@
 		if (driverCache.has(key)) return driverCache.get(key)!;
 
 		try {
-			const { driver } = await (await fetch(`/api/tag/${encodeURIComponent(key)}`)).json();
+			const { driver } = await (await kcFetch(`/api/tag/${encodeURIComponent(key)}`)).json();
 			const name = driver?.name ?? null;
 			return name;
 		} catch {
@@ -97,16 +98,16 @@
 		return new Date(ms).toLocaleTimeString();
 	}
 
-	async function fetchJSON<T>(url: string): Promise<T> {
-		const res = await fetch(url);
+	async function kcFetchJSON<T>(url: string): Promise<T> {
+		const res = await kcFetch(url);
 		if (!res.ok) throw new Error(await res.text());
 		return res.json();
 	}
 	async function loadRallies() {
-		rallies = await fetchJSON<Rally[]>('/api/rally');
+		rallies = await kcFetchJSON<Rally[]>('/api/rally');
 	}
 	async function loadStages(id: number) {
-		stages = await fetchJSON<Stage[]>(`/api/rally/${id}/stages`);
+		stages = await kcFetchJSON<Stage[]>(`/api/rally/${id}/stages`);
 	}
 
 	async function onSelectRally() {
@@ -181,7 +182,7 @@
 	async function submitBlip(tag: string) {
 		if (!stageId) return;
 		try {
-			const res = await fetch('/api/blip', {
+			const res = await kcFetch('/api/blip', {
 				method: 'POST',
 				headers: { 'content-type': 'application/json' },
 				body: JSON.stringify({ stage_id: stageId, tag, source: 'keyboard-wedge' })
@@ -328,7 +329,7 @@
 					pushLog({ kind: 'gate', at: Date.now(), label: 'Pulse' });
 
 					if (stageId) {
-						await fetch('/api/gate', {
+						await kcFetch('/api/gate', {
 							method: 'POST',
 							headers: { 'content-type': 'application/json' },
 							body: JSON.stringify({ stage_id: stageId, source: 'webserial' })

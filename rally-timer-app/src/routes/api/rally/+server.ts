@@ -1,5 +1,6 @@
 import { json, type RequestEvent } from "@sveltejs/kit";
 import { db } from "../../../lib/server/db";
+import { throwIfNotAdmin } from "../../../lib/server/keycloak";
 
 export async function GET() {
   db.pragma('journal_mode = WAL');
@@ -8,6 +9,7 @@ export async function GET() {
 }
 
 export async function POST(event: RequestEvent) {
+  await throwIfNotAdmin(event);
   const { name } = await event.request.json();
   if (!name || !String(name).trim()) return json({ error: 'name required' }, { status: 400 });
   db.pragma('journal_mode = WAL');

@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestEvent } from './$types';
 import { db } from '../../../../../lib/server/db';
+import { throwIfNotAdmin } from '../../../../../lib/server/keycloak';
 
 // List stages for a rally
 export async function GET({ params }: RequestEvent) {
@@ -12,9 +13,10 @@ export async function GET({ params }: RequestEvent) {
 }
 
 // Create stage (name only)
-export async function POST({ params, request }: RequestEvent) {
-  const rallyId = Number(params.id);
-  const { name } = await request.json();
+export async function POST(event: RequestEvent) {
+  await throwIfNotAdmin(event);
+  const rallyId = Number(event.params.id);
+  const { name } = await event.request.json();
 
   if (!name || !name.trim()) {
     return json({ error: 'Stage name required' }, { status: 400 });

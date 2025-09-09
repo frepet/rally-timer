@@ -1,7 +1,9 @@
 import { json, type RequestEvent } from "@sveltejs/kit";
 import { db } from "../../../../lib/server/db";
+import { throwIfNotAdmin } from "../../../../lib/server/keycloak";
 
 export async function PATCH(event: RequestEvent): Promise<Response> {
+  await throwIfNotAdmin(event);
   const id = Number(event.params.id);
   const raw = (await event.request.json()) as unknown;
 
@@ -54,6 +56,7 @@ export async function PATCH(event: RequestEvent): Promise<Response> {
 }
 
 export async function DELETE(event: RequestEvent): Promise<Response> {
+  await throwIfNotAdmin(event);
   const id = Number(event.params.id);
   const res = db.prepare("DELETE FROM drivers WHERE id = ?;").run(id);
   if (res.changes === 0) return new Response(null, { status: 404 });

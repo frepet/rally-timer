@@ -1,8 +1,10 @@
 import { json, type RequestEvent } from "@sveltejs/kit";
 import { db } from "../../../lib/server/db";
+import { throwIfNotAdmin } from "../../../lib/server/keycloak";
 
-export async function POST({ request }) {
-  const { stage_id, tag } = await request.json();
+export async function POST(event) {
+  await throwIfNotAdmin(event);
+  const { stage_id, tag } = await event.request.json();
   if (!stage_id || !tag) return json({ error: "stage_id and tag required" }, { status: 400 });
 
   db.pragma("journal_mode = WAL");
@@ -36,6 +38,7 @@ export async function GET() {
 }
 
 export async function DELETE(event: RequestEvent): Promise<Response> {
+  await throwIfNotAdmin(event);
   db.pragma('journal_mode = WAL');
   db.exec("DELETE FROM blip_events");
 

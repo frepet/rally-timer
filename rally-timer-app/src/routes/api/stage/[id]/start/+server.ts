@@ -1,9 +1,11 @@
-import { json } from '@sveltejs/kit';
+import { json, type RequestEvent } from '@sveltejs/kit';
 import { db } from '../../../../../lib/server/db';
+import { throwIfNotAdmin } from '../../../../../lib/server/keycloak';
 
-export async function POST({ params, request }) {
-  const stageId = Number(params.id);
-  const { driver_id } = await request.json();
+export async function POST(event: RequestEvent): Promise<Response> {
+  await throwIfNotAdmin(event);
+  const stageId = Number(event.params.id);
+  const { driver_id } = await event.request.json();
   if (!stageId || !driver_id)
     return json({ error: 'stageId & driver_id required' }, { status: 400 });
 

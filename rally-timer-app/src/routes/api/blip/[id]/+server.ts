@@ -1,7 +1,10 @@
 import { json, type RequestEvent } from "@sveltejs/kit";
 import { db } from "../../../../lib/server/db";
+import { throwIfNotAdmin } from "../../../../lib/server/keycloak";
 
 export async function DELETE(event: RequestEvent): Promise<Response> {
+  await throwIfNotAdmin(event);
+
   let result = db.prepare("DELETE FROM blip_events WHERE id = ?;").run(event.params.id);
   return json(result);
 }

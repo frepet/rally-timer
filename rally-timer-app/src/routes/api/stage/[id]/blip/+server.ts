@@ -1,8 +1,10 @@
 import { json, type RequestEvent } from "@sveltejs/kit";
 import { NewBlipEvent } from "../../../../../lib/types";
 import { db } from "../../../../../lib/server/db";
+import { throwIfNotAdmin } from "../../../../../lib/server/keycloak";
 
 export async function POST(event: RequestEvent): Promise<Response> {
+  await throwIfNotAdmin(event);
   const newBlipEvent = NewBlipEvent.parse(await event.request.json());
 
   db.pragma('journal_mode = WAL');
