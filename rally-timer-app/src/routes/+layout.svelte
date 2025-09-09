@@ -1,8 +1,23 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import '../app.css';
-	import { DarkMode, Heading, Navbar, NavBrand, NavHamburger, NavLi, NavUl } from 'flowbite-svelte';
+	import {
+		Button,
+		DarkMode,
+		Heading,
+		Navbar,
+		NavBrand,
+		NavHamburger,
+		NavLi,
+		NavUl
+	} from 'flowbite-svelte';
+	import { initKeycloak, isAdmin, isAuthenticated, login, logout } from '../lib/stores/auth';
 
 	let { children } = $props();
+
+	onMount(async () => {
+		initKeycloak();
+	});
 </script>
 
 <svelte:head>
@@ -24,4 +39,14 @@
 		<DarkMode class="flex-1" />
 	</NavUl>
 </Navbar>
+{#if $isAuthenticated}
+	<Button onclick={logout}>Logout</Button>
+	{#if $isAdmin}
+		<p>✅ You are an admin!</p>
+	{:else}
+		<p>👋 Logged in, but not an admin.</p>
+	{/if}
+{:else}
+	<Button onclick={login}>Login</Button>
+{/if}
 {@render children?.()}
