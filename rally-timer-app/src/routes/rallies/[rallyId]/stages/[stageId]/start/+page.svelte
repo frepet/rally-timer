@@ -81,6 +81,7 @@
 
 	async function launchCurrentDriver() {
 		if (!drivers[idx]) return;
+		speechSynthesis.cancel();
 		speechSynthesis.speak(utters.get('go')!);
 		await kcFetch(`/api/stage/${stageId}/start`, {
 			method: 'POST',
@@ -88,6 +89,11 @@
 			body: JSON.stringify({ driver_id: drivers[idx].id })
 		});
 		idx += 1;
+		if (idx < drivers.length) {
+			speechSynthesis.speak(createUtterance('Next driver:' + drivers[idx].name));
+		} else {
+			speechSynthesis.speak(createUtterance('No more drivers'));
+		}
 	}
 
 	function tick() {
@@ -102,6 +108,7 @@
 		if (whole !== prevWhole) {
 			if (whole < 6 && whole > 0) {
 				setLED(whole);
+				speechSynthesis.cancel(); // Cancel any ongoing speech to avoid overlap
 				speechSynthesis.speak(utters.get(whole.toString())!);
 			} else if (whole === 0) {
 				setLED(whole);
@@ -130,6 +137,7 @@
 		setLED(6);
 		timer && clearInterval(timer);
 		timer = setInterval(tick, 100); // 10Hz for smooth countdown
+		speechSynthesis.speak(createUtterance('Next driver:' + drivers[idx].name));
 	}
 
 	function pause() {
