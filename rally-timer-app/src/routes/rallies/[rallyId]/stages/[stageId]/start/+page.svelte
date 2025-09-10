@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Card, Button, Input } from 'flowbite-svelte';
+	import { Card, Button, Input, P } from 'flowbite-svelte';
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
 	import { kcFetch } from '../../../../../../lib/kcFetch';
@@ -21,25 +21,24 @@
 	let paused = $state(false);
 	let gapSeconds = $state(10);
 	let remainingMs = $state(0);
-	const leds = $state([false, false, false, false]);
+	const leds = $state([0, 0, 0, 0, 0]);
 	let timer: ReturnType<typeof setInterval> | undefined;
 
-	// Audio beeps
-	let ac: AudioContext | undefined;
-	function beep(freq: number, ms: number) {
-		if (!ac) ac = new (window.AudioContext || (window as any).webkitAudioContext)();
-		const o = ac.createOscillator();
-		const g = ac.createGain();
-		o.connect(g);
-		g.connect(ac.destination);
-		o.frequency.value = freq;
-		o.type = 'sine';
-		const now = ac.currentTime;
-		g.gain.setValueAtTime(0.0001, now);
-		g.gain.linearRampToValueAtTime(0.2, now + 0.01);
-		g.gain.linearRampToValueAtTime(0.0001, now + ms / 1000);
-		o.start(now);
-		o.stop(now + ms / 1000 + 0.02);
+	let utters = new Map<string, SpeechSynthesisUtterance>([
+		['1', createUtterance('1')],
+		['2', createUtterance('2')],
+		['3', createUtterance('3')],
+		['4', createUtterance('4')],
+		['5', createUtterance('5')],
+		['go', createUtterance('go')]
+	]);
+
+	function createUtterance(text: string) {
+		let utter = new SpeechSynthesisUtterance(text);
+		utter.lang = 'en-GB';
+		utter.rate = 1;
+		utter.pitch = 1.4;
+		return utter;
 	}
 
 	async function loadQueue() {
@@ -64,16 +63,25 @@
 	}
 
 	function setLED(step: number) {
-		leds[0] = step >= 1;
-		leds[1] = step >= 2;
-		leds[2] = step >= 3;
-		leds[3] = step >= 4;
+		if (step < 0 || step > 5) {
+			leds.fill(3);
+			return;
+		}
+		if (step == 0) {
+			leds.fill(2);
+			return;
+		}
+
+		leds[0] = step >= 1 ? 1 : 0;
+		leds[1] = step >= 2 ? 1 : 0;
+		leds[2] = step >= 3 ? 1 : 0;
+		leds[3] = step >= 4 ? 1 : 0;
+		leds[4] = step >= 5 ? 1 : 0;
 	}
 
 	async function launchCurrentDriver() {
 		if (!drivers[idx]) return;
-		// Long high beep on GO
-		beep(1000, 600);
+		speechSynthesis.speak(utters.get('go')!);
 		await kcFetch(`/api/stage/${stageId}/start`, {
 			method: 'POST',
 			headers: { 'content-type': 'application/json' },
@@ -90,20 +98,25 @@
 
 		const whole = Math.ceil(remainingMs / 1000);
 
-		// Beep on 3,2,1; Go at 0
+		// Speak on 5,4,3,2,1; Go at 0
 		if (whole !== prevWhole) {
-			if (whole === 3 || whole === 2 || whole === 1) {
-				setLED(4 - whole); // light up 1..3
-				beep(440, 150);
+			if (whole < 6 && whole > 0) {
+				setLED(whole);
+				speechSynthesis.speak(utters.get(whole.toString())!);
 			} else if (whole === 0) {
-				setLED(4);
+				setLED(whole);
 				launchCurrentDriver().then(() => {
 					if (idx >= drivers.length) {
 						stop();
+						setTimeout(() => {
+							setLED(6);
+						}, 2000);
 						return;
 					}
 					remainingMs = gapSeconds * 1000;
-					setLED(0);
+					setTimeout(() => {
+						setLED(6);
+					}, 2000);
 				});
 			}
 		}
@@ -114,7 +127,7 @@
 		running = true;
 		paused = false;
 		remainingMs = gapSeconds * 1000;
-		setLED(0);
+		setLED(6);
 		timer && clearInterval(timer);
 		timer = setInterval(tick, 100); // 10Hz for smooth countdown
 	}
@@ -130,7 +143,7 @@
 		paused = false;
 		idx = 0;
 		remainingMs = 0;
-		setLED(0);
+		setLED(6);
 		timer && clearInterval(timer);
 		timer = undefined;
 	}
@@ -145,55 +158,67 @@
 	onMount(loadQueue);
 </script>
 
-<div class="flex w-full flex-col gap-6 p-6 text-white">
+<div class="flex w-full flex-col gap-6 p-6">
 	<!-- Current + Next two -->
 	<Card class="flex w-full flex-col p-5">
 		<div>
-			<div class="text-sm opacity-70">{rally?.name || 'Rally'}</div>
-			<div class="text-xl font-semibold">{stage?.name || `#${stageId}`}</div>
+			<P class="text-sm text-xl opacity-70">{rally?.name || 'Rally'}</P>
+			<P class="text-xl font-semibold">{stage?.name || `#${stageId}`}</P>
 		</div>
 		<div class="flex flex-wrap items-center">
 			<!-- LEDs -->
 			<div class="flex flex-1 justify-center gap-3">
-				{#each [0, 1, 2, 3] as i}
+				{#each [4, 3, 2, 1, 0] as i}
 					<div
 						class="h-8 w-8 rounded-full border"
-						style={`background:${leds[i] ? (i < 3 ? '#16a34a' : '#dc2626') : 'transparent'}; box-shadow:${leds[i] ? '0 0 12px rgba(34,197,94,0.7)' : 'none'}`}
+						style={`background:${
+							leds[i] === 2
+								? '#16a34a' // green-600
+								: leds[i] === 1
+									? '#f59e0b' // amber-500
+									: 'transparent'
+						}; box-shadow:${
+							leds[i] === 2
+								? '0 0 12px rgba(22,163,74,0.85)'
+								: leds[i] === 1
+									? '0 0 12px rgba(245,158,11,0.9)'
+									: 'none'
+						};transition: background 120ms ease, box-shadow 120ms ease;`}
 					></div>
 				{/each}
 			</div>
 
 			<!-- Countdown -->
-			<div class="flex flex-row-reverse text-6xl">
+			<P class="flex flex-row-reverse text-6xl">
 				{Math.ceil(remainingMs / 1000)}
-			</div>
+			</P>
 		</div>
 
 		<!-- Current -->
 		<div class="md:col-span-2">
-			<div class="text-4xl font-extrabold tracking-wide">
+			<P class="text-4xl font-extrabold tracking-wide">
 				{#if drivers[idx]}
 					{drivers[idx].name} <br />
 				{:else}
 					No more drivers
 				{/if}
-			</div>
-			<div class="text-2xl tracking-wide italic">
+			</P>
+			<P class="text-2xl tracking-wide italic">
 				{#if drivers[idx]}
 					{drivers[idx].class_name || ''}
 				{/if}
-			</div>
+			</P>
 		</div>
 	</Card>
 
 	<!-- Queue preview -->
 	<Card class="p-3">
 		<div class="">
-			<div class="text-sm opacity-70">Next up</div>
-			<div class="text-xl">{drivers[idx + 1]?.name} — {drivers[idx + 1]?.class_name || ''}</div>
-			<div class="text-lg opacity-80">
+			<P class="text-sm opacity-70">Next up</P>
+			<P class="text-xl">{drivers[idx + 1]?.name} — {drivers[idx + 1]?.class_name || ''}</P>
+			<P class="text-lg opacity-80">
 				{drivers[idx + 2]?.name} — {drivers[idx + 2]?.class_name || ''}
-			</div>
+			</P>
 		</div>
 	</Card>
 
@@ -201,7 +226,7 @@
 	<Card class="p-3">
 		<div class="flex flex-col items-center justify-between">
 			<div class="flex w-full flex-row items-center gap-2 p-2">
-				<label for="gap" class="text-sm opacity-70">Gap (s)</label>
+				<label for="gap" class="text-sm opacity-70"><P>Gap (s)</P></label>
 				<Input id="gap" type="number" min="1" class="w-20 rounded p-2" bind:value={gapSeconds} />
 			</div>
 			<div class="flex w-full flex-wrap gap-2 p-2">
