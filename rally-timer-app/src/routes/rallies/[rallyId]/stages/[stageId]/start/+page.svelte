@@ -35,9 +35,12 @@
 
 	function createUtterance(text: string) {
 		let utter = new SpeechSynthesisUtterance(text);
-		utter.lang = 'en-GB';
+		let enGbVoice = speechSynthesis.getVoices().find((voice) => voice.lang === 'en-GB');
+		if (enGbVoice) {
+			utter.voice = enGbVoice;
+		}
 		utter.rate = 1;
-		utter.pitch = 1.4;
+		utter.pitch = 1.0;
 		return utter;
 	}
 
