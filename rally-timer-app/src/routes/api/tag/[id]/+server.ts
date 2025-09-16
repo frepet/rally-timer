@@ -8,9 +8,9 @@ export async function GET(event: RequestEvent) {
 
   const row = db
     .prepare('SELECT id, name, tag FROM drivers WHERE tag = ? COLLATE NOCASE')
-    .get(tag); // get one row, not .all()
+    .get(tag);
 
-  return json({ driver: row ?? null }); // always { driver: ... }
+  return json({ driver: row ?? null });
 }
 
 export async function DELETE(event: RequestEvent): Promise<Response> {
