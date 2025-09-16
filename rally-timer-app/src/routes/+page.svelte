@@ -16,6 +16,7 @@
 	import { goto } from '$app/navigation';
 	import type { PageProps } from './$types';
 	import { kcFetch } from '../lib/kcFetch';
+	import type { RallyResponse } from '../lib/types';
 
 	let { data }: PageProps = $props();
 
@@ -87,13 +88,7 @@
 	async function loadAllRaw() {
 		if (!selectedRallyId) return;
 
-		const bundle = await kcFetchJSON<{
-			drivers: Driver[];
-			stages: Stage[];
-			start_events: StartEvent[];
-			gate_events: GateEvent[];
-			blip_events: BlipEvent[];
-		}>(`/api/rally/${selectedRallyId}/bundle`);
+		const bundle = await kcFetchJSON<RallyResponse>(`/api/rally/${selectedRallyId}/bundle`);
 
 		drivers = bundle.drivers;
 		stages = bundle.stages;
