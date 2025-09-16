@@ -99,23 +99,26 @@
 	onDestroy(() => {
 		if (poller) clearInterval(poller);
 	});
+
+	function driverFromTag(tag: string | null | undefined) {
+		return data.bundle.drivers.find((d) => d.rfid_tag === tag)?.name ?? '—';
+	}
 </script>
 
 <div class="w-full space-y-6 p-5">
 	<Card class="max-w-none p-4 sm:p-6 md:p-8">
-		<P class="mb-4 text-2xl font-bold">Stage Events Timeline</P>
-		<div class="mb-4 text-sm opacity-80">
-			<P>
-				Rally ID: {data.rallyId} • Stage ID: {data.stageId}
-			</P>
-		</div>
+		<P class="mb-4 text-2xl font-bold">
+			{data.bundle.rally.name}/{data.bundle.stages.find(({ id }) => {
+				return id == data.stageId;
+			})?.name ?? 'Unknown'} events
+		</P>
 
 		<Table hoverable>
 			<TableHead>
 				<TableHeadCell>Kind</TableHeadCell>
 				<TableHeadCell>Timestamp (local)</TableHeadCell>
 				<TableHeadCell>Epoch ms</TableHeadCell>
-				<TableHeadCell>Driver / Tag</TableHeadCell>
+				<TableHeadCell>Driver (Tag)</TableHeadCell>
 				<TableHeadCell class="flex justify-end">Actions</TableHeadCell>
 			</TableHead>
 			<TableBody>
@@ -144,7 +147,7 @@
 							{#if e.kind === 'start'}
 								{e.driver_name ?? '—'}
 							{:else if e.kind === 'blip'}
-								{e.tag ?? '—'}
+								{driverFromTag(e.tag)} ({e.tag})
 							{:else}
 								—
 							{/if}

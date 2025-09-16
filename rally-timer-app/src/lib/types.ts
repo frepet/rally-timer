@@ -32,3 +32,38 @@ export type DriverType = z.infer<typeof Driver>;
 export const NewDriver = z.object({
   name: z.string(),
 });
+
+export type RallyResponse = {
+  rally: {
+    id: number;
+    name: string;
+  };
+  drivers: {
+    id: number;
+    name: string;
+    rfid_tag: string;
+    class_id: number;
+    class_name: string;
+  }[];
+  stages: {
+    id: number;
+    name: string;
+  }[];
+  start_events: {
+    id: number;
+    stage_id: number;
+    driver_id: number;
+    ts: number; // from ts_ms
+  }[];
+  gate_events: {
+    id: number;
+    stage_id: number;
+    ts: number;
+  }[];
+  blip_events: {
+    id: number;
+    stage_id: number;
+    ts: number;
+    tag: string;
+  }[];
+};
