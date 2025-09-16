@@ -26,8 +26,8 @@
 	};
 
 	let events = $state<UnifiedEvent[]>([]);
-	let editingKey = $state<string | null>(null); // <-- kind:id
-	let editTs = $state<string>(''); // visible edit buffer
+	let editingKey = $state<string | null>(null);
+	let editTs = $state<string>('');
 
 	function keyOf(e: UnifiedEvent) {
 		return `${e.kind}:${e.id}`;
@@ -50,7 +50,6 @@
 	}
 
 	async function loadEvents() {
-		// Don’t rekcFetch while editing to avoid cursor jumps and state desync.
 		if (editingKey) return;
 		events = await kcFetchJSON<UnifiedEvent[]>(`/api/stage/${data.stageId}/events`);
 	}
