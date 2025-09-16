@@ -15,7 +15,6 @@
 	} from 'flowbite-svelte';
 	import { goto } from '$app/navigation';
 	import type { PageProps } from './$types';
-	import { initKeycloak } from '../lib/stores/auth';
 	import { kcFetch } from '../lib/kcFetch';
 
 	let { data }: PageProps = $props();
