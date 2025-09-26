@@ -103,29 +103,29 @@
 	}
 
 	// -------- Core calculations --------
-	function pairGatesToBlipsForStage(stageId: number): Map<number, GateEvent> {
+	function pairGatesToBlipsForStage(stageId: number): Record<number, GateEvent> {
 		const sgates = gates.filter((g) => g.stage_id === stageId).sort((a, b) => a.ts - b.ts);
 		const sblips = blips.filter((b) => b.stage_id === stageId).sort((a, b) => a.ts - b.ts);
-		const blipToGate = new Map<number, GateEvent>();
+		const blipToGate: Record<number, GateEvent> = {};
 		const n = Math.min(sgates.length, sblips.length);
-		for (let i = 0; i < n; i++) blipToGate.set(sblips[i].id, sgates[i]);
+		for (let i = 0; i < n; i++) blipToGate[sblips[i].id] = sgates[i];
 		return blipToGate;
 	}
 
 	function buildStageRows(stageId: number): StageRow[] {
-		const blipToGate = pairGatesToBlipsForStage(stageId);
-		const tagToDriver = new Map<string | number, Driver>();
-		for (const d of drivers) if (d.rfid_tag != null) tagToDriver.set(d.rfid_tag, d);
-		const driverStart = new Map<number, StartEvent>();
-		for (const se of starts) if (se.stage_id === stageId) driverStart.set(se.driver_id, se);
+		const blipToGate = pairGatesToBlipsForStage(stageId); // record lookup
+		const tagToDriver: Record<string | number, Driver> = {};
+		for (const d of drivers) if (d.rfid_tag != null) tagToDriver[d.rfid_tag] = d;
+		const driverStart: Record<number, StartEvent> = {};
+		for (const se of starts) if (se.stage_id === stageId) driverStart[se.driver_id] = se;
 
 		const rows: StageRow[] = [];
 		for (const b of blips.filter((x) => x.stage_id === stageId)) {
-			const drv = tagToDriver.get(b.tag);
+			const drv = tagToDriver[b.tag];
 			if (!drv) continue;
-			const se = driverStart.get(drv.id);
+			const se = driverStart[drv.id];
 			if (!se) continue;
-			const ge = blipToGate.get(b.id);
+			const ge = blipToGate[b.id];
 			if (!ge) continue;
 			const stage_ms = ge.ts - se.ts;
 			if (stage_ms < 0) continue;
@@ -145,37 +145,42 @@
 	}
 
 	function buildRallyRows(): RallyRow[] {
-		const stageIdToRows = new Map<number, StageRow[]>();
-		for (const s of stages) stageIdToRows.set(s.id, buildStageRows(s.id));
+		const stageIdToRows: Record<number, StageRow[]> = {};
+		for (const s of stages) stageIdToRows[s.id] = buildStageRows(s.id);
 
-		const totalByDriver = new Map<
+		const totalByDriver: Record<
 			number,
 			{ total: number; finished: number; class_name: string; name: string }
-		>();
+		> = {};
 		for (const d of drivers) {
 			let sum = 0,
 				finished = 0;
 			for (const s of stages) {
-				const hit = (stageIdToRows.get(s.id) ?? []).find((r) => r.driver_id === d.id);
+				const hit = (stageIdToRows[s.id] ?? []).find((r) => r.driver_id === d.id);
 				if (hit) {
 					sum += hit.stage_ms;
 					finished += 1;
 				}
 			}
 			if (finished > 0)
-				totalByDriver.set(d.id, { total: sum, finished, class_name: d.class_name, name: d.name });
+				totalByDriver[d.id] = { total: sum, finished, class_name: d.class_name, name: d.name };
 		}
 
-		const rows: RallyRow[] = Array.from(totalByDriver.entries()).map(([driver_id, v]) => ({
-			driver_id,
-			driver_name: v.name,
-			class_name: v.class_name,
-			total_ms: v.total,
-			delta_p1: null,
-			delta_prev: null,
-			position: 0,
-			finished_stages: v.finished
-		}));
+		const rows: RallyRow[] = Object.entries(totalByDriver).map(
+			([idStr, v]: [
+				string,
+				{ total: number; finished: number; class_name: string; name: string }
+			]) => ({
+				driver_id: Number(idStr),
+				driver_name: v.name,
+				class_name: v.class_name,
+				total_ms: v.total,
+				delta_p1: null,
+				delta_prev: null,
+				position: 0,
+				finished_stages: v.finished
+			})
+		);
 		rows.sort((a, b) => a.total_ms - b.total_ms);
 		assignPositionsAndDeltas(rows, (r) => r.total_ms);
 		return rows;
@@ -245,7 +250,7 @@
 					onchange={(e) => onRallyChange((e.target as HTMLSelectElement).value)}
 				>
 					<option value="" disabled selected={selectedRallyId === null}>— choose —</option>
-					{#each rallies as r}
+					{#each rallies as r (r.id)}
 						<option value={r.id} selected={selectedRallyId === r.id}>{r.name}</option>
 					{/each}
 				</Select>
@@ -270,7 +275,7 @@
 					<TableHeadCell title="How many stages finished">✓ Stg</TableHeadCell>
 				</TableHead>
 				<TableBody>
-					{#each rallyRows as r}
+					{#each rallyRows as r (r.driver_id)}
 						<TableBodyRow>
 							<TableBodyCell class="font-semibold">{r.position}</TableBodyCell>
 							<TableBodyCell>{r.driver_name}</TableBodyCell>
@@ -295,7 +300,7 @@
 		<!-- Stage tabs + leaderboard -->
 		<Card class="max-w-none p-4 sm:p-6 md:p-8">
 			<div class="mb-4 flex flex-wrap gap-2">
-				{#each stages as s}
+				{#each stages as s (s.id)}
 					<Button
 						size="sm"
 						color={activeStageId === s.id ? 'blue' : 'light'}
@@ -323,7 +328,7 @@
 						<TableHeadCell>Δ Prev</TableHeadCell>
 					</TableHead>
 					<TableBody>
-						{#each stageRows as r}
+						{#each stageRows as r (r.driver_id)}
 							<TableBodyRow>
 								<TableBodyCell class="font-semibold">{r.position}</TableBodyCell>
 								<TableBodyCell>{r.driver_name}</TableBodyCell>

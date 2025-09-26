@@ -138,7 +138,7 @@
 		paused = false;
 		remainingMs = gapSeconds * 1000;
 		setLED(6);
-		timer && clearInterval(timer);
+		if (timer) clearInterval(timer);
 		timer = setInterval(tick, 100); // 10Hz for smooth countdown
 		speechSynthesis.speak(createUtterance('Next driver:' + drivers[idx].name));
 	}
@@ -155,14 +155,14 @@
 		idx = 0;
 		remainingMs = 0;
 		setLED(6);
-		timer && clearInterval(timer);
+		if (timer) clearInterval(timer);
 		timer = undefined;
 	}
 
 	function stop() {
 		running = false;
 		paused = false;
-		timer && clearInterval(timer);
+		if (timer) clearInterval(timer);
 		timer = undefined;
 	}
 
@@ -179,7 +179,7 @@
 		<div class="flex flex-wrap items-center">
 			<!-- LEDs -->
 			<div class="flex flex-1 justify-center gap-3">
-				{#each [4, 3, 2, 1, 0] as i}
+				{#each [4, 3, 2, 1, 0] as i (i)}
 					<div
 						class="h-8 w-8 rounded-full border"
 						style={`background:${

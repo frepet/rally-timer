@@ -8,19 +8,21 @@ type DB = InstanceType<typeof Database>;
 
 // Reuse the same connection across reloads/process modules
 declare global {
-  // eslint-disable-next-line no-var
-  var __rallyDb__: DB | undefined;
+	// eslint-disable-next-line no-var
+	var __rallyDb__: DB | undefined;
 }
 
 const db: DB = globalThis.__rallyDb__ ?? new Database(dbFile, { fileMustExist: true });
 
 // Run one-time pragmas when we actually create it
 if (!globalThis.__rallyDb__) {
-  try {
-    db.pragma('journal_mode = WAL');   // good defaults for better-sqlite3
-    db.pragma('synchronous = NORMAL');
-  } catch { }
-  globalThis.__rallyDb__ = db;
+	try {
+		db.pragma('journal_mode = WAL'); // good defaults for better-sqlite3
+		db.pragma('synchronous = NORMAL');
+	} catch {
+		// ignore pragma errors (non-fatal)
+	}
+	globalThis.__rallyDb__ = db;
 }
 
 export { db };
