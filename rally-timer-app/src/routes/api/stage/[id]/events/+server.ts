@@ -2,10 +2,11 @@ import { json } from '@sveltejs/kit';
 import type { RequestEvent } from './$types';
 import { db } from '../../../../../lib/server/db';
 
-
 export async function GET({ params }: RequestEvent) {
-  const stageId = Number(params.id);
-  const rows = db.prepare(`
+	const stageId = Number(params.id);
+	const rows = db
+		.prepare(
+			`
     SELECT * FROM (
       SELECT
         'start' AS kind,
@@ -40,7 +41,9 @@ export async function GET({ params }: RequestEvent) {
       WHERE be.stage_id = ?
     )
     ORDER BY timestamp ASC, kind ASC, id ASC
-  `).all(stageId, stageId, stageId);
+  `
+		)
+		.all(stageId, stageId, stageId);
 
-  return json(rows);
+	return json(rows);
 }

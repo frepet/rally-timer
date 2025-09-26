@@ -208,7 +208,7 @@
 				<label for="rallySelect" class="mb-2 block text-sm font-medium"><P>Select rally</P></label>
 				<Select id="rallySelect" bind:value={selectedRallyId} onchange={onSelectRally}>
 					<option value="">— Choose rally —</option>
-					{#each rallies as r}
+					{#each rallies as r (r.id)}
 						<option value={r.id}>{r.name}</option>
 					{/each}
 				</Select>
@@ -237,7 +237,7 @@
 				<div>
 					<P class="mb-2 text-lg font-semibold">Assigned</P>
 					<ul class="space-y-2">
-						{#each assigned as d}
+						{#each assigned as d (d.id)}
 							<li class="flex items-center justify-between gap-2 rounded border p-2">
 								<P><span>{d.name} — {d.class_name || ''}</span></P>
 								<Button class="rounded bg-red-600 px-2 py-1" onclick={() => removeFromRally(d.id)}
@@ -254,7 +254,7 @@
 				<div>
 					<P class="mb-2 text-lg font-semibold">Available</P>
 					<ul class="space-y-2">
-						{#each availableDrivers() as d}
+						{#each availableDrivers() as d (d.id)}
 							<li class="flex items-center justify-between gap-2 rounded border p-2">
 								<P><span>{d.name} — {d.class_name || ''}</span></P>
 								<Button class="rounded px-2 py-1" color="green" onclick={() => addToRally(d.id)}
@@ -298,7 +298,7 @@
 					<TableHeadCell class="flex justify-end">Actions</TableHeadCell>
 				</TableHead>
 				<TableBody>
-					{#each stages as s}
+					{#each stages as s (s.id)}
 						<TableBodyRow>
 							<TableBodyCell>
 								{#if editingId === s.id}

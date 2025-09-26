@@ -95,7 +95,7 @@
 	function startEdit(d: Driver) {
 		editingId = d.id;
 		editName = d.name ?? '';
-		editClassId = (d.class_id ?? '') as any;
+		editClassId = d.class_id === null || d.class_id === undefined ? '' : d.class_id;
 		editTag = d.tag ?? '';
 	}
 	function cancelEdit() {
@@ -175,7 +175,7 @@
 				>
 				<Select id="newClass" bind:value={newClassId}>
 					<option value="" disabled selected>Select class…</option>
-					{#each classes as c}
+					{#each classes as c (c.id)}
 						<option value={c.id}>{c.name}</option>
 					{/each}
 				</Select>
@@ -217,7 +217,7 @@
 			</TableHead>
 
 			<TableBody>
-				{#each drivers as d}
+				{#each drivers as d (d.id)}
 					<TableBodyRow>
 						<!-- Name -->
 						<TableBodyCell>
@@ -237,7 +237,7 @@
 							{#if editingId === d.id}
 								<Select aria-label="Driver class" bind:value={editClassId}>
 									<option value="" disabled>Select class…</option>
-									{#each classes as c}
+									{#each classes as c (c.id)}
 										<option value={c.id}>{c.name}</option>
 									{/each}
 								</Select>

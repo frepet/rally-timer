@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Card, Button, Select, Toggle, Range, Badge, Heading, P } from 'flowbite-svelte';
+	import { Card, Button, Select, Toggle, Range, Badge, P } from 'flowbite-svelte';
 	import { kcFetch } from '../../lib/kcFetch';
 
 	type Rally = { id: number; name: string };
@@ -18,7 +18,10 @@
 	// --- Audio
 	let ac: AudioContext | null = null;
 	function ensureAC() {
-		if (!ac) ac = new (window.AudioContext || (window as any).webkitAudioContext)();
+		if (!ac)
+			ac = new (window.AudioContext ||
+				(window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext ||
+				AudioContext)();
 	}
 	async function beep(freq = 880, ms = 120, when = 0) {
 		if (!soundsEnabled) return;
@@ -150,7 +153,9 @@
 		const len = captureEl.value.length;
 		try {
 			captureEl.setSelectionRange(len, len);
-		} catch {}
+		} catch {
+			/* ignore selection range errors */
+		}
 	}
 
 	function handleCaptureKey(ev: KeyboardEvent) {
@@ -194,12 +199,17 @@
 			let driverName: string | null = null;
 			if (res.ok) {
 				try {
-					const j = await res
+					interface DriverNameResponse {
+						driver_name?: string;
+					}
+					const j: DriverNameResponse | null = await res
 						.clone()
 						.json()
 						.catch(() => null);
 					driverName = j?.driver_name ?? null;
-				} catch {}
+				} catch {
+					/* ignore selection range errors */
+				}
 			}
 			if (!driverName) driverName = await findDriverByTag(tag);
 			lastDriver = driverName ?? '—';
@@ -236,11 +246,15 @@
 				}
 				const savedStage = localStorage.getItem('blip:lastStageId');
 				if (savedStage) stageId = Number(savedStage);
-			} catch {}
+			} catch {
+				/* ignore JSON parse */
+			}
 		})();
 
 		return () => {
-			captureEl?.removeEventListener('keydown', handleCaptureKey, { capture: true } as any);
+			captureEl?.removeEventListener('keydown', handleCaptureKey, {
+				capture: true
+			} as EventListenerOptions);
 			document.removeEventListener('click', keepFocus, true);
 			document.removeEventListener('focusin', keepFocus);
 		};
@@ -302,14 +316,22 @@
 		gateConnected = false;
 		try {
 			await reader?.cancel();
-		} catch {}
+		} catch {
+			/* ignore selection range errors */
+		}
 		try {
-			// @ts-ignore optional chaining not typed on some libs
-			await port?.readable?.cancel?.();
-		} catch {}
+			const readable: unknown = port?.readable;
+			if (readable && typeof (readable as { cancel?: unknown }).cancel === 'function') {
+				await (readable as { cancel: () => Promise<void> }).cancel();
+			}
+		} catch {
+			/* ignore selection range errors */
+		}
 		try {
 			await port?.close();
-		} catch {}
+		} catch {
+			/* ignore selection range errors */
+		}
 		reader = null;
 		port = null;
 	}
@@ -374,14 +396,14 @@
 				<label for="rallySel"><P>Rally</P></label>
 				<Select id="rallySel" bind:value={rallyId} onchange={onSelectRally}>
 					<option value={null}>—</option>
-					{#each rallies as r}<option value={r.id}>{r.name}</option>{/each}
+					{#each rallies as r (r.id)}<option value={r.id}>{r.name}</option>{/each}
 				</Select>
 			</div>
 			<div>
 				<label for="stageSel"><P>Stage</P></label>
 				<Select id="stageSel" bind:value={stageId} disabled={rallyId == null}>
 					<option value={null}>—</option>
-					{#each stages as s}<option value={s.id}>{s.name}</option>{/each}
+					{#each stages as s (s.id)}<option value={s.id}>{s.name}</option>{/each}
 				</Select>
 			</div>
 			<div class="flex items-end gap-4">
@@ -438,7 +460,7 @@
 	<Card class="p-4">
 		<P class="mb-2 font-bold">Recent events</P>
 		<ul class="space-y-1">
-			{#each log as ev}
+			{#each log as ev (ev.at)}
 				<li class="flex items-center gap-3">
 					<P>
 						<Badge color={ev.kind === 'blip' ? 'green' : 'blue'}>{ev.kind.toUpperCase()}</Badge>

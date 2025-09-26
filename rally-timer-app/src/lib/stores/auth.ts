@@ -1,11 +1,11 @@
 // src/lib/stores/auth.ts
-import { writable, derived } from "svelte/store";
-import Keycloak from "keycloak-js";
+import { writable, derived } from 'svelte/store';
+import Keycloak from 'keycloak-js';
 
 export const keycloak = new Keycloak({
-  url: "https://keycloak.peteri.se",
-  realm: "platform",
-  clientId: "rally-timer",
+	url: 'https://keycloak.peteri.se',
+	realm: 'platform',
+	clientId: 'rally-timer'
 });
 
 export const isAuthenticated = writable(false);
@@ -16,34 +16,34 @@ export const realmRoles = writable<string[]>([]);
 export const clientRoles = writable<string[]>([]); // roles of THIS client
 
 export async function initKeycloak() {
-  try {
-    await keycloak.init({
-      onLoad: "check-sso",
-      pkceMethod: "S256",
-      silentCheckSsoRedirectUri: window.location.origin + "/silent-check-sso.html",
-    });
+	try {
+		await keycloak.init({
+			onLoad: 'check-sso',
+			pkceMethod: 'S256',
+			silentCheckSsoRedirectUri: window.location.origin + '/silent-check-sso.html'
+		});
 
-    if (keycloak.authenticated) {
-      isAuthenticated.set(true);
-      token.set(keycloak.token ?? null);
+		if (keycloak.authenticated) {
+			isAuthenticated.set(true);
+			token.set(keycloak.token ?? null);
 
-      const rr = keycloak.realmAccess?.roles ?? [];
-      const cr = keycloak.resourceAccess?.[keycloak.clientId!]?.roles ?? [];
+			const rr = keycloak.realmAccess?.roles ?? [];
+			const cr = keycloak.resourceAccess?.[keycloak.clientId!]?.roles ?? [];
 
-      realmRoles.set(rr);
-      clientRoles.set(cr);
-    }
-  } catch (e) {
-    console.error("Keycloak init error", e);
-  }
+			realmRoles.set(rr);
+			clientRoles.set(cr);
+		}
+	} catch (e) {
+		console.error('Keycloak init error', e);
+	}
 }
 
 export function login() {
-  keycloak.login();
+	keycloak.login();
 }
 export function logout() {
-  keycloak.logout();
+	keycloak.logout();
 }
 
 // You want the client role `admin`
-export const isAdmin = derived(clientRoles, ($clientRoles) => $clientRoles.includes("admin"));
+export const isAdmin = derived(clientRoles, ($clientRoles) => $clientRoles.includes('admin'));
