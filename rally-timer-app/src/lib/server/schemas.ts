@@ -30,7 +30,7 @@ export const rallyDriverAddSchema = z.object({
 	driver_id: idParam
 });
 
-export const blipCreateSchema = z.object({
+export const finishCreateSchema = z.object({
 	stage_id: idParam,
 	tag: z
 		.string()
@@ -48,4 +48,4 @@ export const tagParamSchema = z
 export type DriverCreateInput = z.infer<typeof driverCreateSchema>;
 export type RallyCreateInput = z.infer<typeof rallyCreateSchema>;
 export type RallyDriverAddInput = z.infer<typeof rallyDriverAddSchema>;
-export type BlipCreateInput = z.infer<typeof blipCreateSchema>;
+export type FinishCreateInput = z.infer<typeof finishCreateSchema>;
