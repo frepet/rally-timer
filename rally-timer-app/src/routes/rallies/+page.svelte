@@ -9,7 +9,6 @@
 		TableBodyRow,
 		TableBodyCell,
 		Input,
-		Select,
 		P
 	} from 'flowbite-svelte';
 	import { kcFetch } from '../../lib/kcFetch';
@@ -25,6 +24,10 @@
 
 	// Create rally
 	let newRallyName = $state('');
+
+	// Edit rally
+	let editingRallyId = $state<number | null>(null);
+	let editRallyName = $state('');
 
 	// Create stage
 	let newStageName = $state('');
@@ -98,17 +101,51 @@
 		await loadStages(r.id);
 	}
 
+	function startEditRally(r: Rally) {
+		editingRallyId = r.id;
+		editRallyName = r.name;
+	}
+	function cancelEditRally() {
+		editingRallyId = null;
+		editRallyName = '';
+	}
+	async function saveEditRally(id: number) {
+		const name = editRallyName.trim();
+		if (!name) {
+			cancelEditRally();
+			return;
+		}
+
+		await kcFetchJSON(`/api/rally/${id}`, {
+			method: 'PATCH',
+			headers: { 'content-type': 'application/json' },
+			body: JSON.stringify({ name })
+		});
+		cancelEditRally();
+		await loadRallies();
+	}
+	async function deleteRally(id: number) {
+		if (!confirm('Are you sure you want to delete this rally? This cannot be undone.')) return;
+
+		try {
+			await kcFetch(`/api/rally/${id}`, { method: 'DELETE' });
+			await loadRallies();
+			if (selectedRallyId === id) {
+				selectedRallyId = null;
+				stages = [];
+				assigned = [];
+			}
+		} catch (e) {
+			alert('Cannot delete rally: ' + (e as Error).message);
+		}
+	}
+
 	async function loadStages(rallyId: number) {
 		stages = await fetchJSON<Stage[]>(`/api/rally/${rallyId}/stages`);
 	}
 
-	async function onSelectRally() {
-		if (selectedRallyId === null) {
-			stages = [];
-			assigned = [];
-			return;
-		}
-		const id = Number(selectedRallyId);
+	async function onSelectRallyForEdit(id: number) {
+		selectedRallyId = id;
 		rememberRally(id);
 		await Promise.all([loadAllDrivers(), loadAssigned(id), loadStages(id)]);
 	}
@@ -202,33 +239,67 @@
 <div class="w-full space-y-6 p-5">
 	<!-- Rallies -->
 	<Card class="max-w-none p-4">
-		<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-			<!-- Select Rally -->
-			<div>
-				<label for="rallySelect" class="mb-2 block text-sm font-medium"><P>Select rally</P></label>
-				<Select id="rallySelect" bind:value={selectedRallyId} onchange={onSelectRally}>
-					<option value="">— Choose rally —</option>
-					{#each rallies as r (r.id)}
-						<option value={r.id}>{r.name}</option>
-					{/each}
-				</Select>
-			</div>
+		<div class="mb-4">
+			<P class="text-2xl font-bold">Rallies</P>
+		</div>
 
-			<!-- Create Rally -->
+		<!-- Create Rally -->
+		<div class="mb-4 grid grid-cols-1 gap-3 md:grid-cols-2">
 			<div>
-				<label for="newRally" class="mb-2 block text-sm font-medium"><P>New Rally</P></label>
-				<div class="flex gap-2">
-					<Input
-						id="newRally"
-						bind:value={newRallyName}
-						placeholder="Rally name"
-						onkeydown={(e) => e.key === 'Enter' && createRally()}
-					/>
-					<Button class="w-28" onclick={createRally}>Add</Button>
-				</div>
+				<P><label for="newRally" class="mb-2 block text-sm font-medium">New Rally</label></P>
+				<Input
+					id="newRally"
+					bind:value={newRallyName}
+					placeholder="Rally name"
+					onkeydown={(e) => e.key === 'Enter' && createRally()}
+				/>
+			</div>
+			<div class="flex items-end">
+				<Button class="w-full md:w-32" onclick={createRally}>Add Rally</Button>
 			</div>
 		</div>
+
+		<!-- Rallies Table -->
+		<Table hoverable={true}>
+			<TableHead>
+				<TableHeadCell>Name</TableHeadCell>
+				<TableHeadCell class="flex justify-end">Actions</TableHeadCell>
+			</TableHead>
+			<TableBody>
+				{#each rallies as r (r.id)}
+					<TableBodyRow>
+						<TableBodyCell>
+							{#if editingRallyId === r.id}
+								<Input
+									aria-label="Rally name"
+									bind:value={editRallyName}
+									onkeydown={(e) => e.key === 'Enter' && saveEditRally(r.id)}
+								/>
+							{:else}{r.name}{/if}
+						</TableBodyCell>
+						<TableBodyCell class="flex justify-end gap-2">
+							{#if editingRallyId === r.id}
+								<Button size="xs" onclick={() => saveEditRally(r.id)}>Save</Button>
+								<Button size="xs" color="light" onclick={cancelEditRally}>Cancel</Button>
+							{:else}
+								<Button size="xs" onclick={() => onSelectRallyForEdit(r.id)}>Select</Button>
+								<Button size="xs" onclick={() => startEditRally(r)}>Edit</Button>
+								<Button size="xs" color="red" onclick={() => deleteRally(r.id)}>Delete</Button>
+							{/if}
+						</TableBodyCell>
+					</TableBodyRow>
+				{/each}
+			</TableBody>
+		</Table>
 	</Card>
+
+	{#if selectedRallyId !== null}
+		<Card class="max-w-none p-4">
+			<P class="mb-4 text-xl font-bold"
+				>Selected Rally: {rallies.find((r) => r.id === selectedRallyId)?.name}</P
+			>
+		</Card>
+	{/if}
 
 	{#if selectedRallyId !== null}
 		<Card class="max-w-none p-4">
