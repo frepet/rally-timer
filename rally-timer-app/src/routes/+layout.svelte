@@ -36,7 +36,7 @@
 		{#if $isAdmin}
 			<NavLi href="/rallies">Manage Rallies</NavLi>
 			<NavLi href="/drivers">Manage Drivers</NavLi>
-			<NavLi href="/blipper">Blipper</NavLi>
+			<NavLi href="/blipper">Finish Capture</NavLi>
 		{/if}
 		{#if $isAuthenticated}
 			<Button onclick={logout}>Logout</Button>

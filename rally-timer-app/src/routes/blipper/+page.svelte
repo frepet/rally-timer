@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Card, Button, Select, Toggle, Range, Badge, P } from 'flowbite-svelte';
+	import { Card, Select, Toggle, Range, Badge, P } from 'flowbite-svelte';
 	import { kcFetch } from '../../lib/kcFetch';
 
 	type Rally = { id: number; name: string };
@@ -42,14 +42,9 @@
 	}
 
 	// Distinct cue sets
-	function cueBlip() {
+	function cueFinish() {
 		// Single mid-high beep
 		beep(1046, 140);
-	}
-	function cueGate() {
-		// Two short lower beeps
-		beep(659, 100, 0);
-		beep(784, 100, 0.12);
 	}
 
 	// --- Blip capture state
@@ -58,22 +53,18 @@
 	let lastDriver = $state<string>('—');
 	let lastStatus = $state('');
 
-	// --- Gate capture state
-	let gateConnected = $state(false);
-	let gateStatus = $state('');
-
 	// --- Event log
-	type SeenEvent = { kind: 'blip' | 'gate'; at: number; label: string };
+	type SeenEvent = { kind: 'finish'; at: number; label: string };
 	let log: SeenEvent[] = $state([]);
 	const pushLog = (ev: SeenEvent) => {
 		log = [{ ...ev }, ...log].slice(0, 30);
 	};
 
 	// --- “Now detected” banner state (big visual flash)
-	type Flash = { kind: 'blip' | 'gate'; label: string; at: number };
+	type Flash = { kind: 'finish'; label: string; at: number };
 	let flash: Flash | null = $state(null);
 	let flashTimer: number | null = null;
-	function triggerFlash(kind: 'blip' | 'gate', label: string) {
+	function triggerFlash(kind: 'finish', label: string) {
 		flash = { kind, label, at: Date.now() };
 		if (flashTimer) clearTimeout(flashTimer);
 		flashTimer = window.setTimeout(() => (flash = null), 2200);
@@ -170,7 +161,7 @@
 			const tag = (buffer || captureEl?.value || '').trim();
 			buffer = '';
 			if (captureEl) captureEl.value = '';
-			if (tag) submitBlip(tag);
+			if (tag) submitFinish(tag);
 			return;
 		}
 		if (ev.key === 'Escape') {
@@ -184,40 +175,49 @@
 		}
 	}
 
-	async function submitBlip(tag: string) {
+	async function submitFinish(tag: string) {
 		if (!stageId) return;
 		try {
-			const res = await kcFetch('/api/blip', {
+			const res = await kcFetch('/api/finish', {
 				method: 'POST',
 				headers: { 'content-type': 'application/json' },
 				body: JSON.stringify({ stage_id: stageId, tag, source: 'keyboard-wedge' })
 			});
 			lastTag = tag;
-			lastStatus = res.ok ? 'OK' : `HTTP ${res.status}`;
 
-			// if backend returns { driver_name }, use it; else look it up
-			let driverName: string | null = null;
+			let responseData: { message?: string; driver_name?: string } | null = null;
 			if (res.ok) {
 				try {
-					interface DriverNameResponse {
-						driver_name?: string;
-					}
-					const j: DriverNameResponse | null = await res
-						.clone()
-						.json()
-						.catch(() => null);
-					driverName = j?.driver_name ?? null;
+					responseData = await res.json();
 				} catch {
-					/* ignore selection range errors */
+					/* ignore */
 				}
 			}
+
+			let driverName: string | null = null;
+			let isDuplicate = false;
+
+			if (responseData?.message) {
+				// Already finished
+				lastStatus = 'Already finished';
+				isDuplicate = true;
+				// Still look up driver name for display
+			} else if (responseData?.driver_name) {
+				driverName = responseData.driver_name;
+				lastStatus = 'OK';
+			} else {
+				lastStatus = res.ok ? 'OK' : `HTTP ${res.status}`;
+			}
+
 			if (!driverName) driverName = await findDriverByTag(tag);
 			lastDriver = driverName ?? '—';
 
-			// cues
-			triggerFlash('blip', driverName ? `${driverName} (${tag})` : tag);
-			cueBlip();
-			pushLog({ kind: 'blip', at: Date.now(), label: driverName ?? tag });
+			if (!isDuplicate) {
+				// cues only for new finishes
+				triggerFlash('finish', driverName ? `${driverName} (${tag})` : tag);
+				cueFinish();
+				pushLog({ kind: 'finish', at: Date.now(), label: driverName ?? tag });
+			}
 		} catch {
 			lastStatus = 'Network error';
 		}
@@ -239,12 +239,12 @@
 		(async () => {
 			try {
 				await loadRallies();
-				const savedRally = localStorage.getItem('blip:lastRallyId');
+				const savedRally = localStorage.getItem('finish:lastRallyId');
 				if (savedRally) {
 					rallyId = Number(savedRally);
 					await loadStages(rallyId);
 				}
-				const savedStage = localStorage.getItem('blip:lastStageId');
+				const savedStage = localStorage.getItem('finish:lastStageId');
 				if (savedStage) stageId = Number(savedStage);
 			} catch {
 				/* ignore JSON parse */
@@ -270,108 +270,14 @@
 
 	$effect(() => {
 		if (stageId != null) {
-			localStorage.setItem('blip:lastStageId', String(stageId));
+			localStorage.setItem('finish:lastStageId', String(stageId));
 		}
 	});
-
-	// --- Gate capture (WebSerial)
-	let port: SerialPort | null = null;
-	let reader: ReadableStreamDefaultReader<string> | null = null;
-	let baud = $state(115200);
-
-	class LineBreakTransformer {
-		private container = '';
-		transform(chunk: string, controller: TransformStreamDefaultController<string>) {
-			this.container += chunk;
-			const lines = this.container.split(/\r?\n/);
-			this.container = lines.pop() ?? '';
-			for (const line of lines) controller.enqueue(line);
-		}
-		flush(controller: TransformStreamDefaultController<string>) {
-			if (this.container) controller.enqueue(this.container);
-		}
-	}
-
-	async function connectGate() {
-		if (!('serial' in navigator)) {
-			gateStatus = 'Web Serial not supported (use Chrome/Edge over HTTPS).';
-			return;
-		}
-		port = await navigator.serial.requestPort();
-		await port.open({ baudRate: baud });
-
-		const textStream = (port.readable as ReadableStream<Uint8Array>)
-			.pipeThrough(new TextDecoderStream())
-			.pipeThrough(new TransformStream<string, string>(new LineBreakTransformer()));
-
-		reader = textStream.getReader();
-
-		gateConnected = true;
-		gateStatus = 'Connected';
-
-		listenGate(reader);
-	}
-
-	async function disconnectGate() {
-		gateConnected = false;
-		try {
-			await reader?.cancel();
-		} catch {
-			/* ignore selection range errors */
-		}
-		try {
-			const readable: unknown = port?.readable;
-			if (readable && typeof (readable as { cancel?: unknown }).cancel === 'function') {
-				await (readable as { cancel: () => Promise<void> }).cancel();
-			}
-		} catch {
-			/* ignore selection range errors */
-		}
-		try {
-			await port?.close();
-		} catch {
-			/* ignore selection range errors */
-		}
-		reader = null;
-		port = null;
-	}
-
-	async function listenGate(reader: ReadableStreamDefaultReader<string>) {
-		try {
-			while (gateConnected) {
-				const { value, done } = await reader.read();
-				if (done) break;
-				if (!value) continue;
-
-				// Expecting 'P' lines from the gate
-				if (value.trim() === 'P') {
-					gateStatus = `Pulse @ ${new Date().toLocaleTimeString()}`;
-					triggerFlash('gate', 'Gate pulse');
-					cueGate();
-					pushLog({ kind: 'gate', at: Date.now(), label: 'Pulse' });
-
-					if (stageId) {
-						await kcFetch('/api/gate', {
-							method: 'POST',
-							headers: { 'content-type': 'application/json' },
-							body: JSON.stringify({ stage_id: stageId, source: 'webserial' })
-						});
-					}
-				}
-			}
-		} finally {
-			// ensure UI is consistent if the stream ends
-			if (gateConnected) {
-				gateConnected = false;
-				gateStatus = 'Disconnected';
-			}
-		}
-	}
 </script>
 
 <!-- Hidden capture input for wedge scanners: always focused when capture is enabled -->
 <input
-	id="blip-capture"
+	id="finish-capture"
 	bind:this={captureEl}
 	autocomplete="off"
 	autocapitalize="off"
@@ -380,11 +286,10 @@
 	style="position:fixed; left:-9999px; width:1px; height:1px; opacity:0; pointer-events:none;"
 />
 
-<div id="blipper-root" class="w-full space-y-6 p-5">
+<div id="finish-root" class="w-full space-y-6 p-5">
 	{#if flash}
 		<div class={`flash ${flash.kind}`}>
-			{flash.kind === 'blip' ? 'BLIP: ' : 'GATE: '}
-			{flash.label}
+			FINISH: {flash.label}
 			<span class="ml-3 text-xs font-normal opacity-90">[{fmtTime(flash.at)}]</span>
 		</div>
 	{/if}
@@ -442,28 +347,12 @@
 	</Card>
 
 	<Card class="p-4">
-		<P class="mb-2 font-bold">Gate capture (WebSerial)</P>
-		<div class="flex flex-wrap items-center gap-3">
-			{#if !gateConnected}
-				<Button onclick={connectGate}>Connect</Button>
-			{:else}
-				<Button color="red" onclick={disconnectGate}>Disconnect</Button>
-			{/if}
-			<Badge color={gateConnected ? 'green' : 'gray'}
-				>{gateConnected ? 'Connected' : 'Disconnected'}</Badge
-			>
-			<P class="text-sm">Status: {gateStatus}</P>
-			<P class="text-xs opacity-70">Baud: {baud}</P>
-		</div>
-	</Card>
-
-	<Card class="p-4">
 		<P class="mb-2 font-bold">Recent events</P>
 		<ul class="space-y-1">
 			{#each log as ev (ev.at)}
 				<li class="flex items-center gap-3">
 					<P>
-						<Badge color={ev.kind === 'blip' ? 'green' : 'blue'}>{ev.kind.toUpperCase()}</Badge>
+						<Badge color="green">{ev.kind.toUpperCase()}</Badge>
 						<span class="font-mono text-sm">{fmtTime(ev.at)}</span>
 						<span>•</span>
 						<span class="font-semibold">{ev.label}</span>
@@ -495,11 +384,8 @@
 			pop 180ms ease-out,
 			fadeout 2.2s ease-in forwards;
 	}
-	.flash.blip {
+	.flash.finish {
 		background: linear-gradient(135deg, #16a34a, #22c55e);
-	}
-	.flash.gate {
-		background: linear-gradient(135deg, #2563eb, #60a5fa);
 	}
 
 	@keyframes pop {

@@ -18,7 +18,7 @@
 	let { data }: PageProps = $props();
 
 	type UnifiedEvent = {
-		kind: 'start' | 'gate' | 'blip';
+		kind: 'start' | 'finish';
 		id: number;
 		timestamp: number;
 		driver_name?: string | null;
@@ -39,8 +39,7 @@
 	}
 	function fmtKind(k: UnifiedEvent['kind']): string {
 		if (k === 'start') return 'Start';
-		if (k === 'gate') return 'Gate';
-		return 'Blip';
+		return 'Finish';
 	}
 
 	async function kcFetchJSON<T>(url: string, init?: RequestInit): Promise<T> {
@@ -65,8 +64,7 @@
 
 	function endpointFor(kind: UnifiedEvent['kind'], id: number): string {
 		if (kind === 'start') return `/api/start/${id}`;
-		if (kind === 'gate') return `/api/gate/${id}`;
-		return `/api/blip/${id}`;
+		return `/api/finish/${id}`;
 	}
 
 	async function saveEdit(ev: UnifiedEvent) {
@@ -146,10 +144,8 @@
 						<TableBodyCell>
 							{#if e.kind === 'start'}
 								{e.driver_name ?? '—'}
-							{:else if e.kind === 'blip'}
-								{driverFromTag(e.tag)} ({e.tag})
 							{:else}
-								—
+								{driverFromTag(e.tag)} ({e.tag})
 							{/if}
 						</TableBodyCell>
 

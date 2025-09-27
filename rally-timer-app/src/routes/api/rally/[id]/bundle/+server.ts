@@ -48,29 +48,17 @@ export const GET: RequestHandler = ({ params }) => {
 		)
 		.all(rallyId);
 
-	// Gate events
-	const gate_events = db
+	// Finish events
+	const finish_events = db
 		.prepare(
 			`
-		SELECT ge.id, ge.stage_id, ge.timestamp AS ts
-		FROM gate_events ge
-		JOIN stages s ON s.id = ge.stage_id
+		SELECT fe.id, fe.stage_id, fe.timestamp AS ts, fe.tag
+		FROM finish_events fe
+		JOIN stages s ON s.id = fe.stage_id
 		WHERE s.rally_id = ?
 	`
 		)
 		.all(rallyId);
 
-	// Blip events
-	const blip_events = db
-		.prepare(
-			`
-		SELECT be.id, be.stage_id, be.timestamp AS ts, be.tag
-		FROM blip_events be
-		JOIN stages s ON s.id = be.stage_id
-		WHERE s.rally_id = ?
-	`
-		)
-		.all(rallyId);
-
-	return json({ rally, drivers, stages, start_events, gate_events, blip_events });
+	return json({ rally, drivers, stages, start_events, finish_events });
 };

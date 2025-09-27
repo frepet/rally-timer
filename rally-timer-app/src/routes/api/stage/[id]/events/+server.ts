@@ -21,29 +21,18 @@ export async function GET({ params }: RequestEvent) {
       UNION ALL
 
       SELECT
-        'gate' AS kind,
-        ge.id  AS id,
-        ge.timestamp AS timestamp,
+        'finish' AS kind,
+        fe.id  AS id,
+        fe.timestamp AS timestamp,
         NULL   AS driver_name,
-        NULL   AS tag
-      FROM gate_events ge
-      WHERE ge.stage_id = ?
-
-      UNION ALL
-
-      SELECT
-        'blip' AS kind,
-        be.id  AS id,
-        be.timestamp AS timestamp,
-        NULL   AS driver_name,
-        be.tag AS tag
-      FROM blip_events be
-      WHERE be.stage_id = ?
+        fe.tag AS tag
+      FROM finish_events fe
+      WHERE fe.stage_id = ?
     )
     ORDER BY timestamp ASC, kind ASC, id ASC
   `
 		)
-		.all(stageId, stageId, stageId);
+		.all(stageId, stageId);
 
 	return json(rows);
 }

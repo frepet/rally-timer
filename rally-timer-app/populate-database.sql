@@ -48,22 +48,14 @@ CREATE TABLE rally_drivers (
 
 -- --- Event tables (hot paths for queries) ---
 
-CREATE TABLE gate_events (
-  id         INTEGER PRIMARY KEY AUTOINCREMENT,
-  stage_id   INTEGER NOT NULL,
-  timestamp  INTEGER NOT NULL,             -- ms since epoch
-  FOREIGN KEY(stage_id) REFERENCES stages(id) ON DELETE CASCADE
-);
-CREATE INDEX IF NOT EXISTS ge_stage_ts_idx ON gate_events(stage_id, timestamp);
-
-CREATE TABLE blip_events (
+CREATE TABLE finish_events (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,
   stage_id   INTEGER NOT NULL,
   timestamp  INTEGER NOT NULL,             -- ms since epoch
   tag        TEXT    NOT NULL,
   FOREIGN KEY(stage_id) REFERENCES stages(id) ON DELETE CASCADE
 );
-CREATE INDEX IF NOT EXISTS be_stage_tag_ts_idx ON blip_events(stage_id, tag, timestamp);
+CREATE INDEX IF NOT EXISTS fe_stage_tag_ts_idx ON finish_events(stage_id, tag, timestamp);
 
 CREATE TABLE start_events (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -99,16 +91,14 @@ WITH next_start AS (
 finish AS (
   SELECT
     se.id                 AS start_id,
-    MIN(ge.timestamp)     AS finish_ms      -- earliest gate after start that has a matching blip
+    MIN(fe.timestamp)     AS finish_ms      -- earliest finish after start for the driver
   FROM start_events se
   JOIN drivers d          ON d.id       = se.driver_id
   LEFT JOIN next_start ns ON ns.start_id = se.id
-  JOIN gate_events ge     ON ge.stage_id = se.stage_id
-                         AND ge.timestamp >= se.ts_ms
-                         AND (ns.next_ts IS NULL OR ge.timestamp < ns.next_ts)
-  JOIN blip_events be     ON be.stage_id = se.stage_id
-                         AND be.tag      = d.tag
-                         AND ABS(be.timestamp - ge.timestamp) <= 20000  -- pairing window
+  JOIN finish_events fe   ON fe.stage_id = se.stage_id
+                         AND fe.tag      = d.tag
+                         AND fe.timestamp >= se.ts_ms
+                         AND (ns.next_ts IS NULL OR fe.timestamp < ns.next_ts)
   GROUP BY se.id
 )
 SELECT
@@ -168,7 +158,7 @@ SELECT
 FROM rally_times rt
 WHERE rt.total_ms IS NOT NULL;
 
--- ---- STAGE LEADERBOARD: positions + deltas (uses elapsed_ms from gate) ----
+-- ---- STAGE LEADERBOARD: positions + deltas ----
 CREATE VIEW stage_leaderboard AS
 SELECT
   st.stage_id,

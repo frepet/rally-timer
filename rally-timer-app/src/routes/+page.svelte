@@ -31,8 +31,7 @@
 	};
 	type Stage = { id: number; name: string };
 	type StartEvent = { id: number; stage_id: number; driver_id: number; ts: number };
-	type GateEvent = { id: number; stage_id: number; ts: number };
-	type BlipEvent = { id: number; stage_id: number; ts: number; tag: string | number };
+	type FinishEvent = { id: number; stage_id: number; ts: number; tag: string | number };
 
 	type RallyRow = {
 		driver_id: number;
@@ -66,8 +65,7 @@
 	// Raw caches
 	let drivers: Driver[] = [];
 	let starts: StartEvent[] = [];
-	let gates: GateEvent[] = [];
-	let blips: BlipEvent[] = [];
+	let finishes: FinishEvent[] = [];
 
 	// -------- Utils --------
 	function formatMs(ms: number | null | undefined): string {
@@ -93,8 +91,7 @@
 		drivers = bundle.drivers;
 		stages = bundle.stages;
 		starts = bundle.start_events;
-		gates = bundle.gate_events;
-		blips = bundle.blip_events;
+		finishes = bundle.finish_events;
 
 		// Default stage if needed
 		if (stages.length && (activeStageId === null || !stages.some((s) => s.id === activeStageId))) {
@@ -103,31 +100,19 @@
 	}
 
 	// -------- Core calculations --------
-	function pairGatesToBlipsForStage(stageId: number): Record<number, GateEvent> {
-		const sgates = gates.filter((g) => g.stage_id === stageId).sort((a, b) => a.ts - b.ts);
-		const sblips = blips.filter((b) => b.stage_id === stageId).sort((a, b) => a.ts - b.ts);
-		const blipToGate: Record<number, GateEvent> = {};
-		const n = Math.min(sgates.length, sblips.length);
-		for (let i = 0; i < n; i++) blipToGate[sblips[i].id] = sgates[i];
-		return blipToGate;
-	}
-
 	function buildStageRows(stageId: number): StageRow[] {
-		const blipToGate = pairGatesToBlipsForStage(stageId); // record lookup
 		const tagToDriver: Record<string | number, Driver> = {};
 		for (const d of drivers) if (d.rfid_tag != null) tagToDriver[d.rfid_tag] = d;
 		const driverStart: Record<number, StartEvent> = {};
 		for (const se of starts) if (se.stage_id === stageId) driverStart[se.driver_id] = se;
 
 		const rows: StageRow[] = [];
-		for (const b of blips.filter((x) => x.stage_id === stageId)) {
-			const drv = tagToDriver[b.tag];
+		for (const f of finishes.filter((x) => x.stage_id === stageId)) {
+			const drv = tagToDriver[f.tag];
 			if (!drv) continue;
 			const se = driverStart[drv.id];
 			if (!se) continue;
-			const ge = blipToGate[b.id];
-			if (!ge) continue;
-			const stage_ms = ge.ts - se.ts;
+			const stage_ms = f.ts - se.ts;
 			if (stage_ms < 0) continue;
 			rows.push({
 				driver_id: drv.id,

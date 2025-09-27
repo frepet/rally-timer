@@ -1,25 +1,14 @@
 import * as z from 'zod';
 
-export const GateEvent = z.object({
-	id: z.number(),
-	stage_name: z.string(),
-	rally_name: z.string(),
-	timestamp: z.number()
-});
-export type GateEventType = z.infer<typeof GateEvent>;
-export const NewGateEvent = z.object({
-	timestamp: z.number()
-});
-
-export const BlipEvent = z.object({
+export const FinishEvent = z.object({
 	id: z.number(),
 	stage_name: z.string(),
 	rally_name: z.string(),
 	timestamp: z.number(),
 	tag: z.string()
 });
-export type BlipEventType = z.infer<typeof BlipEvent>;
-export const NewBlipEvent = z.object({
+export type FinishEventType = z.infer<typeof FinishEvent>;
+export const NewFinishEvent = z.object({
 	timestamp: z.number(),
 	tag: z.string()
 });
@@ -55,12 +44,7 @@ export type RallyResponse = {
 		driver_id: number;
 		ts: number; // from ts_ms
 	}[];
-	gate_events: {
-		id: number;
-		stage_id: number;
-		ts: number;
-	}[];
-	blip_events: {
+	finish_events: {
 		id: number;
 		stage_id: number;
 		ts: number;
