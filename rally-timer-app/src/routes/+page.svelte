@@ -83,19 +83,23 @@
 	}
 
 	// -------- Data loading --------
-	async function loadAllRaw() {
-		if (!selectedRallyId) return;
+	let currentRallyId: number | null = null;
 
-		const bundle = await kcFetchJSON<RallyResponse>(`/api/rally/${selectedRallyId}/bundle`);
+	async function loadAllRaw(rallyId?: number | null) {
+		const targetId = rallyId ?? selectedRallyId;
+		if (!targetId) return;
+
+		const bundle = await kcFetchJSON<RallyResponse>(`/api/rally/${targetId}/bundle`);
 
 		drivers = bundle.drivers;
 		stages = bundle.stages;
 		starts = bundle.start_events;
 		finishes = bundle.finish_events;
 
-		// Default stage if needed
-		if (stages.length && (activeStageId === null || !stages.some((s) => s.id === activeStageId))) {
+		// Default stage if needed (only if rally actually changed)
+		if (stages.length && currentRallyId !== targetId) {
 			activeStageId = stages[0].id;
+			currentRallyId = targetId;
 		}
 	}
 
@@ -106,13 +110,23 @@
 		const driverStart: Record<number, StartEvent> = {};
 		for (const se of starts) if (se.stage_id === stageId) driverStart[se.driver_id] = se;
 
-		const rows: StageRow[] = [];
+		// Use only the first (earliest) finish per driver to avoid duplicates
+		const firstFinishByDriver: Record<number, number> = {};
 		for (const f of finishes.filter((x) => x.stage_id === stageId)) {
 			const drv = tagToDriver[f.tag];
 			if (!drv) continue;
+			if (firstFinishByDriver[drv.id] === undefined || f.ts < firstFinishByDriver[drv.id]) {
+				firstFinishByDriver[drv.id] = f.ts;
+			}
+		}
+
+		const rows: StageRow[] = [];
+		for (const [driverId, finishTs] of Object.entries(firstFinishByDriver)) {
+			const drv = drivers.find((d) => d.id === Number(driverId));
+			if (!drv) continue;
 			const se = driverStart[drv.id];
 			if (!se) continue;
-			const stage_ms = f.ts - se.ts;
+			const stage_ms = finishTs - se.ts;
 			if (stage_ms < 0) continue;
 			rows.push({
 				driver_id: drv.id,
@@ -195,6 +209,7 @@
 
 	onMount(async () => {
 		if (!selectedRallyId && rallies.length) selectedRallyId = rallies[0].id;
+		currentRallyId = selectedRallyId;
 		await loadAllRaw();
 		await recomputeAll();
 		poller = window.setInterval(async () => {
@@ -209,13 +224,17 @@
 	// When rally changes via selector: update URL (?r=) and reload
 	async function onRallyChange(idStr: string) {
 		const id = Number(idStr) || null;
+		if (id === selectedRallyId) return; // no change
+
 		selectedRallyId = id;
+		currentRallyId = null; // force stage reset
 		activeStageId = null; // reset stage tab
+
 		// Push new URL to keep it shareable
 		const qs = id ? `?r=${id}` : '';
 		goto(`${location.pathname}${qs}`, { replaceState: false, noScroll: true });
 
-		await loadAllRaw();
+		await loadAllRaw(id);
 		await recomputeAll();
 	}
 </script>
@@ -234,9 +253,11 @@
 					value={selectedRallyId ?? ''}
 					onchange={(e) => onRallyChange((e.target as HTMLSelectElement).value)}
 				>
-					<option value="" disabled selected={selectedRallyId === null}>— choose —</option>
+					{#if selectedRallyId === null}
+						<option value="" disabled selected>— choose —</option>
+					{/if}
 					{#each rallies as r (r.id)}
-						<option value={r.id} selected={selectedRallyId === r.id}>{r.name}</option>
+						<option value={r.id}>{r.name}</option>
 					{/each}
 				</Select>
 			</div>
