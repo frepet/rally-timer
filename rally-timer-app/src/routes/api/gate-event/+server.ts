@@ -40,20 +40,13 @@ export async function POST(event: RequestEvent): Promise<Response> {
 
 	db.prepare('UPDATE gates SET last_seen = ? WHERE id = ?').run(now, gate_id);
 
+	// Always add to finish_events (store all passes)
+	// The results view uses MIN(timestamp) so only the first finish counts
 	if ((gate as { stage_id: number | null }).stage_id) {
-		const existing = db
-			.prepare(
-				`SELECT id FROM finish_events 
-				 WHERE stage_id = ? AND tag = ? AND timestamp >= ?`
-			)
-			.get((gate as { stage_id: number }).stage_id, tag, timestamp_ms - 60000);
-
-		if (!existing) {
-			db.prepare(
-				`INSERT INTO finish_events (stage_id, timestamp, tag)
-				 VALUES (?, ?, ?)`
-			).run((gate as { stage_id: number }).stage_id, timestamp_ms, tag);
-		}
+		db.prepare(
+			`INSERT INTO finish_events (stage_id, timestamp, tag)
+			 VALUES (?, ?, ?)`
+		).run((gate as { stage_id: number }).stage_id, timestamp_ms, tag);
 	} else {
 		emitGateEvent({ gate_id, tag });
 	}

@@ -36,9 +36,6 @@ export async function POST(event: RequestEvent): Promise<Response> {
 	);
 
 	const findGate = db.prepare('SELECT id, stage_id FROM gates WHERE id = ?');
-	const checkFinish = db.prepare(
-		`SELECT id FROM finish_events WHERE stage_id = ? AND tag = ? AND timestamp >= ?`
-	);
 	const insertFinish = db.prepare(
 		`INSERT INTO finish_events (stage_id, timestamp, tag) VALUES (?, ?, ?)`
 	);
@@ -55,12 +52,11 @@ export async function POST(event: RequestEvent): Promise<Response> {
 			insertEvent.run(evt.gate_id, evt.tag, evt.timestamp_ms, evt.rssi ?? null, now);
 			results.stored++;
 
+			// Always add to finish_events (store all passes)
+			// The results view uses MIN(timestamp) so only the first finish counts
 			if (gate.stage_id) {
-				const existing = checkFinish.get(gate.stage_id, evt.tag, evt.timestamp_ms - 60000);
-				if (!existing) {
-					insertFinish.run(gate.stage_id, evt.timestamp_ms, evt.tag);
-					results.finish_added++;
-				}
+				insertFinish.run(gate.stage_id, evt.timestamp_ms, evt.tag);
+				results.finish_added++;
 			}
 
 			updateLastSeen.run(now, evt.gate_id);
