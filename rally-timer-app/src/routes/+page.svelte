@@ -98,7 +98,7 @@
 
 		// Default stage if needed (only if rally actually changed)
 		if (stages.length && currentRallyId !== targetId) {
-			activeStageId = stages[0].id;
+			activeStageId = stages[stages.length - 1].id; // Select last stage
 			currentRallyId = targetId;
 		}
 	}
@@ -209,7 +209,7 @@
 
 	onMount(async () => {
 		if (!selectedRallyId && rallies.length) selectedRallyId = rallies[0].id;
-		currentRallyId = selectedRallyId;
+		currentRallyId = null; // Force stage selection on initial load
 		await loadAllRaw();
 		await recomputeAll();
 		poller = window.setInterval(async () => {
