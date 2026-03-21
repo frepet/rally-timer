@@ -46,6 +46,30 @@ CREATE TABLE rally_drivers (
   FOREIGN KEY (driver_id) REFERENCES drivers(id) ON DELETE RESTRICT
 );
 
+-- --- Gate tables ---
+
+-- Registered gates (standalone RFID readers)
+CREATE TABLE gates (
+  id          TEXT PRIMARY KEY,  -- UUID
+  name        TEXT,               -- Optional friendly name
+  last_seen   INTEGER NOT NULL,  -- Timestamp of last heartbeat
+  stage_id    INTEGER,           -- Assigned stage (NULL if unassigned)
+  created_at  INTEGER NOT NULL    -- When registered
+);
+CREATE INDEX IF NOT EXISTS gates_stage_idx ON gates(stage_id);
+
+-- Raw gate events (captured by standalone gates, before dedup)
+CREATE TABLE gate_events (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  gate_id    TEXT    NOT NULL,
+  tag        TEXT    NOT NULL,
+  timestamp  INTEGER NOT NULL,   -- ms since epoch from gate
+  rssi       INTEGER,            -- Signal strength (optional)
+  synced_at  INTEGER NOT NULL,   -- When received by server
+  FOREIGN KEY (gate_id) REFERENCES gates(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS gate_events_gate_tag_idx ON gate_events(gate_id, tag, timestamp);
+
 -- --- Event tables (hot paths for queries) ---
 
 CREATE TABLE finish_events (
