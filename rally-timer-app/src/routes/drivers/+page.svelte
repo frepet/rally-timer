@@ -11,7 +11,9 @@
 		TableBodyRow,
 		TableBodyCell,
 		Input,
-		Select
+		Select,
+		Toggle,
+		Badge
 	} from 'flowbite-svelte';
 
 	type Driver = {
@@ -22,6 +24,12 @@
 		class_name?: string;
 	};
 	type ClassItem = { id: number; name: string };
+	type Gate = {
+		id: string;
+		name: string | null;
+		last_seen: number;
+		stage_id: number | null;
+	};
 
 	let { data }: PageProps = $props();
 	let drivers: Driver[] = $state(data.drivers as Driver[]);
@@ -32,6 +40,28 @@
 	let newClassId: number | '' = $state('');
 	let newTag = $state('');
 	let classes: ClassItem[] = $state([]);
+
+	// Gate selection for tag capture
+	let gates: Gate[] = $state([]);
+	let selectedGateId: string | null = $state(null);
+	let gateCaptureEnabled = $state(false);
+	let autoSubmitEnabled = $state(false);
+	let selectedGate = $derived(gates.find((g) => g.id === selectedGateId));
+
+	function isGateOnline(gate: Gate): boolean {
+		return Date.now() - gate.last_seen < 30000;
+	}
+
+	async function loadGates() {
+		try {
+			const res = await kcFetch('/api/gate');
+			if (res.ok) {
+				gates = await res.json();
+			}
+		} catch {
+			// ignore
+		}
+	}
 
 	// Remember last selected class in localStorage
 	const LS_KEY = 'rally:lastClassId';
@@ -144,11 +174,70 @@
 		await refresh();
 	}
 
+	// SSE connection for gate tag capture
+	let eventSource: EventSource | null = null;
+	let lastCapturedTag = $state<string | null>(null);
+	let captureFlash = $state(false);
+
+	function startGateCapture() {
+		if (eventSource) return;
+
+		eventSource = new EventSource('/api/gate-events/stream');
+		eventSource.onmessage = (e) => {
+			try {
+				const data = JSON.parse(e.data);
+				if (data.gate_id && data.tag) {
+					if (selectedGateId && data.gate_id === selectedGateId) {
+						newTag = data.tag;
+						lastCapturedTag = data.tag;
+						captureFlash = true;
+						setTimeout(() => (captureFlash = false), 500);
+
+						if (autoSubmitEnabled && newName.trim() && newClassId !== '') {
+							setTimeout(() => createDriver(), 100);
+						}
+					}
+				}
+			} catch {
+				// ignore parse errors
+			}
+		};
+		eventSource.onerror = () => {
+			eventSource?.close();
+			eventSource = null;
+			if (gateCaptureEnabled) {
+				setTimeout(startGateCapture, 3000);
+			}
+		};
+	}
+
+	function stopGateCapture() {
+		if (eventSource) {
+			eventSource.close();
+			eventSource = null;
+		}
+	}
+
 	$effect(() => {
 		loadClasses();
+		loadGates();
 		refresh();
-		const t = setInterval(refresh, 5000);
-		return () => clearInterval(t);
+		const t = setInterval(() => {
+			refresh();
+			loadGates();
+		}, 5000);
+		return () => {
+			clearInterval(t);
+			stopGateCapture();
+		};
+	});
+
+	$effect(() => {
+		if (gateCaptureEnabled && selectedGateId) {
+			startGateCapture();
+		} else {
+			stopGateCapture();
+		}
 	});
 </script>
 
@@ -156,7 +245,7 @@
 	<Card class="max-w-none p-4 sm:p-6 md:p-8">
 		<h5 class="mb-4 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Add Driver</h5>
 
-		<div class="grid grid-cols-1 gap-3 md:grid-cols-3">
+		<div class="grid grid-cols-1 gap-3 md:grid-cols-4">
 			<div>
 				<label for="newName" class="mb-2 block text-sm font-medium text-gray-900 dark:text-white"
 					>Name</label
@@ -189,13 +278,67 @@
 					id="newTag"
 					bind:elementRef={tagInputEl}
 					bind:value={newTag}
-					placeholder="Scan tag…"
+					placeholder={gateCaptureEnabled && selectedGateId ? 'Waiting for gate...' : 'Scan tag…'}
+					class={captureFlash ? 'ring-2 ring-green-500' : ''}
+					disabled={!!(gateCaptureEnabled && selectedGateId)}
 					onkeydown={(e) => e.key === 'Enter' && createDriver()}
 				/>
 			</div>
+
+			<div>
+				<label for="gateSelect" class="mb-2 block text-sm font-medium text-gray-900 dark:text-white"
+					>Gate Capture</label
+				>
+				<div class="flex items-center gap-2">
+					<Select
+						id="gateSelect"
+						bind:value={selectedGateId}
+						class="flex-1"
+						disabled={gateCaptureEnabled}
+					>
+						<option value={null}>Manual entry</option>
+						{#each gates.filter((g) => !g.stage_id) as g (g.id)}
+							<option value={g.id}>
+								{g.name ?? g.id.slice(0, 8)}
+								{isGateOnline(g) ? '🟢' : '⚫'}
+							</option>
+						{/each}
+					</Select>
+					<Toggle bind:checked={gateCaptureEnabled} disabled={!selectedGateId} />
+				</div>
+				{#if selectedGate}
+					<div class="mt-1 flex items-center gap-2 text-xs">
+						{#if isGateOnline(selectedGate)}
+							<Badge color="green" class="text-xs">Online</Badge>
+						{:else}
+							<Badge color="gray" class="text-xs">Offline</Badge>
+						{/if}
+						<Toggle bind:checked={autoSubmitEnabled} size="small" />
+						<span class="opacity-70">Auto-add</span>
+					</div>
+				{/if}
+			</div>
 		</div>
 
-		<div class="mt-4 flex justify-end">
+		{#if lastCapturedTag && gateCaptureEnabled}
+			<div class="mt-2 text-sm text-green-600 dark:text-green-400">
+				Last captured: <span class="font-mono font-bold">{lastCapturedTag}</span>
+			</div>
+		{/if}
+
+		<div class="mt-4 flex justify-end gap-3">
+			{#if gateCaptureEnabled && selectedGateId}
+				<Button
+					color="yellow"
+					class="w-32"
+					onclick={() => {
+						gateCaptureEnabled = false;
+						newTag = '';
+					}}
+				>
+					Cancel Capture
+				</Button>
+			{/if}
 			<Button class="w-32" onclick={createDriver}>Add</Button>
 		</div>
 	</Card>
