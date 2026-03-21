@@ -1,6 +1,7 @@
 import { json, error, type RequestEvent } from '@sveltejs/kit';
 import { db } from '../../../lib/server/db';
 import { gateEventSchema } from '../../../lib/server/schemas';
+import { emitGateEvent } from '../../../lib/server/gateEvents';
 
 function ensureWal() {
 	try {
@@ -53,6 +54,8 @@ export async function POST(event: RequestEvent): Promise<Response> {
 				 VALUES (?, ?, ?)`
 			).run((gate as { stage_id: number }).stage_id, timestamp_ms, tag);
 		}
+	} else {
+		emitGateEvent({ gate_id, tag });
 	}
 
 	return json({ stored: true, event_id: row }, { status: 201 });
