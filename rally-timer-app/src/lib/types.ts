@@ -51,3 +51,14 @@ export type RallyResponse = {
 		tag: string;
 	}[];
 };
+
+export const Gate = z.object({
+	id: z.string().uuid(),
+	name: z.string().nullable(),
+	last_seen: z.number(),
+	stage_id: z.number().nullable(),
+	stage_name: z.string().nullable().optional(),
+	rally_name: z.string().nullable().optional(),
+	created_at: z.number()
+});
+export type GateType = z.infer<typeof Gate>;
