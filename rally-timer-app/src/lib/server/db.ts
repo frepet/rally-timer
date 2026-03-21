@@ -26,3 +26,21 @@ if (!globalThis.__rallyDb__) {
 }
 
 export { db };
+
+// Run migrations
+import { migrateToGates, needsMigration } from './migrations/001_gates';
+
+export function runMigrations() {
+	if (needsMigration()) {
+		console.log('Running database migrations...');
+		migrateToGates();
+		console.log('Migrations complete.');
+	}
+}
+
+// Auto-run on import
+try {
+	runMigrations();
+} catch (e) {
+	console.error('Migration failed:', e);
+}
