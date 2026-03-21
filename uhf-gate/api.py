@@ -56,11 +56,10 @@ class APIClient:
         """Send a heartbeat to keep the gate online."""
         try:
             response = self.session.post(
-                self._url(f"/api/gate/{self.gate_uuid}"),
-                json={"name": None},  # Just updates last_seen
+                self._url(f"/api/gate/{self.gate_uuid}/heartbeat"),
                 timeout=self.timeout
             )
-            return response.status_code in (200, 404)
+            return response.status_code == 200
         except requests.RequestException:
             return False
     
