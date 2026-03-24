@@ -30,15 +30,6 @@ export const rallyDriverAddSchema = z.object({
 	driver_id: idParam
 });
 
-export const finishCreateSchema = z.object({
-	stage_id: idParam,
-	tag: z
-		.string()
-		.min(1)
-		.max(50)
-		.transform((s) => s.trim())
-});
-
 export const tagParamSchema = z
 	.string()
 	.min(1)
@@ -76,7 +67,6 @@ export const gateAssignSchema = z.object({
 export type DriverCreateInput = z.infer<typeof driverCreateSchema>;
 export type RallyCreateInput = z.infer<typeof rallyCreateSchema>;
 export type RallyDriverAddInput = z.infer<typeof rallyDriverAddSchema>;
-export type FinishCreateInput = z.infer<typeof finishCreateSchema>;
 export type GateRegisterInput = z.infer<typeof gateRegisterSchema>;
 export type GateEventInput = z.infer<typeof gateEventSchema>;
 export type GateSyncInput = z.infer<typeof gateSyncSchema>;
