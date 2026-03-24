@@ -14,6 +14,7 @@
 		P,
 		Badge
 	} from 'flowbite-svelte';
+	import { TrashBinOutline } from 'flowbite-svelte-icons';
 	import type { PageProps } from './$types';
 	import { kcFetch } from '../../../../../../lib/kcFetch';
 
@@ -48,7 +49,11 @@
 
 	function fmtMs(ms: number): string {
 		const dt = new Date(ms);
-		return dt.toLocaleString();
+		const pad = (n: number, len = 2) => String(n).padStart(len, '0');
+		return (
+			`${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())} ` +
+			`${pad(dt.getHours())}:${pad(dt.getMinutes())}:${pad(dt.getSeconds())}.${pad(dt.getMilliseconds(), 3)}`
+		);
 	}
 	function fmtKind(k: UnifiedEvent['kind']): string {
 		if (k === 'start') return 'Start';
@@ -243,7 +248,7 @@
 								<Button size="xs" color="light" onclick={cancelEdit}>Cancel</Button>
 							{:else}
 								<Button size="xs" onclick={() => startEdit(e)}>Edit</Button>
-								<Button size="xs" color="red" onclick={() => deleteEvent(e)}>Delete</Button>
+								<Button size="xs" color="red" onclick={() => deleteEvent(e)}><TrashBinOutline size="xs" /></Button>
 							{/if}
 						</TableBodyCell>
 					</TableBodyRow>

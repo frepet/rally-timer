@@ -15,6 +15,7 @@
 		Toggle,
 		Badge
 	} from 'flowbite-svelte';
+	import { TrashBinOutline } from 'flowbite-svelte-icons';
 
 	type Driver = {
 		id: number;
@@ -409,7 +410,7 @@
 								<Button size="xs" color="light" onclick={cancelEdit}>Cancel</Button>
 							{:else}
 								<Button size="xs" onclick={() => startEdit(d)}>Edit</Button>
-								<Button size="xs" color="red" onclick={() => deleteOne(d.id)}>Delete</Button>
+								<Button size="xs" color="red" onclick={() => deleteOne(d.id)}><TrashBinOutline size="xs" /></Button>
 							{/if}
 						</TableBodyCell>
 					</TableBodyRow>

@@ -8,10 +8,10 @@
 		TableBody,
 		TableBodyRow,
 		TableBodyCell,
-		Button,
 		Badge,
 		P
 	} from 'flowbite-svelte';
+	import { DotsVerticalOutline, TrashBinOutline } from 'flowbite-svelte-icons';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { kcFetch } from '../../lib/kcFetch';
 	import { isAdmin } from '../../lib/stores/auth';
@@ -28,6 +28,19 @@
 
 	let gates = $state<Gate[]>([]);
 	let flashingGates = new SvelteSet<string>();
+	let openMenuId = $state<string | null>(null);
+	let menuPos = $state({ top: 0, right: 0 });
+
+	function openMenu(e: MouseEvent, id: string) {
+		e.stopPropagation();
+		if (openMenuId === id) { openMenuId = null; return; }
+		const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+		menuPos = { top: rect.bottom + window.scrollY, right: window.innerWidth - rect.right };
+		openMenuId = id;
+	}
+
+	// Derived: the gate whose menu is currently open (for the fixed-position portal menu)
+	const menuGate = $derived(gates.find((g) => g.id === openMenuId) ?? null);
 
 	function fmtAge(ts: number): string {
 		const sec = Math.floor((Date.now() - ts) / 1000);
@@ -53,6 +66,7 @@
 	}
 
 	async function updateName(gate: Gate) {
+		openMenuId = null;
 		const newName = prompt('Enter new name for gate:', gate.name ?? '');
 		if (newName === null) return;
 		await kcFetchJSON(`/api/gate/${gate.id}`, {
@@ -64,6 +78,7 @@
 	}
 
 	async function unassignGate(gate: Gate) {
+		openMenuId = null;
 		if (!confirm(`Unassign gate "${gate.name ?? gate.id}" from stage?`)) return;
 		await kcFetchJSON(`/api/gate/${gate.id}`, {
 			method: 'PATCH',
@@ -74,6 +89,7 @@
 	}
 
 	async function deleteGate(gate: Gate) {
+		openMenuId = null;
 		if (!confirm(`Delete gate "${gate.name ?? gate.id}"? This cannot be undone.`)) return;
 		await kcFetch(`/api/gate/${gate.id}`, { method: 'DELETE' });
 		await loadGates();
@@ -97,9 +113,7 @@
 		eventSource.onmessage = (e) => {
 			try {
 				const data = JSON.parse(e.data);
-				if (data.gate_id) {
-					triggerFlash(data.gate_id);
-				}
+				if (data.gate_id) triggerFlash(data.gate_id);
 			} catch {
 				/* ignore */
 			}
@@ -110,7 +124,40 @@
 		if (poller) clearInterval(poller);
 		if (eventSource) eventSource.close();
 	});
+
+	const menuItemClass =
+		'block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-600';
 </script>
+
+<svelte:window onclick={() => (openMenuId = null)} />
+
+<!-- Fixed-position dropdown portal — rendered outside the table so it is never clipped -->
+{#if menuGate}
+	<div
+		role="menu"
+		style="position:fixed; top:{menuPos.top}px; right:{menuPos.right}px; z-index:9999;"
+		class="min-w-[9rem] rounded-md border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-800"
+		tabindex="-1"
+		onclick={(e) => e.stopPropagation()}
+		onkeydown={(e) => e.key === 'Escape' && (openMenuId = null)}
+	>
+		<button type="button" class={menuItemClass} onclick={() => updateName(menuGate)}>
+			Rename
+		</button>
+		{#if menuGate.stage_id}
+			<button type="button" class={menuItemClass} onclick={() => unassignGate(menuGate)}>
+				Unassign
+			</button>
+		{/if}
+		<button
+			type="button"
+			class="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-red-600 hover:bg-gray-100 dark:text-red-400 dark:hover:bg-gray-600"
+			onclick={() => deleteGate(menuGate)}
+		>
+			<TrashBinOutline size="xs" /> Delete
+		</button>
+	</div>
+{/if}
 
 <div class="w-full space-y-6 p-5">
 	<Card class="max-w-none p-4 sm:p-6 md:p-8">
@@ -165,15 +212,13 @@
 							</TableBodyCell>
 							{#if $isAdmin}
 								<TableBodyCell class="text-right">
-									<div class="flex justify-end gap-2">
-										<Button size="xs" onclick={() => updateName(gate)}>Rename</Button>
-										{#if gate.stage_id}
-											<Button size="xs" color="yellow" onclick={() => unassignGate(gate)}
-												>Unassign</Button
-											>
-										{/if}
-										<Button size="xs" color="red" onclick={() => deleteGate(gate)}>Delete</Button>
-									</div>
+									<button
+										type="button"
+										onclick={(e) => openMenu(e, gate.id)}
+										class="rounded p-1 hover:bg-gray-100 dark:hover:bg-gray-700"
+									>
+										<DotsVerticalOutline class="text-gray-500 dark:text-gray-400" size="sm" />
+									</button>
 								</TableBodyCell>
 							{/if}
 						</TableBodyRow>
