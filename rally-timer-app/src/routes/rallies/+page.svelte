@@ -11,6 +11,7 @@
 		Input,
 		P
 	} from 'flowbite-svelte';
+	import { TrashBinOutline } from 'flowbite-svelte-icons';
 	import { kcFetch } from '../../lib/kcFetch';
 
 	type Rally = { id: number; name: string };
@@ -267,7 +268,10 @@
 			</TableHead>
 			<TableBody>
 				{#each rallies as r (r.id)}
-					<TableBodyRow>
+					<TableBodyRow
+						class={selectedRallyId === r.id ? 'bg-blue-50 dark:bg-blue-900/30' : 'cursor-pointer'}
+						onclick={() => editingRallyId !== r.id && onSelectRallyForEdit(r.id)}
+					>
 						<TableBodyCell>
 							{#if editingRallyId === r.id}
 								<Input
@@ -279,12 +283,11 @@
 						</TableBodyCell>
 						<TableBodyCell class="flex justify-end gap-2">
 							{#if editingRallyId === r.id}
-								<Button size="xs" onclick={() => saveEditRally(r.id)}>Save</Button>
-								<Button size="xs" color="light" onclick={cancelEditRally}>Cancel</Button>
+								<Button size="xs" onclick={(e: MouseEvent) => { e.stopPropagation(); saveEditRally(r.id); }}>Save</Button>
+								<Button size="xs" color="light" onclick={(e: MouseEvent) => { e.stopPropagation(); cancelEditRally(); }}>Cancel</Button>
 							{:else}
-								<Button size="xs" onclick={() => onSelectRallyForEdit(r.id)}>Select</Button>
-								<Button size="xs" onclick={() => startEditRally(r)}>Edit</Button>
-								<Button size="xs" color="red" onclick={() => deleteRally(r.id)}>Delete</Button>
+								<Button size="xs" onclick={(e: MouseEvent) => { e.stopPropagation(); startEditRally(r); }}>Edit</Button>
+								<Button size="xs" color="red" onclick={(e: MouseEvent) => { e.stopPropagation(); deleteRally(r.id); }}><TrashBinOutline size="xs" /></Button>
 							{/if}
 						</TableBodyCell>
 					</TableBodyRow>
@@ -391,8 +394,8 @@
 									<a class="inline-block" href={`/rallies/${selectedRallyId}/stages/${s.id}/start`}>
 										<Button size="xs">Open Start</Button>
 									</a>
-									<Button size="xs" onclick={() => startEdit(s)}>Edit</Button>
-									<Button size="xs" color="red" onclick={() => deleteStage(s.id)}>Delete</Button>
+									<Button size="xs" onclick={() => startEdit(s)}>Rename</Button>
+									<Button size="xs" color="red" onclick={() => deleteStage(s.id)}><TrashBinOutline size="xs" /></Button>
 								{/if}
 							</TableBodyCell>
 						</TableBodyRow>
