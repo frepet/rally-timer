@@ -11,7 +11,7 @@
 		Input,
 		P
 	} from 'flowbite-svelte';
-	import { TrashBinOutline } from 'flowbite-svelte-icons';
+	import { TrashBinOutline, DotsVerticalOutline } from 'flowbite-svelte-icons';
 	import { kcFetch } from '../../lib/kcFetch';
 
 	type Rally = { id: number; name: string };
@@ -36,6 +36,22 @@
 	// Edit stage
 	let editingId = $state<number | null>(null);
 	let editName = $state('');
+
+	// Stage row menu
+	let openStageMenuId = $state<number | null>(null);
+	let stageMenuPos = $state({ top: 0, right: 0 });
+	const menuStage = $derived(stages.find((s) => s.id === openStageMenuId) ?? null);
+
+	function openStageMenu(e: MouseEvent, id: number) {
+		e.stopPropagation();
+		if (openStageMenuId === id) { openStageMenuId = null; return; }
+		const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+		stageMenuPos = { top: rect.bottom, right: window.innerWidth - rect.right };
+		openStageMenuId = id;
+	}
+
+	const stageMenuItemClass =
+		'block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-600';
 
 	type Driver = {
 		id: number;
@@ -237,6 +253,41 @@
 	}
 </script>
 
+<svelte:window onclick={() => (openStageMenuId = null)} />
+
+<!-- Stage row dropdown portal -->
+{#if menuStage}
+	<div
+		role="menu"
+		style="position:fixed; top:{stageMenuPos.top}px; right:{stageMenuPos.right}px; z-index:9999;"
+		class="min-w-[9rem] rounded-md border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-800"
+		tabindex="-1"
+		onclick={(e) => e.stopPropagation()}
+		onkeydown={(e) => e.key === 'Escape' && (openStageMenuId = null)}
+	>
+		<a
+			href={`/rallies/${selectedRallyId}/stages/${menuStage.id}/events`}
+			class={stageMenuItemClass}
+		>Events</a>
+		<a
+			href={`/rallies/${selectedRallyId}/stages/${menuStage.id}/start`}
+			class={stageMenuItemClass}
+		>Open Start</a>
+		<button
+			type="button"
+			class={stageMenuItemClass}
+			onclick={() => { openStageMenuId = null; startEdit(menuStage); }}
+		>Rename</button>
+		<button
+			type="button"
+			class="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-red-600 hover:bg-gray-100 dark:text-red-400 dark:hover:bg-gray-600"
+			onclick={() => { openStageMenuId = null; deleteStage(menuStage.id); }}
+		>
+			<TrashBinOutline size="xs" /> Delete
+		</button>
+	</div>
+{/if}
+
 <div class="w-full space-y-6 p-5">
 	<!-- Rallies -->
 	<Card class="max-w-none p-4">
@@ -369,7 +420,7 @@
 			<Table hoverable={true}>
 				<TableHead>
 					<TableHeadCell>Name</TableHeadCell>
-					<TableHeadCell class="flex justify-end">Actions</TableHeadCell>
+					<TableHeadCell class="text-right">Actions</TableHeadCell>
 				</TableHead>
 				<TableBody>
 					{#each stages as s (s.id)}
@@ -383,19 +434,20 @@
 									/>
 								{:else}{s.name}{/if}
 							</TableBodyCell>
-							<TableBodyCell class="flex justify-end gap-2">
+							<TableBodyCell class="text-right">
 								{#if editingId === s.id}
-									<Button size="xs" onclick={() => saveEdit(s.id)}>Save</Button>
-									<Button size="xs" color="light" onclick={cancelEdit}>Cancel</Button>
+									<div class="flex justify-end gap-2">
+										<Button size="xs" onclick={() => saveEdit(s.id)}>Save</Button>
+										<Button size="xs" color="light" onclick={cancelEdit}>Cancel</Button>
+									</div>
 								{:else}
-									<a href={`/rallies/${selectedRallyId}/stages/${s.id}/events`}>
-										<Button size="xs">Events</Button>
-									</a>
-									<a class="inline-block" href={`/rallies/${selectedRallyId}/stages/${s.id}/start`}>
-										<Button size="xs">Open Start</Button>
-									</a>
-									<Button size="xs" onclick={() => startEdit(s)}>Rename</Button>
-									<Button size="xs" color="red" onclick={() => deleteStage(s.id)}><TrashBinOutline size="xs" /></Button>
+									<button
+										type="button"
+										onclick={(e) => openStageMenu(e, s.id)}
+										class="rounded p-1 hover:bg-gray-100 dark:hover:bg-gray-700"
+									>
+										<DotsVerticalOutline class="text-gray-500 dark:text-gray-400" size="sm" />
+									</button>
 								{/if}
 							</TableBodyCell>
 						</TableBodyRow>
