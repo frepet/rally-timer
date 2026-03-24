@@ -282,12 +282,12 @@
 		<button
 			type="button"
 			class={stageMenuItemClass}
-			onclick={() => { openStageMenuId = null; startEdit(menuStage); }}
+			onclick={() => { const s = menuStage!; openStageMenuId = null; startEdit(s); }}
 		>Rename</button>
 		<button
 			type="button"
 			class="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-red-600 hover:bg-gray-100 dark:text-red-400 dark:hover:bg-gray-600"
-			onclick={() => { openStageMenuId = null; deleteStage(menuStage.id); }}
+			onclick={() => { const id = menuStage!.id; openStageMenuId = null; deleteStage(id); }}
 		>
 			<TrashBinOutline size="xs" /> Delete
 		</button>
