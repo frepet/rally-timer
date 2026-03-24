@@ -24,14 +24,7 @@
 	const leds = $state([0, 0, 0, 0, 0]);
 	let timer: ReturnType<typeof setInterval> | undefined;
 
-	let utters = new Map<string, SpeechSynthesisUtterance>([
-		['1', createUtterance('1')],
-		['2', createUtterance('2')],
-		['3', createUtterance('3')],
-		['4', createUtterance('4')],
-		['5', createUtterance('5')],
-		['go', createUtterance('go')]
-	]);
+	let utters = new Map<string, SpeechSynthesisUtterance>();
 
 	function createUtterance(text: string) {
 		let utter = new SpeechSynthesisUtterance(text);
@@ -166,7 +159,17 @@
 		timer = undefined;
 	}
 
-	onMount(loadQueue);
+	onMount(() => {
+		utters = new Map([
+			['1', createUtterance('1')],
+			['2', createUtterance('2')],
+			['3', createUtterance('3')],
+			['4', createUtterance('4')],
+			['5', createUtterance('5')],
+			['go', createUtterance('go')]
+		]);
+		loadQueue();
+	});
 </script>
 
 <div class="flex w-full flex-col gap-6 p-6">
