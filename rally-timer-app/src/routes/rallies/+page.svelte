@@ -39,14 +39,20 @@
 
 	// Stage row menu
 	let openStageMenuId = $state<number | null>(null);
-	let stageMenuPos = $state({ top: 0, right: 0 });
+	let stageMenuPos = $state({ top: 'auto', bottom: 'auto', right: '0px' });
 	const menuStage = $derived(stages.find((s) => s.id === openStageMenuId) ?? null);
 
 	function openStageMenu(e: MouseEvent, id: number) {
 		e.stopPropagation();
 		if (openStageMenuId === id) { openStageMenuId = null; return; }
 		const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-		stageMenuPos = { top: rect.bottom, right: window.innerWidth - rect.right };
+		const menuHeight = 140; // approx: 4 items × ~32px + padding
+		const flip = rect.bottom + menuHeight > window.innerHeight;
+		stageMenuPos = {
+			top: flip ? 'auto' : `${rect.bottom}px`,
+			bottom: flip ? `${window.innerHeight - rect.top}px` : 'auto',
+			right: `${window.innerWidth - rect.right}px`
+		};
 		openStageMenuId = id;
 	}
 
@@ -259,7 +265,7 @@
 {#if menuStage}
 	<div
 		role="menu"
-		style="position:fixed; top:{stageMenuPos.top}px; right:{stageMenuPos.right}px; z-index:9999;"
+		style="position:fixed; top:{stageMenuPos.top}; bottom:{stageMenuPos.bottom}; right:{stageMenuPos.right}; z-index:9999;"
 		class="min-w-[9rem] rounded-md border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-800"
 		tabindex="-1"
 		onclick={(e) => e.stopPropagation()}
