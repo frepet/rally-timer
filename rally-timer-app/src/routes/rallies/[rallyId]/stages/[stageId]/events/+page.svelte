@@ -9,7 +9,6 @@
 		TableBodyRow,
 		TableBodyCell,
 		Button,
-		Input,
 		Select,
 		P,
 		Badge
@@ -52,6 +51,15 @@
 		const pad = (n: number, len = 2) => String(n).padStart(len, '0');
 		return (
 			`${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())} ` +
+			`${pad(dt.getHours())}:${pad(dt.getMinutes())}:${pad(dt.getSeconds())}.${pad(dt.getMilliseconds(), 3)}`
+		);
+	}
+
+	function epochToDatetimeLocal(ms: number): string {
+		const dt = new Date(ms);
+		const pad = (n: number, len = 2) => String(n).padStart(len, '0');
+		return (
+			`${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}T` +
 			`${pad(dt.getHours())}:${pad(dt.getMinutes())}:${pad(dt.getSeconds())}.${pad(dt.getMilliseconds(), 3)}`
 		);
 	}
@@ -98,7 +106,7 @@
 
 	function startEdit(e: UnifiedEvent) {
 		editingKey = keyOf(e);
-		editTs = String(e.timestamp);
+		editTs = epochToDatetimeLocal(e.timestamp);
 	}
 	function cancelEdit() {
 		editingKey = null;
@@ -111,9 +119,9 @@
 	}
 
 	async function saveEdit(ev: UnifiedEvent) {
-		const parsed = Number(editTs.trim());
+		const parsed = new Date(editTs).getTime();
 		if (!Number.isFinite(parsed)) {
-			alert('Enter timestamp in milliseconds since epoch (integer).');
+			alert('Invalid date/time.');
 			return;
 		}
 		await kcFetchJSON(endpointFor(ev.kind, ev.id), {
@@ -220,18 +228,20 @@
 
 						<TableBodyCell>
 							{#if editingKey === keyOf(e)}
-								<div class="text-sm opacity-70">{fmtMs(Number(editTs) || 0)}</div>
+								<input
+									type="datetime-local"
+									step="0.001"
+									bind:value={editTs}
+									aria-label="Timestamp"
+									class="rounded border border-gray-300 bg-white px-2 py-1 text-sm dark:border-gray-600 dark:bg-gray-700"
+								/>
 							{:else}
 								{fmtMs(e.timestamp)}
 							{/if}
 						</TableBodyCell>
 
 						<TableBodyCell class="font-mono">
-							{#if editingKey === keyOf(e)}
-								<Input aria-label="Epoch ms" bind:value={editTs} class="w-48" />
-							{:else}
-								{e.timestamp}
-							{/if}
+							{e.timestamp}
 						</TableBodyCell>
 
 						<TableBodyCell>

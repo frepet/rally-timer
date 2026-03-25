@@ -50,8 +50,8 @@ Replace the full rally selector table (Select/Edit/Delete buttons per row) with 
 ## Execution Order
 1. ✅ Batch 1 (#6, #7, #8)
 2. ✅ Batch 2 (#4, #5)
-3. Task #3 (gate inline in stages table)
-4. Task #9 (date-time picker)
+3. ✅ Task #3 (gate inline in stages table)
+4. ✅ Task #9 (date-time picker)
 5. Task #12 (gate on start page + enforcement)
 6. Tasks #1 + #2 + #10 (assign driver modal + search + manage)
 7. Task #11 (rally selection redesign — most disruptive)
