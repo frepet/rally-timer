@@ -54,4 +54,4 @@ Replace the full rally selector table (Select/Edit/Delete buttons per row) with 
 4. ✅ Task #9 (date-time picker)
 5. ✅ Task #12 (gate on start page + enforcement)
 6. ✅ Tasks #1 + #2 + #10 (assign driver modal + search + manage)
-7. Task #11 (rally selection redesign — most disruptive)
+7. ✅ Task #11 (rally selection redesign — most disruptive)

@@ -14,7 +14,7 @@
 		P,
 		Modal
 	} from 'flowbite-svelte';
-	import { TrashBinOutline, DotsVerticalOutline, PlayOutline } from 'flowbite-svelte-icons';
+	import { TrashBinOutline, DotsVerticalOutline, PlayOutline, EditOutline, PlusOutline } from 'flowbite-svelte-icons';
 	import { kcFetch } from '../../lib/kcFetch';
 
 	type Rally = { id: number; name: string };
@@ -127,6 +127,7 @@
 			body: JSON.stringify({ name })
 		});
 		newRallyName = '';
+		newRallyModalOpen = false;
 		await loadRallies();
 		selectedRallyId = r.id;
 		rememberRally(r.id);
@@ -285,6 +286,7 @@
 	}
 
 	let assignModalOpen = $state(false);
+	let newRallyModalOpen = $state(false);
 	let driverSearch = $state('');
 
 	function availableDrivers(): Driver[] {
@@ -362,94 +364,63 @@
 			<P class="text-2xl font-bold">Rallies</P>
 		</div>
 
-		<!-- Create Rally -->
-		<div class="mb-4 grid grid-cols-1 gap-3 md:grid-cols-2">
-			<div>
-				<P><label for="newRally" class="mb-2 block text-sm font-medium">New Rally</label></P>
+		<!-- Row 1: dropdown + icons -->
+		{#if editingRallyId !== null}
+			<div class="mb-3 flex items-center gap-2">
 				<Input
-					id="newRally"
-					bind:value={newRallyName}
-					placeholder="Rally name"
-					onkeydown={(e) => e.key === 'Enter' && createRally()}
+					aria-label="Rally name"
+					bind:value={editRallyName}
+					class="flex-1"
+					onkeydown={(e) => e.key === 'Enter' && saveEditRally(editingRallyId!)}
 				/>
+				<Button size="sm" onclick={() => saveEditRally(editingRallyId!)}>Save</Button>
+				<Button size="sm" color="light" onclick={cancelEditRally}>Cancel</Button>
 			</div>
-			<div class="flex items-end">
-				<Button class="w-full md:w-32" onclick={createRally}>Add Rally</Button>
+		{:else}
+			<div class="mb-3 flex items-center gap-2">
+				<Select
+					class="flex-1"
+					value={selectedRallyId ?? ''}
+					onchange={(e) => {
+						const id = Number((e.currentTarget as HTMLSelectElement).value);
+						if (id) onSelectRallyForEdit(id);
+					}}
+				>
+					<option value="">Select rally...</option>
+					{#each rallies as r (r.id)}
+						<option value={r.id}>{r.name}</option>
+					{/each}
+				</Select>
+				<button
+					class="rounded p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700"
+					title="New rally"
+					onclick={() => (newRallyModalOpen = true)}
+				><PlusOutline size="sm" class="text-gray-500 dark:text-gray-400" /></button>
+				{#if selectedRallyId !== null}
+					{@const sel = rallies.find((r) => r.id === selectedRallyId)}
+					{#if sel}
+						<button
+							class="rounded p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700"
+							title="Rename rally"
+							onclick={() => startEditRally(sel)}
+						><EditOutline size="sm" class="text-gray-500 dark:text-gray-400" /></button>
+						<button
+							class="rounded p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700"
+							title="Delete rally"
+							onclick={() => deleteRally(sel.id)}
+						><TrashBinOutline size="sm" class="text-red-500 dark:text-red-400" /></button>
+					{/if}
+				{/if}
 			</div>
-		</div>
+		{/if}
 
-		<!-- Rallies Table -->
-		<Table hoverable={true}>
-			<TableHead>
-				<TableHeadCell>Name</TableHeadCell>
-				<TableHeadCell class="flex justify-end">Actions</TableHeadCell>
-			</TableHead>
-			<TableBody>
-				{#each rallies as r (r.id)}
-					<TableBodyRow
-						class={selectedRallyId === r.id ? 'bg-blue-50 dark:bg-blue-900/30' : 'cursor-pointer'}
-						onclick={() => editingRallyId !== r.id && onSelectRallyForEdit(r.id)}
-					>
-						<TableBodyCell>
-							{#if editingRallyId === r.id}
-								<Input
-									aria-label="Rally name"
-									bind:value={editRallyName}
-									onkeydown={(e) => e.key === 'Enter' && saveEditRally(r.id)}
-								/>
-							{:else}{r.name}{/if}
-						</TableBodyCell>
-						<TableBodyCell class="flex justify-end gap-2">
-							{#if editingRallyId === r.id}
-								<Button
-									size="xs"
-									onclick={(e: MouseEvent) => {
-										e.stopPropagation();
-										saveEditRally(r.id);
-									}}>Save</Button
-								>
-								<Button
-									size="xs"
-									color="light"
-									onclick={(e: MouseEvent) => {
-										e.stopPropagation();
-										cancelEditRally();
-									}}>Cancel</Button
-								>
-							{:else}
-								<Button
-									size="xs"
-									onclick={(e: MouseEvent) => {
-										e.stopPropagation();
-										startEditRally(r);
-									}}>Edit</Button
-								>
-								<Button
-									size="xs"
-									color="red"
-									onclick={(e: MouseEvent) => {
-										e.stopPropagation();
-										deleteRally(r.id);
-									}}><TrashBinOutline size="xs" /></Button
-								>
-							{/if}
-						</TableBodyCell>
-					</TableBodyRow>
-				{/each}
-			</TableBody>
-		</Table>
+		<!-- Row 2: Assign Drivers (only when rally selected) -->
+		{#if selectedRallyId !== null && editingRallyId === null}
+			<Button size="sm" onclick={() => (assignModalOpen = true)}>Assign Drivers</Button>
+		{/if}
 	</Card>
 
 	{#if selectedRallyId !== null}
-		<Card class="max-w-none p-4">
-			<div class="flex items-center justify-between">
-				<P class="text-xl font-bold"
-					>{rallies.find((r) => r.id === selectedRallyId)?.name}</P
-				>
-				<Button size="sm" onclick={() => (assignModalOpen = true)}>Assign Drivers</Button>
-			</div>
-		</Card>
-
 		<Card class="max-w-none p-4">
 			<div class="mb-4">
 				<P class="text-2xl font-bold">Stages</P>
@@ -611,5 +582,19 @@
 		<a href="/drivers" class="text-sm text-blue-600 hover:underline dark:text-blue-400"
 			>Manage / add drivers →</a
 		>
+	</div>
+</Modal>
+
+<Modal title="New Rally" bind:open={newRallyModalOpen} size="sm" autoclose={false}>
+	<div class="flex flex-col gap-4">
+		<Input
+			bind:value={newRallyName}
+			placeholder="Rally name"
+			onkeydown={(e) => e.key === 'Enter' && createRally()}
+		/>
+		<div class="flex justify-end gap-2">
+			<Button color="light" onclick={() => (newRallyModalOpen = false)}>Cancel</Button>
+			<Button onclick={createRally} disabled={!newRallyName.trim()}>Create</Button>
+		</div>
 	</div>
 </Modal>
