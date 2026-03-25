@@ -163,7 +163,8 @@
 		await loadRallies();
 	}
 	async function deleteRally(id: number) {
-		if (!confirm('Are you sure you want to delete this rally? This cannot be undone.')) return;
+		const rallyName = rallies.find((r) => r.id === id)?.name ?? 'this rally';
+		if (!confirm(`Are you sure you want to delete "${rallyName}"? This cannot be undone.`)) return;
 
 		try {
 			selectedRallyId = null;
