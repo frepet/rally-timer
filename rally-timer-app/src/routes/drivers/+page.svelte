@@ -410,7 +410,9 @@
 								<Button size="xs" color="light" onclick={cancelEdit}>Cancel</Button>
 							{:else}
 								<Button size="xs" onclick={() => startEdit(d)}>Edit</Button>
-								<Button size="xs" color="red" onclick={() => deleteOne(d.id)}><TrashBinOutline size="xs" /></Button>
+								<Button size="xs" color="red" onclick={() => deleteOne(d.id)}
+									><TrashBinOutline size="xs" /></Button
+								>
 							{/if}
 						</TableBodyCell>
 					</TableBodyRow>

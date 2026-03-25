@@ -248,7 +248,9 @@
 								<Button size="xs" color="light" onclick={cancelEdit}>Cancel</Button>
 							{:else}
 								<Button size="xs" onclick={() => startEdit(e)}>Edit</Button>
-								<Button size="xs" color="red" onclick={() => deleteEvent(e)}><TrashBinOutline size="xs" /></Button>
+								<Button size="xs" color="red" onclick={() => deleteEvent(e)}
+									><TrashBinOutline size="xs" /></Button
+								>
 							{/if}
 						</TableBodyCell>
 					</TableBodyRow>

@@ -37,7 +37,7 @@
 			<NavLi href="/rallies">Manage Rallies</NavLi>
 			<NavLi href="/drivers">Manage Drivers</NavLi>
 			<NavLi href="/gates">Gates</NavLi>
-	{/if}
+		{/if}
 		{#if $isAuthenticated}
 			<Button onclick={logout}>Logout</Button>
 		{:else}
