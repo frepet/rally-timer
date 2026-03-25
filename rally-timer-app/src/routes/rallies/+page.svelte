@@ -111,6 +111,11 @@
 		} else if (selectedRallyId !== null && rallies.some((r) => r.id === selectedRallyId)) {
 			const id = Number(selectedRallyId);
 			await Promise.all([loadStages(id), loadAssigned(id)]);
+		} else if (rallies.length) {
+			const id = rallies[0].id;
+			selectedRallyId = id;
+			rememberRally(id);
+			await Promise.all([loadStages(id), loadAssigned(id), loadAllDrivers(), loadGates()]);
 		} else {
 			selectedRallyId = null;
 			stages = [];
@@ -161,13 +166,9 @@
 		if (!confirm('Are you sure you want to delete this rally? This cannot be undone.')) return;
 
 		try {
+			selectedRallyId = null;
 			await kcFetch(`/api/rally/${id}`, { method: 'DELETE' });
 			await loadRallies();
-			if (selectedRallyId === id) {
-				selectedRallyId = null;
-				stages = [];
-				assigned = [];
-			}
 		} catch (e) {
 			alert('Cannot delete rally: ' + (e as Error).message);
 		}
@@ -378,6 +379,7 @@
 			</div>
 		{:else}
 			<div class="mb-3 flex items-center gap-2">
+				{#if rallies.length}
 				<Select
 					class="flex-1"
 					value={selectedRallyId ?? ''}
@@ -386,11 +388,13 @@
 						if (id) onSelectRallyForEdit(id);
 					}}
 				>
-					<option value="">Select rally...</option>
 					{#each rallies as r (r.id)}
 						<option value={r.id}>{r.name}</option>
 					{/each}
 				</Select>
+				{:else}
+					<span class="flex-1 text-sm text-gray-500 dark:text-gray-400">Create a new rally to get started</span>
+				{/if}
 				<button
 					class="rounded p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700"
 					title="New rally"
