@@ -1,12 +1,13 @@
 <script lang="ts">
 	import { Card, Button, Input, P } from 'flowbite-svelte';
 	import { page } from '$app/stores';
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { kcFetch } from '../../../../../../lib/kcFetch';
 
 	type Driver = { id: number; name: string; class_name?: string; tag: string };
 	type Rally = { id: number; name: string };
 	type Stage = { id: number; name: string };
+	type Gate = { id: string; name: string | null; stage_id: number | null };
 
 	let rallyId = $state<number>(0);
 	let stageId = $state<number>(0);
@@ -16,6 +17,7 @@
 	let stage: Stage | null = $state(null);
 
 	let drivers = $state<Driver[]>([]);
+	let gates = $state<Gate[]>([]);
 	let idx = $state(0);
 	let running = $state(false);
 	let paused = $state(false);
@@ -23,6 +25,7 @@
 	let remainingMs = $state(0);
 	const leds = $state([0, 0, 0, 0, 0]);
 	let timer: ReturnType<typeof setInterval> | undefined;
+	let gatePoller: ReturnType<typeof setInterval> | undefined;
 
 	let utters = new Map<string, SpeechSynthesisUtterance>();
 
@@ -57,6 +60,14 @@
 
 		idx = 0;
 	}
+
+	async function loadGates() {
+		const res = await kcFetch('/api/gate');
+		if (!res.ok) return;
+		gates = await res.json();
+	}
+
+	const hasGate = $derived(gates.some((g) => g.stage_id === stageId));
 
 	function setLED(step: number) {
 		if (step < 0 || step > 5) {
@@ -169,6 +180,12 @@
 			['go', createUtterance('go')]
 		]);
 		loadQueue();
+		loadGates();
+		gatePoller = setInterval(loadGates, 5000);
+	});
+
+	onDestroy(() => {
+		if (gatePoller) clearInterval(gatePoller);
 	});
 </script>
 
@@ -243,8 +260,11 @@
 				<label for="gap" class="text-sm opacity-70"><P>Gap (s)</P></label>
 				<Input id="gap" type="number" min="1" class="w-20 rounded p-2" bind:value={gapSeconds} />
 			</div>
-			<div class="flex w-full flex-wrap gap-2 p-2">
-				<Button size="sm" onclick={start} disabled={running}>Start</Button>
+			{#if !hasGate}
+			<P class="px-2 text-sm text-yellow-600 dark:text-yellow-400">No gate assigned to this stage.</P>
+		{/if}
+		<div class="flex w-full flex-wrap gap-2 p-2">
+				<Button size="sm" onclick={start} disabled={running || !hasGate}>Start</Button>
 				<Button size="sm" onclick={pause} disabled={!running || paused}>Pause</Button>
 				<Button size="sm" onclick={resume} disabled={!running || !paused}>Resume</Button>
 				<Button size="sm" color="red" onclick={restart}>Restart</Button>
