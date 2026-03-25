@@ -19,4 +19,6 @@ export async function runMigrations() {
 	await run001();
 }
 
-runMigrations().catch((e) => console.error('Migration failed:', e));
+export const migrationsReady = runMigrations().catch((e) => {
+	console.error('Migration failed:', e);
+});
