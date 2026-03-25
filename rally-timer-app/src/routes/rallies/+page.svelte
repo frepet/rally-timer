@@ -13,7 +13,7 @@
 		Badge,
 		P
 	} from 'flowbite-svelte';
-	import { TrashBinOutline, DotsVerticalOutline } from 'flowbite-svelte-icons';
+	import { TrashBinOutline, DotsVerticalOutline, PlayOutline } from 'flowbite-svelte-icons';
 	import { kcFetch } from '../../lib/kcFetch';
 
 	type Rally = { id: number; name: string };
@@ -321,9 +321,6 @@
 		<a href={`/rallies/${selectedRallyId}/stages/${menuStage.id}/events`} class={stageMenuItemClass}
 			>Events</a
 		>
-		<a href={`/rallies/${selectedRallyId}/stages/${menuStage.id}/start`} class={stageMenuItemClass}
-			>Open Start</a
-		>
 		<button
 			type="button"
 			class={stageMenuItemClass}
@@ -506,6 +503,7 @@
 				<TableHead>
 					<TableHeadCell>Name</TableHeadCell>
 					<TableHeadCell>Gate</TableHeadCell>
+					<TableHeadCell class="text-center">Start</TableHeadCell>
 					<TableHeadCell class="text-right">Actions</TableHeadCell>
 				</TableHead>
 				<TableBody>
@@ -565,6 +563,19 @@
 										<span class="text-sm text-gray-400 dark:text-gray-500">No unassigned gates</span>
 									{/if}
 								</div>
+							</TableBodyCell>
+							<TableBodyCell class="text-center">
+								{#if assignedGatesForStage(s.id).length > 0}
+									<a
+										href={`/rallies/${selectedRallyId}/stages/${s.id}/start`}
+										class="inline-flex items-center justify-center rounded p-1 text-green-600 hover:bg-gray-100 dark:text-green-400 dark:hover:bg-gray-700"
+										title="Open Start"
+									>
+										<PlayOutline size="md" />
+									</a>
+								{:else}
+									<span class="text-xs text-gray-400 dark:text-gray-500">Select gate first</span>
+								{/if}
 							</TableBodyCell>
 							<TableBodyCell class="text-right">
 								{#if editingId === s.id}
