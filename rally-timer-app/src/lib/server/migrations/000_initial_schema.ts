@@ -41,7 +41,7 @@ export async function runMigration() {
 		CREATE TABLE IF NOT EXISTS finish_events (
 			id        SERIAL  PRIMARY KEY,
 			stage_id  INTEGER NOT NULL,
-			timestamp INTEGER NOT NULL,
+			timestamp BIGINT  NOT NULL,
 			tag       TEXT    NOT NULL,
 			FOREIGN KEY (stage_id) REFERENCES stages(id) ON DELETE CASCADE
 		);
@@ -50,10 +50,13 @@ export async function runMigration() {
 			id        SERIAL  PRIMARY KEY,
 			stage_id  INTEGER NOT NULL,
 			driver_id INTEGER NOT NULL,
-			ts_ms     INTEGER NOT NULL,
+			ts_ms     BIGINT  NOT NULL,
 			FOREIGN KEY (stage_id)  REFERENCES stages(id)  ON DELETE CASCADE,
 			FOREIGN KEY (driver_id) REFERENCES drivers(id) ON DELETE RESTRICT
 		);
+
+		ALTER TABLE finish_events ALTER COLUMN timestamp TYPE BIGINT;
+		ALTER TABLE start_events  ALTER COLUMN ts_ms     TYPE BIGINT;
 
 		CREATE INDEX IF NOT EXISTS idx_drivers_tag          ON drivers(tag);
 		CREATE INDEX IF NOT EXISTS idx_drivers_name         ON drivers(name);
