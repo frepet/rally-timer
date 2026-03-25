@@ -55,6 +55,10 @@ export async function runMigration() {
 			FOREIGN KEY (driver_id) REFERENCES drivers(id) ON DELETE RESTRICT
 		);
 
+		DROP VIEW IF EXISTS rally_leaderboard;
+		DROP VIEW IF EXISTS stage_leaderboard;
+		DROP VIEW IF EXISTS rally_times;
+		DROP VIEW IF EXISTS stage_times;
 		ALTER TABLE finish_events ALTER COLUMN timestamp TYPE BIGINT;
 		ALTER TABLE start_events  ALTER COLUMN ts_ms     TYPE BIGINT;
 
