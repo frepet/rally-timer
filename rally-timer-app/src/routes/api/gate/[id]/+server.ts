@@ -1,14 +1,6 @@
 import { json, error, type RequestEvent } from '@sveltejs/kit';
-import { db } from '../../../../lib/server/db';
+import { sql } from '../../../../lib/server/db';
 import { gateRegisterSchema, gateAssignSchema } from '../../../../lib/server/schemas';
-
-function ensureWal() {
-	try {
-		db.pragma('journal_mode = WAL');
-	} catch {
-		/* ignore */
-	}
-}
 
 export async function POST(event: RequestEvent): Promise<Response> {
 	let body: unknown;
@@ -22,15 +14,14 @@ export async function POST(event: RequestEvent): Promise<Response> {
 
 	const { id, name } = parsed.data;
 	const now = Date.now();
-	ensureWal();
 
-	db.prepare(
-		`INSERT INTO gates (id, name, last_seen, created_at)
-		 VALUES (?, ?, ?, ?)
-		 ON CONFLICT(id) DO UPDATE SET
-			name = COALESCE(excluded.name, name),
-			last_seen = ?`
-	).run(id, name ?? null, now, now, now);
+	await sql`
+		INSERT INTO gates (id, name, last_seen, created_at)
+		VALUES (${id}, ${name ?? null}, ${now}, ${now})
+		ON CONFLICT (id) DO UPDATE SET
+			name = COALESCE(EXCLUDED.name, gates.name),
+			last_seen = ${now}
+	`;
 
 	return json({ id, registered: true }, { status: 201 });
 }
@@ -49,17 +40,12 @@ export async function PATCH(event: RequestEvent): Promise<Response> {
 	if (!parsed.success) return json({ errors: parsed.error.flatten() }, { status: 400 });
 
 	const { stage_id, name } = parsed.data;
-	ensureWal();
 
 	if (stage_id !== undefined) {
-		if (stage_id === null) {
-			db.prepare('UPDATE gates SET stage_id = NULL WHERE id = ?').run(id);
-		} else {
-			db.prepare('UPDATE gates SET stage_id = ? WHERE id = ?').run(stage_id, id);
-		}
+		await sql`UPDATE gates SET stage_id = ${stage_id} WHERE id = ${id}`;
 	}
 	if (name !== undefined) {
-		db.prepare('UPDATE gates SET name = ? WHERE id = ?').run(name, id);
+		await sql`UPDATE gates SET name = ${name} WHERE id = ${id}`;
 	}
 
 	return json({ id, updated: true });
@@ -69,6 +55,6 @@ export async function DELETE(event: RequestEvent): Promise<Response> {
 	const { id } = event.params;
 	if (!id) throw error(400, 'Missing gate id');
 
-	db.prepare('DELETE FROM gates WHERE id = ?').run(id);
+	await sql`DELETE FROM gates WHERE id = ${id}`;
 	return json({ deleted: true });
 }
