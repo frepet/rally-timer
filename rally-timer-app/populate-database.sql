@@ -49,11 +49,11 @@ CREATE TABLE rally_drivers (
 
 -- Registered gates (standalone RFID readers)
 CREATE TABLE gates (
-  id          TEXT    PRIMARY KEY,  -- UUID
-  name        TEXT,                 -- Optional friendly name
-  last_seen   INTEGER NOT NULL,     -- Timestamp of last heartbeat
-  stage_id    INTEGER,              -- Assigned stage (NULL if unassigned)
-  created_at  INTEGER NOT NULL      -- When registered
+  id          TEXT   PRIMARY KEY,  -- UUID
+  name        TEXT,                -- Optional friendly name
+  last_seen   BIGINT NOT NULL,     -- Timestamp of last heartbeat (ms epoch)
+  stage_id    INTEGER,             -- Assigned stage (NULL if unassigned)
+  created_at  BIGINT NOT NULL      -- When registered (ms epoch)
 );
 CREATE INDEX gates_stage_idx ON gates(stage_id);
 
@@ -62,9 +62,9 @@ CREATE TABLE gate_events (
   id        INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   gate_id   TEXT    NOT NULL,
   tag       TEXT    NOT NULL,
-  timestamp INTEGER NOT NULL,   -- ms since epoch from gate
+  timestamp BIGINT  NOT NULL,   -- ms since epoch from gate
   rssi      INTEGER,            -- Signal strength (optional)
-  synced_at INTEGER NOT NULL,   -- When received by server
+  synced_at BIGINT  NOT NULL,   -- When received by server
   FOREIGN KEY (gate_id) REFERENCES gates(id) ON DELETE CASCADE
 );
 CREATE INDEX gate_events_gate_tag_idx ON gate_events(gate_id, tag, timestamp);
@@ -74,7 +74,7 @@ CREATE INDEX gate_events_gate_tag_idx ON gate_events(gate_id, tag, timestamp);
 CREATE TABLE finish_events (
   id        INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   stage_id  INTEGER NOT NULL,
-  timestamp INTEGER NOT NULL,  -- ms since epoch
+  timestamp BIGINT  NOT NULL,  -- ms since epoch
   tag       TEXT    NOT NULL,
   FOREIGN KEY (stage_id) REFERENCES stages(id) ON DELETE CASCADE
 );
@@ -84,7 +84,7 @@ CREATE TABLE start_events (
   id        INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   stage_id  INTEGER NOT NULL,
   driver_id INTEGER NOT NULL,
-  ts_ms     INTEGER NOT NULL,  -- ms since epoch
+  ts_ms     BIGINT  NOT NULL,  -- ms since epoch
   FOREIGN KEY (stage_id)  REFERENCES stages(id)  ON DELETE CASCADE,
   FOREIGN KEY (driver_id) REFERENCES drivers(id) ON DELETE RESTRICT
 );
