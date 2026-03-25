@@ -65,5 +65,9 @@ python uhf_gate.py
 - **Side effects** only in entrypoints (`+server.ts`, hooks); keep modules pure.
 - **Zod** schemas at all API boundaries — never trust client input.
 - **Error handling**: `throw error(code, message)` from `@sveltejs/kit`; wrap DB/external calls in try/catch; never swallow errors silently.
-- **State**: Svelte stores in `src/lib/stores`; keep derived logic pure.
+- **State**: Svelte 5 runes (`$state`, `$derived`, `$derived.by`, `$effect`, `$props`) — not Svelte 4 stores/reactive declarations.
 - **Auth**: Use `keycloak.ts` helpers; never embed raw tokens in logs.
+
+## UI
+
+- **Component library**: Flowbite Svelte (`flowbite-svelte` + `flowbite-svelte-icons`). Use Flowbite components (`Card`, `Button`, `Input`, `Select`, `Modal`, `Table`, `Badge`, etc.) for all UI elements.
