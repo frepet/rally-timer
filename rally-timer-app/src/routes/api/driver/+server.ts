@@ -1,6 +1,6 @@
 import { json, error, type RequestEvent } from '@sveltejs/kit';
 import { z } from 'zod';
-import { db } from '../../../lib/server/db';
+import { sql } from '../../../lib/server/db';
 import { throwIfNotAdmin } from '../../../lib/server/keycloak';
 
 const createDriverSchema = z.object({
@@ -17,14 +17,6 @@ const createDriverSchema = z.object({
 		.transform((s) => s.trim())
 });
 
-function ensureWal() {
-	try {
-		db.pragma('journal_mode = WAL');
-	} catch {
-		// pragma is best-effort; ignore errors silently (acceptable here)
-	}
-}
-
 export async function POST(event: RequestEvent): Promise<Response> {
 	await throwIfNotAdmin(event);
 	let body: unknown;
@@ -38,27 +30,21 @@ export async function POST(event: RequestEvent): Promise<Response> {
 		return json({ errors: parsed.error.flatten() }, { status: 400 });
 	}
 	const { name, class_id, tag } = parsed.data;
-	ensureWal();
-	const row = db
-		.prepare(
-			`INSERT INTO drivers(name, class_id, tag)
-			 VALUES(?, ?, ?)
-			 RETURNING id, name, class_id, tag;`
-		)
-		.get(name, class_id, tag);
+	const [row] = await sql`
+		INSERT INTO drivers(name, class_id, tag)
+		VALUES(${name}, ${class_id}, ${tag})
+		RETURNING id, name, class_id, tag
+	`;
 	return json(row, { status: 201 });
 }
 
 export async function GET(): Promise<Response> {
-	ensureWal();
-	const rows = db
-		.prepare(
-			`SELECT d.id, d.name, d.class_id, d.tag, c.name AS class_name
-			 FROM drivers d
-			 LEFT JOIN classes c ON c.id = d.class_id
-			 ORDER BY d.id;`
-		)
-		.all();
+	const rows = await sql`
+		SELECT d.id, d.name, d.class_id, d.tag, c.name AS class_name
+		FROM drivers d
+		LEFT JOIN classes c ON c.id = d.class_id
+		ORDER BY d.id
+	`;
 	return json(rows);
 }
 

@@ -1,46 +1,22 @@
-import Database from 'better-sqlite3';
-import { env } from '$env/dynamic/private'; // runtime env on the server
+import postgres from 'postgres';
+import { env } from '$env/dynamic/private';
 
-const dbFile = env.DB_FILE ?? 'database.sqlite';
-
-// Make TypeScript happy for a singleton in dev/HMR:
-type DB = InstanceType<typeof Database>;
-
-// Reuse the same connection across reloads/process modules
 declare global {
 	// eslint-disable-next-line no-var
-	var __rallyDb__: DB | undefined;
+	var __pgSql__: ReturnType<typeof postgres> | undefined;
 }
 
-const db: DB = globalThis.__rallyDb__ ?? new Database(dbFile, { fileMustExist: true });
+const sql = globalThis.__pgSql__ ?? postgres(env.DATABASE_URL);
+if (!globalThis.__pgSql__) globalThis.__pgSql__ = sql;
 
-// Run one-time pragmas when we actually create it
-if (!globalThis.__rallyDb__) {
-	try {
-		db.pragma('journal_mode = WAL'); // good defaults for better-sqlite3
-		db.pragma('synchronous = NORMAL');
-	} catch {
-		// ignore pragma errors (non-fatal)
-	}
-	globalThis.__rallyDb__ = db;
+export { sql };
+
+import { runMigration as run000 } from './migrations/000_initial_schema';
+import { runMigration as run001 } from './migrations/001_gates';
+
+export async function runMigrations() {
+	await run000();
+	await run001();
 }
 
-export { db };
-
-// Run migrations
-import { migrateToGates, needsMigration } from './migrations/001_gates';
-
-export function runMigrations() {
-	if (needsMigration()) {
-		console.log('Running database migrations...');
-		migrateToGates();
-		console.log('Migrations complete.');
-	}
-}
-
-// Auto-run on import
-try {
-	runMigrations();
-} catch (e) {
-	console.error('Migration failed:', e);
-}
+runMigrations().catch((e) => console.error('Migration failed:', e));
