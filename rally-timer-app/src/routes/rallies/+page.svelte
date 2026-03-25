@@ -542,7 +542,7 @@
 											<Select
 												size="sm"
 												class="w-36"
-												value={stageGateSelect[s.id] ?? availableGatesForAssign()[0]?.id ?? ''}
+												value={stageGateSelect[s.id] || availableGatesForAssign()[0]?.id || ''}
 												onchange={(e) => {
 													stageGateSelect = {
 														...stageGateSelect,
