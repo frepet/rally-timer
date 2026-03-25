@@ -15,24 +15,61 @@ export const token = writable<string | null>(null);
 export const realmRoles = writable<string[]>([]);
 export const clientRoles = writable<string[]>([]); // roles of THIS client
 
+const KC_TOKEN_KEY = 'kc_token';
+const KC_REFRESH_KEY = 'kc_refresh_token';
+
+function updateStores() {
+	isAuthenticated.set(true);
+	token.set(keycloak.token ?? null);
+	realmRoles.set(keycloak.realmAccess?.roles ?? []);
+	clientRoles.set(keycloak.resourceAccess?.[keycloak.clientId!]?.roles ?? []);
+	if (keycloak.token) localStorage.setItem(KC_TOKEN_KEY, keycloak.token);
+	if (keycloak.refreshToken) localStorage.setItem(KC_REFRESH_KEY, keycloak.refreshToken);
+}
+
+function clearStorage() {
+	localStorage.removeItem(KC_TOKEN_KEY);
+	localStorage.removeItem(KC_REFRESH_KEY);
+}
+
 export async function initKeycloak() {
 	try {
-		await keycloak.init({
-			onLoad: 'check-sso',
-			pkceMethod: 'S256',
-			silentCheckSsoRedirectUri: window.location.origin + '/silent-check-sso.html'
-		});
+		const storedToken = localStorage.getItem(KC_TOKEN_KEY) ?? undefined;
+		const storedRefreshToken = localStorage.getItem(KC_REFRESH_KEY) ?? undefined;
 
-		if (keycloak.authenticated) {
-			isAuthenticated.set(true);
-			token.set(keycloak.token ?? null);
-
-			const rr = keycloak.realmAccess?.roles ?? [];
-			const cr = keycloak.resourceAccess?.[keycloak.clientId!]?.roles ?? [];
-
-			realmRoles.set(rr);
-			clientRoles.set(cr);
+		if (storedToken && storedRefreshToken) {
+			// Restore session from stored tokens — keycloak treats this as authenticated
+			await keycloak.init({ pkceMethod: 'S256', token: storedToken, refreshToken: storedRefreshToken });
+			try {
+				// Force a refresh so we have a valid (non-expired) access token
+				await keycloak.updateToken(-1);
+				updateStores();
+			} catch {
+				// Refresh token expired or revoked
+				clearStorage();
+			}
+		} else {
+			// No stored tokens — check for an active Keycloak SSO session via iframe
+			await keycloak.init({
+				onLoad: 'check-sso',
+				pkceMethod: 'S256',
+				silentCheckSsoRedirectUri: window.location.origin + '/silent-check-sso.html'
+			});
+			if (keycloak.authenticated) {
+				updateStores();
+			}
 		}
+
+		keycloak.onTokenExpired = async () => {
+			try {
+				await keycloak.updateToken(30);
+				updateStores();
+			} catch {
+				clearStorage();
+				isAuthenticated.set(false);
+				token.set(null);
+			}
+		};
 	} catch (e) {
 		console.error('Keycloak init error', e);
 	}
@@ -42,6 +79,7 @@ export function login() {
 	keycloak.login();
 }
 export function logout() {
+	clearStorage();
 	keycloak.logout();
 }
 
