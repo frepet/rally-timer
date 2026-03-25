@@ -33,7 +33,10 @@
 
 	function openMenu(e: MouseEvent, id: string) {
 		e.stopPropagation();
-		if (openMenuId === id) { openMenuId = null; return; }
+		if (openMenuId === id) {
+			openMenuId = null;
+			return;
+		}
 		const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
 		menuPos = { top: rect.bottom + window.scrollY, right: window.innerWidth - rect.right };
 		openMenuId = id;
