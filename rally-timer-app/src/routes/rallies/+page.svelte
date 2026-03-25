@@ -540,6 +540,7 @@
 									{#if availableGatesForAssign().length}
 										<div class="flex items-center gap-1">
 											<Select
+												placeholder=""
 												size="sm"
 												class="w-36"
 												value={stageGateSelect[s.id] || availableGatesForAssign()[0]?.id || ''}
