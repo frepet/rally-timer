@@ -159,7 +159,12 @@ class UHFGate:
         logger.info("-" * 60)
 
         try:
+            poll_start = time.time()
             while self.running:
+                if time.time() - poll_start > 60:
+                    self.reader.start_polling()
+                    poll_start = time.time()
+
                 chunk = self.reader.read_chunk(256)
                 if chunk:
                     self.buffer += chunk
