@@ -62,9 +62,3 @@ export async function GET(): Promise<Response> {
 	return json(rows);
 }
 
-export async function DELETE(event: RequestEvent): Promise<Response> {
-	await throwIfNotAdmin(event);
-	ensureWal();
-	db.exec('DELETE FROM drivers');
-	return new Response(null, { status: 204 });
-}

@@ -10,26 +10,6 @@ function ensureWal() {
 	}
 }
 
-export async function GET(): Promise<Response> {
-	const gates = db
-		.prepare(
-			`SELECT 
-				g.id,
-				g.name,
-				g.last_seen,
-				g.stage_id,
-				g.created_at,
-				s.name as stage_name,
-				r.name as rally_name
-			FROM gates g
-			LEFT JOIN stages s ON s.id = g.stage_id
-			LEFT JOIN rallies r ON r.id = s.rally_id
-			ORDER BY g.last_seen DESC`
-		)
-		.all();
-	return json(gates);
-}
-
 export async function POST(event: RequestEvent): Promise<Response> {
 	let body: unknown;
 	try {
