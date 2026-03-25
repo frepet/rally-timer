@@ -11,7 +11,8 @@
 		Input,
 		Select,
 		Badge,
-		P
+		P,
+		Modal
 	} from 'flowbite-svelte';
 	import { TrashBinOutline, DotsVerticalOutline, PlayOutline } from 'flowbite-svelte-icons';
 	import { kcFetch } from '../../lib/kcFetch';
@@ -283,10 +284,20 @@
 		await loadGates();
 	}
 
+	let assignModalOpen = $state(false);
+	let driverSearch = $state('');
+
 	function availableDrivers(): Driver[] {
 		const assignedIds = new Set(assigned.map((d) => d.id));
 		return allDrivers.filter((d) => !assignedIds.has(d.id));
 	}
+
+	const filteredAvailableDrivers = $derived.by(() => {
+		const q = driverSearch.trim().toLowerCase();
+		return availableDrivers().filter(
+			(d) => !q || d.name.toLowerCase().includes(q) || (d.class_name ?? '').toLowerCase().includes(q)
+		);
+	});
 
 	async function addToRally(driverId: number) {
 		if (selectedRallyId === null) return;
@@ -431,49 +442,11 @@
 
 	{#if selectedRallyId !== null}
 		<Card class="max-w-none p-4">
-			<P class="mb-4 text-xl font-bold"
-				>Selected Rally: {rallies.find((r) => r.id === selectedRallyId)?.name}</P
-			>
-		</Card>
-	{/if}
-
-	{#if selectedRallyId !== null}
-		<Card class="max-w-none p-4">
-			<P class="mb-4 text-2xl font-bold">Assign drivers to rally</P>
-			<div class="grid grid-cols-1 gap-6 md:grid-cols-2">
-				<div>
-					<P class="mb-2 text-lg font-semibold">Assigned</P>
-					<ul class="space-y-2">
-						{#each assigned as d (d.id)}
-							<li class="flex items-center justify-between gap-2 rounded border p-2">
-								<P><span>{d.name} — {d.class_name || ''}</span></P>
-								<Button class="rounded bg-red-600 px-2 py-1" onclick={() => removeFromRally(d.id)}
-									>Remove</Button
-								>
-							</li>
-						{/each}
-						{#if !assigned.length}
-							<li class="opacity-70"><P>No drivers assigned.</P></li>
-						{/if}
-					</ul>
-				</div>
-
-				<div>
-					<P class="mb-2 text-lg font-semibold">Available</P>
-					<ul class="space-y-2">
-						{#each availableDrivers() as d (d.id)}
-							<li class="flex items-center justify-between gap-2 rounded border p-2">
-								<P><span>{d.name} — {d.class_name || ''}</span></P>
-								<Button class="rounded px-2 py-1" color="green" onclick={() => addToRally(d.id)}
-									>Add</Button
-								>
-							</li>
-						{/each}
-						{#if !availableDrivers().length}
-							<li class="opacity-70"><P>Everyone is assigned 🎉</P></li>
-						{/if}
-					</ul>
-				</div>
+			<div class="flex items-center justify-between">
+				<P class="text-xl font-bold"
+					>{rallies.find((r) => r.id === selectedRallyId)?.name}</P
+				>
+				<Button size="sm" onclick={() => (assignModalOpen = true)}>Assign Drivers</Button>
 			</div>
 		</Card>
 
@@ -555,10 +528,7 @@
 													<option value={g.id}>{g.name ?? g.id.slice(0, 8)}</option>
 												{/each}
 											</Select>
-											<Button
-												size="xs"
-												onclick={() => assignGateToStage(s.id)}>Assign</Button
-											>
+											<Button size="xs" onclick={() => assignGateToStage(s.id)}>Assign</Button>
 										</div>
 									{:else if !assignedGatesForStage(s.id).length}
 										<span class="text-sm text-gray-400 dark:text-gray-500">No unassigned gates</span>
@@ -601,3 +571,45 @@
 		</Card>
 	{/if}
 </div>
+
+<Modal title="Assign Drivers" bind:open={assignModalOpen} size="lg" autoclose={false}>
+	<div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+		<div>
+			<P class="mb-2 text-lg font-semibold">Assigned</P>
+			<ul class="max-h-80 space-y-2 overflow-y-auto">
+				{#each assigned as d (d.id)}
+					<li class="flex items-center justify-between gap-2 rounded border p-2">
+						<span>{d.name}{d.class_name ? ` — ${d.class_name}` : ''}</span>
+						<Button size="xs" color="red" onclick={() => removeFromRally(d.id)}>Remove</Button>
+					</li>
+				{/each}
+				{#if !assigned.length}
+					<li class="opacity-70">No drivers assigned.</li>
+				{/if}
+			</ul>
+		</div>
+
+		<div>
+			<div class="mb-2 flex items-center gap-2">
+				<P class="text-lg font-semibold">Available</P>
+				<Input size="sm" placeholder="Search..." bind:value={driverSearch} class="flex-1" />
+			</div>
+			<ul class="max-h-80 space-y-2 overflow-y-auto">
+				{#each filteredAvailableDrivers as d (d.id)}
+					<li class="flex items-center justify-between gap-2 rounded border p-2">
+						<span>{d.name}{d.class_name ? ` — ${d.class_name}` : ''}</span>
+						<Button size="xs" color="green" onclick={() => addToRally(d.id)}>Add</Button>
+					</li>
+				{/each}
+				{#if !filteredAvailableDrivers.length}
+					<li class="opacity-70">{driverSearch ? 'No matches.' : 'Everyone is assigned.'}</li>
+				{/if}
+			</ul>
+		</div>
+	</div>
+	<div class="mt-4 border-t pt-3">
+		<a href="/drivers" class="text-sm text-blue-600 hover:underline dark:text-blue-400"
+			>Manage / add drivers →</a
+		>
+	</div>
+</Modal>
