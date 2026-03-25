@@ -69,13 +69,12 @@ export async function PATCH(event: RequestEvent): Promise<Response> {
 	if (!parsed.success) return json({ errors: parsed.error.flatten() }, { status: 400 });
 
 	const { stage_id } = parsed.data;
-	const now = Date.now();
 	ensureWal();
 
 	if (stage_id === null) {
-		db.prepare('UPDATE gates SET stage_id = NULL, last_seen = ? WHERE id = ?').run(now, id);
+		db.prepare('UPDATE gates SET stage_id = NULL WHERE id = ?').run(id);
 	} else {
-		db.prepare('UPDATE gates SET stage_id = ?, last_seen = ? WHERE id = ?').run(stage_id, now, id);
+		db.prepare('UPDATE gates SET stage_id = ? WHERE id = ?').run(stage_id, id);
 	}
 
 	return json({ id, stage_id, updated: true });
