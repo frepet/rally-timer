@@ -68,16 +68,21 @@ export async function PATCH(event: RequestEvent): Promise<Response> {
 	const parsed = gateAssignSchema.safeParse(body);
 	if (!parsed.success) return json({ errors: parsed.error.flatten() }, { status: 400 });
 
-	const { stage_id } = parsed.data;
+	const { stage_id, name } = parsed.data;
 	ensureWal();
 
-	if (stage_id === null) {
-		db.prepare('UPDATE gates SET stage_id = NULL WHERE id = ?').run(id);
-	} else {
-		db.prepare('UPDATE gates SET stage_id = ? WHERE id = ?').run(stage_id, id);
+	if (stage_id !== undefined) {
+		if (stage_id === null) {
+			db.prepare('UPDATE gates SET stage_id = NULL WHERE id = ?').run(id);
+		} else {
+			db.prepare('UPDATE gates SET stage_id = ? WHERE id = ?').run(stage_id, id);
+		}
+	}
+	if (name !== undefined) {
+		db.prepare('UPDATE gates SET name = ? WHERE id = ?').run(name, id);
 	}
 
-	return json({ id, stage_id, updated: true });
+	return json({ id, updated: true });
 }
 
 export async function DELETE(event: RequestEvent): Promise<Response> {

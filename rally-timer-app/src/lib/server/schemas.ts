@@ -61,7 +61,8 @@ export const gateSyncSchema = z.object({
 });
 
 export const gateAssignSchema = z.object({
-	stage_id: idParam.nullable()
+	stage_id: idParam.nullable().optional(),
+	name: z.string().nullable().optional()
 });
 
 export type DriverCreateInput = z.infer<typeof driverCreateSchema>;
