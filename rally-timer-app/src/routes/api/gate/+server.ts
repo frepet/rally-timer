@@ -10,11 +10,9 @@ export async function GET(): Promise<Response> {
 			g.last_seen,
 			g.stage_id,
 			g.created_at,
-			s.name AS stage_name,
-			r.name AS rally_name
+			s.name AS stage_name
 		FROM gates g
 		LEFT JOIN stages s ON s.id = g.stage_id
-		LEFT JOIN rallies r ON r.id = s.rally_id
 		ORDER BY g.last_seen DESC
 	`;
 	return json(gates);

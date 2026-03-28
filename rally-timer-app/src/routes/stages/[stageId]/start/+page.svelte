@@ -2,19 +2,14 @@
 	import { Card, Button, Input, P } from 'flowbite-svelte';
 	import { page } from '$app/stores';
 	import { onMount, onDestroy } from 'svelte';
-	import { kcFetch } from '../../../../../../lib/kcFetch';
+	import { kcFetch } from '../../../../lib/kcFetch';
+	import type { BundleResponse } from '../../../../lib/types';
 
 	type Driver = { id: number; name: string; class_name?: string; tag: string };
-	type Rally = { id: number; name: string };
-	type Stage = { id: number; name: string };
 	type Gate = { id: string; name: string | null; stage_id: number | null };
 
-	let rallyId = $state<number>(0);
 	let stageId = $state<number>(0);
-
-	let rally: Rally | null = $state(null);
-	let stages: Stage[] = $state([]);
-	let stage: Stage | null = $state(null);
+	let stageName = $state<string>('');
 
 	let drivers = $state<Driver[]>([]);
 	let gates = $state<Gate[]>([]);
@@ -32,32 +27,28 @@
 	function createUtterance(text: string) {
 		let utter = new SpeechSynthesisUtterance(text);
 		let enGbVoice = speechSynthesis.getVoices().find((voice) => voice.lang === 'en-GB');
-		if (enGbVoice) {
-			utter.voice = enGbVoice;
-		}
+		if (enGbVoice) utter.voice = enGbVoice;
 		utter.rate = 1;
 		utter.pitch = 1.0;
 		return utter;
 	}
 
 	async function loadQueue() {
-		rallyId = Number($page.params.rallyId);
 		stageId = Number($page.params.stageId);
 
-		const res = await kcFetch(`/api/rally/${rallyId}/bundle`);
+		const res = await kcFetch('/api/bundle');
 		if (!res.ok) return;
 
-		const bundle = (await res.json()) as {
-			rally: Rally;
-			drivers: Driver[];
-			stages: Stage[];
-		};
+		const bundle = (await res.json()) as BundleResponse;
 
-		rally = bundle.rally;
-		stages = bundle.stages;
-		stage = stages.find((s) => s.id === stageId) ?? null;
-		drivers = bundle.drivers;
-
+		drivers = bundle.drivers.map((d) => ({
+			id: d.id,
+			name: d.name,
+			tag: d.rfid_tag,
+			class_name: d.class_name
+		}));
+		const stage = bundle.stages.find((s) => s.id === stageId);
+		stageName = stage?.name ?? `#${stageId}`;
 		idx = 0;
 	}
 
@@ -78,7 +69,6 @@
 			leds.fill(2);
 			return;
 		}
-
 		leds[0] = step >= 1 ? 1 : 0;
 		leds[1] = step >= 2 ? 1 : 0;
 		leds[2] = step >= 3 ? 1 : 0;
@@ -105,17 +95,13 @@
 
 	function tick() {
 		if (!running || paused) return;
-
 		const prevWhole = Math.ceil(remainingMs / 1000);
 		remainingMs = Math.max(0, remainingMs - 100);
-
 		const whole = Math.ceil(remainingMs / 1000);
-
-		// Speak on 5,4,3,2,1; Go at 0
 		if (whole !== prevWhole) {
 			if (whole < 6 && whole > 0) {
 				setLED(whole);
-				speechSynthesis.cancel(); // Cancel any ongoing speech to avoid overlap
+				speechSynthesis.cancel();
 				speechSynthesis.speak(utters.get(whole.toString())!);
 			} else if (whole === 0) {
 				setLED(whole);
@@ -143,7 +129,7 @@
 		remainingMs = gapSeconds * 1000;
 		setLED(6);
 		if (timer) clearInterval(timer);
-		timer = setInterval(tick, 100); // 10Hz for smooth countdown
+		timer = setInterval(tick, 100);
 		speechSynthesis.speak(createUtterance('Next driver:' + drivers[idx].name));
 	}
 
@@ -193,8 +179,7 @@
 	<!-- Current + Next two -->
 	<Card class="flex w-full flex-col p-5">
 		<div>
-			<P class="text-sm text-xl opacity-70">{rally?.name || 'Rally'}</P>
-			<P class="text-xl font-semibold">{stage?.name || `#${stageId}`}</P>
+			<P class="text-xl font-semibold">{stageName}</P>
 		</div>
 		<div class="flex flex-wrap items-center">
 			<!-- LEDs -->
@@ -203,11 +188,7 @@
 					<div
 						class="h-8 w-8 rounded-full border"
 						style={`background:${
-							leds[i] === 2
-								? '#16a34a' // green-600
-								: leds[i] === 1
-									? '#f59e0b' // amber-500
-									: 'transparent'
+							leds[i] === 2 ? '#16a34a' : leds[i] === 1 ? '#f59e0b' : 'transparent'
 						}; box-shadow:${
 							leds[i] === 2
 								? '0 0 12px rgba(22,163,74,0.85)'
@@ -261,9 +242,11 @@
 				<Input id="gap" type="number" min="1" class="w-20 rounded p-2" bind:value={gapSeconds} />
 			</div>
 			{#if !hasGate}
-			<P class="px-2 text-sm text-yellow-600 dark:text-yellow-400">No gate assigned to this stage.</P>
-		{/if}
-		<div class="flex w-full flex-wrap gap-2 p-2">
+				<P class="px-2 text-sm text-yellow-600 dark:text-yellow-400"
+					>No gate assigned to this stage.</P
+				>
+			{/if}
+			<div class="flex w-full flex-wrap gap-2 p-2">
 				<Button size="sm" onclick={start} disabled={running || !hasGate}>Start</Button>
 				<Button size="sm" onclick={pause} disabled={!running || paused}>Pause</Button>
 				<Button size="sm" onclick={resume} disabled={!running || !paused}>Resume</Button>

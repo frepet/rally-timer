@@ -19,6 +19,7 @@ npm run dev
 ```
 
 To connect to the cluster dev database:
+
 ```bash
 kubectl port-forward -n rally-timer-dev svc/rally-timer-dev-rw 5432:5432
 # Connection string is in secret rally-timer-dev-app, key: uri
@@ -37,10 +38,10 @@ npm run format    # Auto-format
 
 ## Environment variables
 
-| Variable | Required | Description |
-|---|---|---|
-| `DATABASE_URL` | Yes | PostgreSQL connection string |
-| `NODE_ENV` | No | Set to `production` in production |
+| Variable       | Required | Description                       |
+| -------------- | -------- | --------------------------------- |
+| `DATABASE_URL` | Yes      | PostgreSQL connection string      |
+| `NODE_ENV`     | No       | Set to `production` in production |
 
 ## Production
 
@@ -48,12 +49,12 @@ Docker image is built from `Dockerfile` (multi-stage, `node:24-alpine`). GitHub 
 
 ## Key source files
 
-| Path | Purpose |
-|---|---|
-| `src/lib/server/db.ts` | postgres.js singleton + migration runner |
+| Path                           | Purpose                                        |
+| ------------------------------ | ---------------------------------------------- |
+| `src/lib/server/db.ts`         | postgres.js singleton + migration runner       |
 | `src/lib/server/gateEvents.ts` | PostgreSQL LISTEN/NOTIFY for cross-replica SSE |
-| `src/lib/server/migrations/` | Idempotent DB migration files |
-| `src/lib/server/schemas.ts` | Zod validation schemas for all API inputs |
-| `src/lib/server/keycloak.ts` | JWT/JWKS auth helper |
-| `src/hooks.server.ts` | Awaits migrations before handling requests |
-| `src/routes/api/` | REST API endpoints |
+| `src/lib/server/migrations/`   | Idempotent DB migration files                  |
+| `src/lib/server/schemas.ts`    | Zod validation schemas for all API inputs      |
+| `src/lib/server/keycloak.ts`   | JWT/JWKS auth helper                           |
+| `src/hooks.server.ts`          | Awaits migrations before handling requests     |
+| `src/routes/api/`              | REST API endpoints                             |

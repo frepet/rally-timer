@@ -33,9 +33,10 @@
 	<NavHamburger />
 	<NavUl>
 		<NavLi href="/">Results</NavLi>
+		<NavLi href="/championships">Championships</NavLi>
 		{#if $isAdmin}
-			<NavLi href="/rallies">Manage Rallies</NavLi>
-			<NavLi href="/drivers">Manage Drivers</NavLi>
+			<NavLi href="/rallies">Manage</NavLi>
+			<NavLi href="/drivers">Drivers</NavLi>
 			<NavLi href="/gates">Gates</NavLi>
 		{/if}
 		{#if $isAuthenticated}

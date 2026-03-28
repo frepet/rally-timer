@@ -15,7 +15,7 @@
 	} from 'flowbite-svelte';
 	import { TrashBinOutline } from 'flowbite-svelte-icons';
 	import type { PageProps } from './$types';
-	import { kcFetch } from '../../../../../../lib/kcFetch';
+	import { kcFetch } from '../../../../lib/kcFetch';
 
 	let { data }: PageProps = $props();
 
@@ -33,7 +33,6 @@
 		last_seen: number;
 		stage_id: number | null;
 		stage_name: string | null;
-		rally_name: string | null;
 	};
 
 	let events = $state<UnifiedEvent[]>([]);
@@ -64,8 +63,7 @@
 		);
 	}
 	function fmtKind(k: UnifiedEvent['kind']): string {
-		if (k === 'start') return 'Start';
-		return 'Finish';
+		return k === 'start' ? 'Start' : 'Finish';
 	}
 
 	async function kcFetchJSON<T>(url: string, init?: RequestInit): Promise<T> {
@@ -114,8 +112,7 @@
 	}
 
 	function endpointFor(kind: UnifiedEvent['kind'], id: number): string {
-		if (kind === 'start') return `/api/start/${id}`;
-		return `/api/finish/${id}`;
+		return kind === 'start' ? `/api/start/${id}` : `/api/finish/${id}`;
 	}
 
 	async function saveEdit(ev: UnifiedEvent) {
@@ -147,6 +144,10 @@
 		return data.bundle.drivers.find((d) => d.rfid_tag === tag)?.name ?? '—';
 	}
 
+	const stageName = $derived(
+		data.bundle.stages.find((s) => s.id === data.stageId)?.name ?? `#${data.stageId}`
+	);
+
 	let poller: number | null = null;
 	onMount(async () => {
 		await Promise.all([loadEvents(), loadGates()]);
@@ -165,11 +166,7 @@
 <div class="w-full space-y-6 p-5">
 	<Card class="max-w-none p-4 sm:p-6 md:p-8">
 		<div class="mb-4 flex flex-wrap items-center justify-between gap-4">
-			<P class="text-2xl font-bold">
-				{data.bundle.rally.name}/{data.bundle.stages.find(({ id }) => {
-					return id == data.stageId;
-				})?.name ?? 'Unknown'} events
-			</P>
+			<P class="text-2xl font-bold">{stageName} events</P>
 			<div class="flex items-center gap-2">
 				<Select
 					id="gateSelect"
@@ -222,7 +219,6 @@
 			</TableHead>
 			<TableBody>
 				{#each events as e (keyOf(e))}
-					<!-- KEYED BY kind:id -->
 					<TableBodyRow>
 						<TableBodyCell class="font-medium">{fmtKind(e.kind)}</TableBodyCell>
 
@@ -240,9 +236,7 @@
 							{/if}
 						</TableBodyCell>
 
-						<TableBodyCell class="font-mono">
-							{e.timestamp}
-						</TableBodyCell>
+						<TableBodyCell class="font-mono">{e.timestamp}</TableBodyCell>
 
 						<TableBodyCell>
 							{#if e.kind === 'start'}

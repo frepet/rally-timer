@@ -18,7 +18,11 @@ export const driverCreateSchema = z.object({
 		.transform((s) => s.trim())
 });
 
-export const rallyCreateSchema = z.object({
+export const driverActiveSchema = z.object({
+	active: z.boolean()
+});
+
+export const championshipCreateSchema = z.object({
 	name: z
 		.string()
 		.min(1)
@@ -26,8 +30,21 @@ export const rallyCreateSchema = z.object({
 		.transform((s) => s.trim())
 });
 
-export const rallyDriverAddSchema = z.object({
-	driver_id: idParam
+export const championshipUpdateSchema = z.object({
+	name: z
+		.string()
+		.min(1)
+		.max(120)
+		.transform((s) => s.trim())
+});
+
+export const submitRallySchema = z.object({
+	name: z
+		.string()
+		.min(1)
+		.max(120)
+		.transform((s) => s.trim()),
+	championship_ids: z.array(z.string().uuid()).min(1)
 });
 
 export const tagParamSchema = z
@@ -66,8 +83,10 @@ export const gateAssignSchema = z.object({
 });
 
 export type DriverCreateInput = z.infer<typeof driverCreateSchema>;
-export type RallyCreateInput = z.infer<typeof rallyCreateSchema>;
-export type RallyDriverAddInput = z.infer<typeof rallyDriverAddSchema>;
+export type DriverActiveInput = z.infer<typeof driverActiveSchema>;
 export type GateRegisterInput = z.infer<typeof gateRegisterSchema>;
 export type GateEventInput = z.infer<typeof gateEventSchema>;
 export type GateSyncInput = z.infer<typeof gateSyncSchema>;
+export type ChampionshipCreateInput = z.infer<typeof championshipCreateSchema>;
+export type ChampionshipUpdateInput = z.infer<typeof championshipUpdateSchema>;
+export type SubmitRallyInput = z.infer<typeof submitRallySchema>;
