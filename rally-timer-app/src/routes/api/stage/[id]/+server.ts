@@ -13,7 +13,7 @@ export async function PATCH(event: RequestEvent) {
 	}
 
 	const [row] = await sql`
-		UPDATE stages SET name = ${name.trim()} WHERE id = ${id} RETURNING id, rally_id, name
+		UPDATE stages SET name = ${name.trim()} WHERE id = ${id} RETURNING id, name
 	`;
 
 	return json(row ?? { error: 'Not found' }, { status: row ? 200 : 404 });

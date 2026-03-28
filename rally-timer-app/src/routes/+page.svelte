@@ -9,19 +9,12 @@
 		TableBodyRow,
 		TableBodyCell,
 		Button,
-		Heading,
-		Select,
-		Label
+		Heading
 	} from 'flowbite-svelte';
-	import { goto } from '$app/navigation';
-	import type { PageProps } from './$types';
 	import { kcFetch } from '../lib/kcFetch';
-	import type { RallyResponse } from '../lib/types';
-
-	let { data }: PageProps = $props();
+	import type { BundleResponse } from '../lib/types';
 
 	// -------- Types --------
-	type Rally = { id: number; name: string };
 	type Driver = {
 		id: number;
 		name: string;
@@ -54,9 +47,6 @@
 	};
 
 	// -------- UI state --------
-	let rallies = $state<Rally[]>(data.rallies ?? []);
-	let selectedRallyId = $state<number | null>(data.rallyId ?? null);
-
 	let rallyRows = $state<RallyRow[]>([]);
 	let stages = $state<Stage[]>([]);
 	let stageRows = $state<StageRow[]>([]);
@@ -83,23 +73,16 @@
 	}
 
 	// -------- Data loading --------
-	let currentRallyId: number | null = null;
-
-	async function loadAllRaw(rallyId?: number | null) {
-		const targetId = rallyId ?? selectedRallyId;
-		if (!targetId) return;
-
-		const bundle = await kcFetchJSON<RallyResponse>(`/api/rally/${targetId}/bundle`);
+	async function loadAllRaw() {
+		const bundle = await kcFetchJSON<BundleResponse>('/api/bundle');
 
 		drivers = bundle.drivers;
 		stages = bundle.stages;
 		starts = bundle.start_events;
 		finishes = bundle.finish_events;
 
-		// Default stage if needed (only if rally actually changed)
-		if (stages.length && currentRallyId !== targetId) {
-			activeStageId = stages[stages.length - 1].id; // Select last stage
-			currentRallyId = targetId;
+		if (stages.length && activeStageId == null) {
+			activeStageId = stages[stages.length - 1].id;
 		}
 	}
 
@@ -208,8 +191,6 @@
 	let poller: number | null = null;
 
 	onMount(async () => {
-		if (!selectedRallyId && rallies.length) selectedRallyId = rallies[0].id;
-		currentRallyId = null; // Force stage selection on initial load
 		await loadAllRaw();
 		await recomputeAll();
 		poller = window.setInterval(async () => {
@@ -220,142 +201,97 @@
 	onDestroy(() => {
 		if (poller) clearInterval(poller);
 	});
-
-	// When rally changes via selector: update URL (?r=) and reload
-	async function onRallyChange(idStr: string) {
-		const id = Number(idStr) || null;
-		if (id === selectedRallyId) return; // no change
-
-		selectedRallyId = id;
-		currentRallyId = null; // force stage reset
-		activeStageId = null; // reset stage tab
-
-		// Push new URL to keep it shareable
-		const qs = id ? `?r=${id}` : '';
-		goto(`${location.pathname}${qs}`, { replaceState: false, noScroll: true });
-
-		await loadAllRaw(id);
-		await recomputeAll();
-	}
 </script>
 
 <div class="w-full space-y-8 p-5">
-	<!-- Rally selector -->
-	<Card class="max-w-none p-4">
-		<div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-4">
-			<div class="flex flex-1">
-				<Label for="rally" class="m-3 block flex-2 flex-none text-sm font-medium"
-					>Select Rally</Label
-				>
-				<Select
-					id="rally"
-					class="flex-none"
-					value={selectedRallyId ?? ''}
-					onchange={(e) => onRallyChange((e.target as HTMLSelectElement).value)}
-				>
-					{#if selectedRallyId === null}
-						<option value="" disabled selected>— choose —</option>
-					{/if}
-					{#each rallies as r (r.id)}
-						<option value={r.id}>{r.name}</option>
-					{/each}
-				</Select>
-			</div>
-		</div>
+	<!-- Rally leaderboard -->
+	<Card class="max-w-none p-4 sm:p-6 md:p-8">
+		<Heading class="mb-4 text-2xl font-bold">Rally Leaderboard</Heading>
+		<Table hoverable>
+			<TableHead>
+				<TableHeadCell>#</TableHeadCell>
+				<TableHeadCell>Driver</TableHeadCell>
+				<TableHeadCell>Class</TableHeadCell>
+				<TableHeadCell>Total</TableHeadCell>
+				<TableHeadCell>Δ P1</TableHeadCell>
+				<TableHeadCell>Δ Prev</TableHeadCell>
+				<TableHeadCell title="How many stages finished">✓ Stg</TableHeadCell>
+			</TableHead>
+			<TableBody>
+				{#each rallyRows as r (r.driver_id)}
+					<TableBodyRow>
+						<TableBodyCell class="font-semibold">{r.position}</TableBodyCell>
+						<TableBodyCell>{r.driver_name}</TableBodyCell>
+						<TableBodyCell class="opacity-80">{r.class_name}</TableBodyCell>
+						<TableBodyCell class="font-mono">{formatMs(r.total_ms)}</TableBodyCell>
+						<TableBodyCell class="font-mono"
+							>{r.delta_p1 != null ? '+' + formatMs(r.delta_p1) : '—'}</TableBodyCell
+						>
+						<TableBodyCell class="font-mono"
+							>{r.delta_prev != null ? '+' + formatMs(r.delta_prev) : '—'}</TableBodyCell
+						>
+						<TableBodyCell class="text-center">{r.finished_stages}</TableBodyCell>
+					</TableBodyRow>
+				{/each}
+				{#if !rallyRows.length}
+					<TableBodyRow><TableBodyCell colspan={7}>No results yet.</TableBodyCell></TableBodyRow>
+				{/if}
+			</TableBody>
+		</Table>
 	</Card>
 
-	{#if !selectedRallyId}
-		<div class="p-5">No rally selected.</div>
-	{:else}
-		<!-- Rally leaderboard -->
-		<Card class="max-w-none p-4 sm:p-6 md:p-8">
-			<Heading class="mb-4 text-2xl font-bold">Rally Leaderboard</Heading>
+	<!-- Stage tabs + leaderboard -->
+	<Card class="max-w-none p-4 sm:p-6 md:p-8">
+		<div class="mb-4 flex flex-wrap gap-2">
+			{#each stages as s (s.id)}
+				<Button
+					size="sm"
+					color={activeStageId === s.id ? 'blue' : 'light'}
+					onclick={() => {
+						activeStageId = s.id;
+						stageRows = buildStageRows(s.id);
+					}}
+				>
+					{s.name}
+				</Button>
+			{/each}
+			{#if !stages.length}
+				<span class="text-sm opacity-70">No stages yet.</span>
+			{/if}
+		</div>
+
+		{#if activeStageId}
 			<Table hoverable>
 				<TableHead>
 					<TableHeadCell>#</TableHeadCell>
 					<TableHeadCell>Driver</TableHeadCell>
 					<TableHeadCell>Class</TableHeadCell>
-					<TableHeadCell>Total</TableHeadCell>
+					<TableHeadCell>Stage Time</TableHeadCell>
 					<TableHeadCell>Δ P1</TableHeadCell>
 					<TableHeadCell>Δ Prev</TableHeadCell>
-					<TableHeadCell title="How many stages finished">✓ Stg</TableHeadCell>
 				</TableHead>
 				<TableBody>
-					{#each rallyRows as r (r.driver_id)}
+					{#each stageRows as r (r.driver_id)}
 						<TableBodyRow>
 							<TableBodyCell class="font-semibold">{r.position}</TableBodyCell>
 							<TableBodyCell>{r.driver_name}</TableBodyCell>
 							<TableBodyCell class="opacity-80">{r.class_name}</TableBodyCell>
-							<TableBodyCell class="font-mono">{formatMs(r.total_ms)}</TableBodyCell>
+							<TableBodyCell class="font-mono">{formatMs(r.stage_ms)}</TableBodyCell>
 							<TableBodyCell class="font-mono"
 								>{r.delta_p1 != null ? '+' + formatMs(r.delta_p1) : '—'}</TableBodyCell
 							>
 							<TableBodyCell class="font-mono"
 								>{r.delta_prev != null ? '+' + formatMs(r.delta_prev) : '—'}</TableBodyCell
 							>
-							<TableBodyCell class="text-center">{r.finished_stages}</TableBodyCell>
 						</TableBodyRow>
 					{/each}
-					{#if !rallyRows.length}
-						<TableBodyRow><TableBodyCell colspan={7}>No results yet.</TableBodyCell></TableBodyRow>
+					{#if !stageRows.length}
+						<TableBodyRow
+							><TableBodyCell colspan={6}>No stage results yet.</TableBodyCell></TableBodyRow
+						>
 					{/if}
 				</TableBody>
 			</Table>
-		</Card>
-
-		<!-- Stage tabs + leaderboard -->
-		<Card class="max-w-none p-4 sm:p-6 md:p-8">
-			<div class="mb-4 flex flex-wrap gap-2">
-				{#each stages as s (s.id)}
-					<Button
-						size="sm"
-						color={activeStageId === s.id ? 'blue' : 'light'}
-						onclick={() => {
-							activeStageId = s.id;
-							stageRows = buildStageRows(s.id);
-						}}
-					>
-						{s.name}
-					</Button>
-				{/each}
-				{#if !stages.length}
-					<span class="text-sm opacity-70">No stages for this rally.</span>
-				{/if}
-			</div>
-
-			{#if activeStageId}
-				<Table hoverable>
-					<TableHead>
-						<TableHeadCell>#</TableHeadCell>
-						<TableHeadCell>Driver</TableHeadCell>
-						<TableHeadCell>Class</TableHeadCell>
-						<TableHeadCell>Stage Time</TableHeadCell>
-						<TableHeadCell>Δ P1</TableHeadCell>
-						<TableHeadCell>Δ Prev</TableHeadCell>
-					</TableHead>
-					<TableBody>
-						{#each stageRows as r (r.driver_id)}
-							<TableBodyRow>
-								<TableBodyCell class="font-semibold">{r.position}</TableBodyCell>
-								<TableBodyCell>{r.driver_name}</TableBodyCell>
-								<TableBodyCell class="opacity-80">{r.class_name}</TableBodyCell>
-								<TableBodyCell class="font-mono">{formatMs(r.stage_ms)}</TableBodyCell>
-								<TableBodyCell class="font-mono"
-									>{r.delta_p1 != null ? '+' + formatMs(r.delta_p1) : '—'}</TableBodyCell
-								>
-								<TableBodyCell class="font-mono"
-									>{r.delta_prev != null ? '+' + formatMs(r.delta_prev) : '—'}</TableBodyCell
-								>
-							</TableBodyRow>
-						{/each}
-						{#if !stageRows.length}
-							<TableBodyRow
-								><TableBodyCell colspan={6}>No stage results yet.</TableBodyCell></TableBodyRow
-							>
-						{/if}
-					</TableBody>
-				</Table>
-			{/if}
-		</Card>
-	{/if}
+		{/if}
+	</Card>
 </div>

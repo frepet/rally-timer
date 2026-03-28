@@ -3,7 +3,6 @@ import * as z from 'zod';
 export const FinishEvent = z.object({
 	id: z.number(),
 	stage_name: z.string(),
-	rally_name: z.string(),
 	timestamp: z.number(),
 	tag: z.string()
 });
@@ -22,17 +21,14 @@ export const NewDriver = z.object({
 	name: z.string()
 });
 
-export type RallyResponse = {
-	rally: {
-		id: number;
-		name: string;
-	};
+export type BundleResponse = {
 	drivers: {
 		id: number;
 		name: string;
 		rfid_tag: string;
 		class_id: number;
 		class_name: string;
+		active: boolean;
 	}[];
 	stages: {
 		id: number;
@@ -42,7 +38,7 @@ export type RallyResponse = {
 		id: number;
 		stage_id: number;
 		driver_id: number;
-		ts: number; // from ts_ms
+		ts: number;
 	}[];
 	finish_events: {
 		id: number;
@@ -58,7 +54,6 @@ export const Gate = z.object({
 	last_seen: z.number(),
 	stage_id: z.number().nullable(),
 	stage_name: z.string().nullable().optional(),
-	rally_name: z.string().nullable().optional(),
 	created_at: z.number()
 });
 export type GateType = z.infer<typeof Gate>;

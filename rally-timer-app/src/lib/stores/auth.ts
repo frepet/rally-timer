@@ -39,7 +39,11 @@ export async function initKeycloak() {
 
 		if (storedToken && storedRefreshToken) {
 			// Restore session from stored tokens — keycloak treats this as authenticated
-			await keycloak.init({ pkceMethod: 'S256', token: storedToken, refreshToken: storedRefreshToken });
+			await keycloak.init({
+				pkceMethod: 'S256',
+				token: storedToken,
+				refreshToken: storedRefreshToken
+			});
 			try {
 				// Force a refresh so we have a valid (non-expired) access token
 				await keycloak.updateToken(-1);

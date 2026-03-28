@@ -1,0 +1,11 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: rally
+      POSTGRES_PASSWORD: rally
+      POSTGRES_DB: rally
+    ports:
+      - "5432:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
