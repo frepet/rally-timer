@@ -16,7 +16,11 @@ export async function GET(event: RequestEvent): Promise<Response> {
 		ORDER BY sr.submitted_at
 	`;
 
-	return json({ ...champ, rallies });
+	return json({
+		...champ,
+		created_at: Number(champ.created_at),
+		rallies: rallies.map((r) => ({ ...r, submitted_at: Number(r.submitted_at) }))
+	});
 }
 
 export async function PATCH(event: RequestEvent): Promise<Response> {

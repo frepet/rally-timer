@@ -15,7 +15,7 @@ export async function GET(): Promise<Response> {
 		LEFT JOIN stages s ON s.id = g.stage_id
 		ORDER BY g.last_seen DESC
 	`;
-	return json(gates);
+	return json(gates.map((g) => ({ ...g, last_seen: Number(g.last_seen), created_at: Number(g.created_at) })));
 }
 
 export async function POST(event: RequestEvent): Promise<Response> {
