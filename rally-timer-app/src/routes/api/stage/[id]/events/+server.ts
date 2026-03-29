@@ -30,5 +30,5 @@ export async function GET({ params }: RequestEvent) {
 		ORDER BY timestamp ASC, kind ASC, id ASC
 	`;
 
-	return json(rows);
+	return json(rows.map((r) => ({ ...r, timestamp: Number(r.timestamp) })));
 }

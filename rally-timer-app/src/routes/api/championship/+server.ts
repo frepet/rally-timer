@@ -5,7 +5,7 @@ import { championshipCreateSchema } from '../../../lib/server/schemas';
 
 export async function GET(): Promise<Response> {
 	const rows = await sql`SELECT id, name, created_at FROM championships ORDER BY created_at`;
-	return json(rows);
+	return json(rows.map((r) => ({ ...r, created_at: Number(r.created_at) })));
 }
 
 export async function POST(event: RequestEvent): Promise<Response> {
