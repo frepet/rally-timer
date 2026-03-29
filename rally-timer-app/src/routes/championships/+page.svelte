@@ -115,7 +115,9 @@
 	);
 
 	function fmtDate(ms: number): string {
-		return new Date(ms).toLocaleDateString();
+		const dt = new Date(ms);
+		const pad = (n: number) => String(n).padStart(2, '0');
+		return `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}`;
 	}
 
 	const selectedChamp = $derived(championships.find((c) => c.id === selectedId) ?? null);
