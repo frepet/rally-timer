@@ -76,7 +76,9 @@
 		<div class="mt-1 flex flex-wrap items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
 			<span>{fmtDate(Number(data.submitted_at))}</span>
 			{#each data.championships as c (c.id)}
-				<Badge color="blue">{c.name}</Badge>
+				<a href="/championships?id={c.id}">
+					<Badge color="blue" class="cursor-pointer hover:brightness-90">{c.name}</Badge>
+				</a>
 			{/each}
 		</div>
 	</div>

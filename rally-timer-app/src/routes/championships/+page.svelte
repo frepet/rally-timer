@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { page } from '$app/state';
 	import {
 		Card,
 		Button,
@@ -57,7 +58,9 @@
 	async function loadChampionships() {
 		championships = await fetchJSON<Championship[]>('/api/championship');
 		if (!selectedId && championships.length) {
-			await selectChampionship(championships[0].id);
+			const idParam = page.url.searchParams.get('id');
+			const initial = championships.find((c) => c.id === idParam) ?? championships[0];
+			await selectChampionship(initial.id);
 		}
 	}
 
