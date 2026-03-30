@@ -186,7 +186,7 @@
 							<P class="mb-2 font-semibold">Included Rallies</P>
 							<div class="flex flex-wrap gap-2">
 								{#each rallies as r (r.id)}
-									<Badge color="blue">{r.name} ({fmtDate(r.submitted_at)})</Badge>
+									<a href="/rallies/{r.id}"><Badge color="blue" class="cursor-pointer hover:brightness-90">{r.name} ({fmtDate(r.submitted_at)})</Badge></a>
 								{/each}
 							</div>
 						</Card>
