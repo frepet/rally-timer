@@ -156,7 +156,7 @@
 					{#each championships as c (c.id)}
 						<li class="flex items-center gap-1">
 							<button
-								class="flex-1 rounded px-3 py-2 text-left text-sm transition-colors {selectedId ===
+								class="flex-1 rounded px-3 py-2 text-left text-sm transition-colors text-gray-900 dark:text-white {selectedId ===
 								c.id
 									? 'bg-blue-100 font-semibold dark:bg-blue-900'
 									: 'hover:bg-gray-100 dark:hover:bg-gray-700'}"
