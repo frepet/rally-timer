@@ -7,7 +7,67 @@ on:
       - 'rally-timer-app/**'
 
 jobs:
+  unit-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: rally-timer-app/package-lock.json
+      - run: npm ci --no-audit --no-fund
+        working-directory: rally-timer-app
+      - run: npm test
+        working-directory: rally-timer-app
+
+  e2e:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: rally
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: rally-timer-app/package-lock.json
+      - run: npm ci --no-audit --no-fund
+        working-directory: rally-timer-app
+      - run: npm run build
+        working-directory: rally-timer-app
+      - name: Start app
+        working-directory: rally-timer-app
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/rally
+          SKIP_AUTH: 'true'
+          ORIGIN: http://localhost:3000
+        run: node build/index.js &
+      - name: Wait for app ready
+        run: |
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:3000/api/class && echo " — ready" && break
+            echo "Waiting... ($i/30)"
+            sleep 1
+          done
+      - name: Seed database
+        run: ./seed.sh http://localhost:3000
+      - name: Run e2e assertions
+        run: ./verify.sh http://localhost:3000
+
   build:
+    needs: [unit-test, e2e]
     runs-on: ubuntu-latest
     permissions:
       contents: read
