@@ -2,6 +2,7 @@ import { json, error, type RequestEvent } from '@sveltejs/kit';
 import { sql } from '../../../lib/server/db';
 import { throwIfNotAdmin } from '../../../lib/server/keycloak';
 import { submitRallySchema } from '../../../lib/server/schemas';
+import { calculateStageTime } from '../../../lib/domain/timing';
 
 export async function POST(event: RequestEvent): Promise<Response> {
 	await throwIfNotAdmin(event);
@@ -26,20 +27,76 @@ export async function POST(event: RequestEvent): Promise<Response> {
 		throw error(400, 'One or more championship IDs are invalid');
 	}
 
-	// Snapshot current timing data: one row per (driver, stage), latest start wins.
-	// If the latest start has a finish, elapsed_ms is set; otherwise NULL (DNF).
-	const stageTimes = await sql`
-		SELECT DISTINCT ON (st.driver_id, st.stage_id)
+	const startRows = await sql`
+		SELECT
+			se.driver_id,
+			se.stage_id,
+			se.ts_ms,
 			d.uuid::text  AS driver_uuid,
-			st.driver_name,
-			st.class_id,
-			st.class_name,
-			st.stage_name,
-			st.elapsed_ms
-		FROM stage_times st
-		JOIN drivers d ON d.id = st.driver_id
-		ORDER BY st.driver_id, st.stage_id, st.start_ms DESC, st.elapsed_ms ASC NULLS LAST
+			d.name        AS driver_name,
+			d.tag         AS driver_tag,
+			d.class_id,
+			c.name        AS class_name,
+			s.name        AS stage_name
+		FROM start_events se
+		JOIN drivers d ON d.id  = se.driver_id
+		JOIN classes c ON c.id  = d.class_id
+		JOIN stages  s ON s.id  = se.stage_id
 	`;
+
+	const finishRows = await sql`
+		SELECT stage_id, timestamp, tag FROM finish_events
+	`;
+
+	// Build finish lookup: "stage_id:tag" -> timestamp[]
+	const finishMap = new Map<string, number[]>();
+	for (const fe of finishRows) {
+		const key = `${fe.stage_id}:${fe.tag}`;
+		const bucket = finishMap.get(key) ?? [];
+		bucket.push(Number(fe.timestamp));
+		finishMap.set(key, bucket);
+	}
+
+	// Group starts by (driver_id, stage_id), keeping driver/stage metadata from any row in the group
+	type DriverStageGroup = {
+		stage_id: number;
+		driver_uuid: string;
+		driver_name: string;
+		driver_tag: string;
+		class_id: number;
+		class_name: string;
+		stage_name: string;
+		starts: number[];
+	};
+	const groups = new Map<string, DriverStageGroup>();
+	for (const se of startRows) {
+		const key = `${se.driver_id}:${se.stage_id}`;
+		if (!groups.has(key)) {
+			groups.set(key, {
+				stage_id: se.stage_id as number,
+				driver_uuid: se.driver_uuid as string,
+				driver_name: se.driver_name as string,
+				driver_tag: se.driver_tag as string,
+				class_id: se.class_id as number,
+				class_name: se.class_name as string,
+				stage_name: se.stage_name as string,
+				starts: []
+			});
+		}
+		groups.get(key)!.starts.push(Number(se.ts_ms));
+	}
+
+	const stageTimes = [...groups.values()].map((g) => {
+		const finishes = finishMap.get(`${g.stage_id}:${g.driver_tag}`) ?? [];
+		return {
+			driver_uuid: g.driver_uuid,
+			driver_name: g.driver_name,
+			class_id: g.class_id,
+			class_name: g.class_name,
+			stage_name: g.stage_name,
+			elapsed_ms: calculateStageTime(g.starts, finishes)
+		};
+	});
 
 	let submittedRallyId: string;
 
@@ -55,16 +112,7 @@ export async function POST(event: RequestEvent): Promise<Response> {
 		submittedRallyId = sr.id as string;
 
 		if (stageTimes.length > 0) {
-			const rows = stageTimes.map((r) => ({
-				rally_id: submittedRallyId,
-				driver_uuid: r.driver_uuid as string,
-				driver_name: r.driver_name as string,
-				class_id: r.class_id as number,
-				class_name: r.class_name as string,
-				stage_name: r.stage_name as string,
-				elapsed_ms: r.elapsed_ms as number | null
-			}));
-			await tsql`INSERT INTO rally_results ${tsql(rows)}`;
+			await tsql`INSERT INTO rally_results ${tsql(stageTimes.map((r) => ({ ...r, rally_id: submittedRallyId })))}`;
 		}
 
 		for (const champId of championship_ids) {
