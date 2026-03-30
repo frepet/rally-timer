@@ -8,5 +8,8 @@ export default defineConfig({
 		watch: {
 			ignored: ['database.sqlite*']
 		}
+	},
+	test: {
+		include: ['src/**/*.test.ts']
 	}
 });
