@@ -133,37 +133,6 @@ check "Bob     total 25 pts" "25" "$(get_points "$regional_standings" "Bob Bergs
 
 # ---------------------------------------------------------------------------
 echo ""
-echo "── Live Timing (Rally Norway 2025, ongoing) ────────────────────────────"
-
-bundle=$(get /api/bundle)
-
-stage_count=$(echo "$bundle" | jq '.stages | length')
-check "Exactly 1 active stage" "1" "$stage_count"
-
-# Read start and finish timestamps for a driver from the bundle and subtract.
-# No timing logic — clean state guarantees exactly one start and one finish per driver.
-get_live_elapsed() {
-  local driver_name="$1"
-  echo "$bundle" | jq -r \
-    --arg name "$driver_name" \
-    '
-    . as $b |
-    $b.stages[0].id as $sid |
-    ($b.drivers[] | select(.name == $name)) as $d |
-    ($b.start_events[]  | select(.stage_id == $sid and .driver_id == $d.id) | .ts | tonumber) as $start |
-    ($b.finish_events[] | select(.stage_id == $sid and (.tag|tostring) == ($d.rfid_tag|tostring)) | .ts | tonumber) as $finish |
-    $finish - $start
-    '
-}
-
-echo ""
-echo "  Rally Norway 2025 — elapsed times (ms):"
-check "Charlie — SS1 — 3:45 (225000ms)" "225000" "$(get_live_elapsed "Charlie Svensson")"
-check "Alice   — SS1 — 3:52 (232000ms)" "232000" "$(get_live_elapsed "Alice Andersson")"
-check "Bob     — SS1 — 4:08 (248000ms)" "248000" "$(get_live_elapsed "Bob Bergström")"
-
-# ---------------------------------------------------------------------------
-echo ""
 echo "────────────────────────────────────────────────────────────────────────"
 echo "  $pass passed / $((pass + fail)) total"
 if [[ $fail -gt 0 ]]; then

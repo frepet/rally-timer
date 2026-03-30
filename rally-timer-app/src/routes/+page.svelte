@@ -4,6 +4,7 @@
 	import type { BundleResponse } from '../lib/types'
 	import RallyResults from '../lib/RallyResults.svelte'
 	import { assignPositionsAndDeltas, type DisplayRallyRow, type StageData } from '../lib/results'
+	import { calculateStageTime } from '../lib/domain/timing'
 
 	type Driver = {
 		id: number
@@ -13,8 +14,8 @@
 		rfid_tag: string | number | null
 	}
 	type Stage = { id: number; name: string }
-	type StartEvent = { id: number; stage_id: number; driver_id: number; ts: number }
-	type FinishEvent = { id: number; stage_id: number; ts: number; tag: string | number }
+	type StartEvent = { id: number; stage_id: number; driver_id: number; ts: number | string }
+	type FinishEvent = { id: number; stage_id: number; ts: number | string; tag: string | number }
 
 	let rallyRows = $state<DisplayRallyRow[]>([])
 	let stageData = $state<StageData[]>([])
@@ -35,29 +36,22 @@
 	}
 
 	function buildStageData(): StageData[] {
-		const tagToDriver: Record<string | number, Driver> = {}
-		for (const d of drivers) if (d.rfid_tag != null) tagToDriver[d.rfid_tag] = d
-
 		return stages.map((stage) => {
-			const driverStart: Record<number, StartEvent> = {}
-			for (const se of starts) if (se.stage_id === stage.id) driverStart[se.driver_id] = se
+			const rows = drivers.flatMap((driver) => {
+				if (driver.rfid_tag == null) return []
 
-			const firstFinishByDriver: Record<number, number> = {}
-			for (const f of finishes.filter((x) => x.stage_id === stage.id)) {
-				const drv = tagToDriver[f.tag]
-				if (!drv) continue
-				if (firstFinishByDriver[drv.id] === undefined || f.ts < firstFinishByDriver[drv.id]) {
-					firstFinishByDriver[drv.id] = f.ts
-				}
-			}
+				const driverStarts = starts
+					.filter((se) => se.stage_id === stage.id && se.driver_id === driver.id)
+					.map((se) => Number(se.ts))
 
-			const rows = Object.entries(firstFinishByDriver).flatMap(([driverId, finishTs]) => {
-				const drv = drivers.find((d) => d.id === Number(driverId))
-				const se = drv ? driverStart[drv.id] : undefined
-				if (!drv || !se) return []
-				const stage_ms = finishTs - se.ts
-				if (stage_ms < 0) return []
-				return [{ driver_name: drv.name, class_name: drv.class_name, stage_ms, delta_p1: null, delta_prev: null, position: 0 }]
+				const driverFinishes = finishes
+					.filter((fe) => fe.stage_id === stage.id && String(fe.tag) === String(driver.rfid_tag))
+					.map((fe) => Number(fe.ts))
+
+				const elapsed = calculateStageTime(driverStarts, driverFinishes)
+				if (elapsed === null) return []
+
+				return [{ driver_name: driver.name, class_name: driver.class_name, stage_ms: elapsed, delta_p1: null, delta_prev: null, position: 0 }]
 			})
 			rows.sort((a, b) => a.stage_ms - b.stage_ms)
 			assignPositionsAndDeltas(rows, (r) => r.stage_ms)
@@ -65,19 +59,18 @@
 		})
 	}
 
-	function buildRallyRows(): DisplayRallyRow[] {
-		const sd = buildStageData()
-		const totals = new Map<number, { name: string; class_name: string; total: number; finished: number }>()
-		for (const d of drivers) {
-			let total = 0, finished = 0
-			for (const s of sd) {
-				const hit = s.rows.find((r) => r.driver_name === d.name)
-				if (hit) { total += hit.stage_ms; finished++ }
+	function buildRallyRows(sd: StageData[]): DisplayRallyRow[] {
+		const totals = new Map<string, { class_name: string; total: number; finished: number }>()
+		for (const stage of sd) {
+			for (const row of stage.rows) {
+				const existing = totals.get(row.driver_name) ?? { class_name: row.class_name, total: 0, finished: 0 }
+				existing.total += row.stage_ms
+				existing.finished++
+				totals.set(row.driver_name, existing)
 			}
-			if (finished > 0) totals.set(d.id, { name: d.name, class_name: d.class_name, total, finished })
 		}
-		const rows: DisplayRallyRow[] = [...totals.values()].map((v) => ({
-			driver_name: v.name,
+		const rows: DisplayRallyRow[] = [...totals.entries()].map(([name, v]) => ({
+			driver_name: name,
 			class_name: v.class_name,
 			total_ms: v.total,
 			finished_stages: v.finished,
@@ -92,7 +85,7 @@
 
 	async function recomputeAll() {
 		stageData = buildStageData()
-		rallyRows = buildRallyRows()
+		rallyRows = buildRallyRows(stageData)
 	}
 
 	let poller: number | null = null
