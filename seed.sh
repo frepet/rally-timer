@@ -76,6 +76,17 @@ submit_rally() {
   echo "$row" | jq -r '.id'
 }
 
+# Clear all stages and events, then recreate the stage and reassign the gate.
+# Prints the new stage_id.
+clear_and_setup_stage() {
+  local stage_name="$1"
+  curl -sf -X DELETE "$BASE/api/clear-rally" "${auth[@]}" > /dev/null
+  local sid
+  sid=$(post /api/stage "{\"name\":\"$stage_name\"}" "${auth[@]}" | jq -r '.id')
+  patch /api/gate/"$gate_id" "{\"stage_id\":$sid}" "${anon[@]}" > /dev/null
+  echo "$sid"
+}
+
 now=$(date +%s%3N)
 week=$((7 * 24 * 3600 * 1000))
 
@@ -139,6 +150,10 @@ finish_at "$gate_id" "$tag_b" "$((t1 + 311000))"  -72  # 4:11 from Bob's start
 rally1_id=$(submit_rally "Rally Finland 2024" "$champ1_id" "$champ2_id")
 echo "    Submitted id=$rally1_id  (1. Charlie 3:42  2. Alice 3:58  3. Bob 4:11)"
 
+echo "    Clearing..."
+stage_id=$(clear_and_setup_stage "SS1 - Forest Road")
+echo "    Stage reset id=$stage_id"
+
 # ---------------------------------------------------------------------------
 # Rally Sweden 2025 — 1 week ago
 # Alice wins: 3:35 | Charlie: 3:48 | Bob: 4:20
@@ -157,6 +172,10 @@ finish_at "$gate_id" "$tag_b" "$((t2 + 320000))"  -75  # 4:20 from Bob's start
 
 rally2_id=$(submit_rally "Rally Sweden 2025" "$champ1_id")
 echo "    Submitted id=$rally2_id  (1. Alice 3:35  2. Charlie 3:48  3. Bob 4:20)"
+
+echo "    Clearing..."
+stage_id=$(clear_and_setup_stage "SS1 - Forest Road")
+echo "    Stage reset id=$stage_id"
 
 # ---------------------------------------------------------------------------
 # Rally Norway 2025 — ongoing, not submitted
