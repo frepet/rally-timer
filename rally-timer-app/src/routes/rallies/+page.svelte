@@ -19,7 +19,8 @@
 		TrashBinOutline,
 		DotsVerticalOutline,
 		PlayOutline,
-		AwardOutline
+		AwardOutline,
+		RefreshOutline
 	} from 'flowbite-svelte-icons';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { kcFetch } from '../../lib/kcFetch';
@@ -184,6 +185,25 @@
 		await loadGates();
 	}
 
+	// --- Clear rally
+	let clearModalOpen = $state(false)
+	let clearing = $state(false)
+
+	async function clearRally() {
+		clearing = true
+		try {
+			const res = await kcFetch('/api/clear-rally', { method: 'DELETE' })
+			if (!res.ok) throw new Error(await res.text())
+			clearModalOpen = false
+			await loadStages()
+			await loadGates()
+		} catch (e) {
+			alert('Clear failed: ' + (e as Error).message)
+		} finally {
+			clearing = false
+		}
+	}
+
 	// --- Submit to championship
 	let submitModalOpen = $state(false);
 	let submitRallyName = $state('');
@@ -297,6 +317,9 @@
 			{#if $isAdmin}
 				<Button size="sm" color="purple" onclick={openSubmitModal}>
 					<AwardOutline size="sm" class="mr-1" /> Submit to Championship
+				</Button>
+				<Button size="sm" color="red" onclick={() => (clearModalOpen = true)}>
+					<RefreshOutline size="sm" class="mr-1" /> Clear Rally
 				</Button>
 			{/if}
 		</div>
@@ -459,6 +482,23 @@
 		<a href="/drivers" class="text-sm text-blue-600 hover:underline dark:text-blue-400"
 			>Manage / add drivers →</a
 		>
+	</div>
+</Modal>
+
+<!-- Clear Rally Modal -->
+<Modal title="Clear Rally" bind:open={clearModalOpen} size="sm" autoclose={false}>
+	<div class="space-y-4">
+		<p class="text-gray-700 dark:text-gray-300">
+			This will delete all stages and their events. Drivers and gates will be kept. Submitted
+			rallies are not affected.
+		</p>
+		<p class="font-semibold text-red-600 dark:text-red-400">This cannot be undone.</p>
+		<div class="flex justify-end gap-2 border-t pt-3">
+			<Button color="light" onclick={() => (clearModalOpen = false)}>Cancel</Button>
+			<Button color="red" onclick={clearRally} disabled={clearing}>
+				{clearing ? 'Clearing…' : 'Clear Rally'}
+			</Button>
+		</div>
 	</div>
 </Modal>
 

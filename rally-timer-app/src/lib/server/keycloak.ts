@@ -1,5 +1,6 @@
 import { error } from '@sveltejs/kit';
 import { createRemoteJWKSet, jwtVerify, type JWTPayload } from 'jose';
+import { env } from '$env/dynamic/private';
 
 const KEYCLOAK_BASE = 'https://keycloak.peteri.se';
 const REALM = 'platform';
@@ -59,7 +60,7 @@ export async function requireAdmin(event: import('@sveltejs/kit').RequestEvent) 
 }
 
 export async function throwIfNotAdmin(event: import('@sveltejs/kit').RequestEvent) {
-	if (process.env.SKIP_AUTH === 'true') return;
+	if (env.SKIP_AUTH === 'true') return;
 	const r = await requireAdmin(event);
 	if (!r.ok) {
 		throw error(r.status, r.msg);
