@@ -22,6 +22,8 @@ export type StageData = {
 	rows: DisplayStageRow[]
 }
 
+import { rankTimes } from './domain/ranking'
+
 export function formatMs(ms: number | null | undefined): string {
 	if (ms == null) return '—'
 	const sec = Math.floor(ms / 1000)
@@ -34,13 +36,10 @@ export function formatMs(ms: number | null | undefined): string {
 export function assignPositionsAndDeltas<
 	T extends { position: number; delta_p1: number | null; delta_prev: number | null }
 >(rows: T[], getTime: (r: T) => number): void {
-	let prev: number | null = null
-	const p1 = rows.length ? getTime(rows[0]) : null
-	rows.forEach((r, i) => {
-		r.position = i + 1
-		const t = getTime(r)
-		r.delta_p1 = p1 != null ? t - p1 : null
-		r.delta_prev = prev != null ? t - prev : null
-		prev = t
+	const ranked = rankTimes(rows.map(getTime))
+	ranked.forEach((entry, i) => {
+		rows[i].position = entry.position
+		rows[i].delta_p1 = entry.delta_p1
+		rows[i].delta_prev = entry.delta_prev
 	})
 }
