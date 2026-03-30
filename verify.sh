@@ -53,18 +53,19 @@ regional_detail=$(get /api/championship/"$regional_id")
 nordic_rally_count=$(echo "$nordic_detail" | jq '.rallies | length')
 regional_rally_count=$(echo "$regional_detail" | jq '.rallies | length')
 
-check "Nordic has 2 rallies"   "2" "$nordic_rally_count"
+check "Nordic has 3 rallies"     "3" "$nordic_rally_count"
 check "Regional Cup has 1 rally" "1" "$regional_rally_count"
 
 # ---------------------------------------------------------------------------
 echo ""
 echo "── Submitted Rally Results ─────────────────────────────────────────────"
 
-# Find submitted rallies by name from the Nordic championship (which has both)
+# Find submitted rallies by name from the Nordic championship (which has all three)
 finland_id=$(echo "$nordic_detail" | jq -r '.rallies[] | select(.name == "Rally Finland 2024") | .id')
 sweden_id=$(echo "$nordic_detail"  | jq -r '.rallies[] | select(.name == "Rally Sweden 2025")  | .id')
+norway_id=$(echo "$nordic_detail"  | jq -r '.rallies[] | select(.name == "Rally Norway 2025")  | .id')
 
-if [[ -z "$finland_id" || -z "$sweden_id" ]]; then
+if [[ -z "$finland_id" || -z "$sweden_id" || -z "$norway_id" ]]; then
   echo "ERROR: Submitted rallies not found. Did you run seed.sh first?"
   exit 1
 fi
@@ -95,6 +96,22 @@ check "Alice   — SS1 — 3:35 (215000ms)" "215000" "$(get_elapsed "$sweden"  "
 check "Charlie — SS1 — 3:48 (228000ms)" "228000" "$(get_elapsed "$sweden"  "Charlie Svensson"  "SS1 - Forest Road")"
 check "Bob     — SS1 — 4:20 (260000ms)" "260000" "$(get_elapsed "$sweden"  "Bob Bergström"     "SS1 - Forest Road")"
 
+norway=$(get /api/submitted-rally/"$norway_id")
+
+echo ""
+echo "  Rally Norway 2025 — SS1 elapsed times (ms):"
+check "Alice   — SS1 — 3:30 (210000ms)" "210000" "$(get_elapsed "$norway" "Alice Andersson"  "SS1 - Forest Road")"
+check "Diana   — SS1 — 3:38 (218000ms)" "218000" "$(get_elapsed "$norway" "Diana Dahl"        "SS1 - Forest Road")"
+check "Charlie — SS1 — 3:45 (225000ms)" "225000" "$(get_elapsed "$norway" "Charlie Svensson"  "SS1 - Forest Road")"
+check "Bob     — SS1 — 4:05 (245000ms)" "245000" "$(get_elapsed "$norway" "Bob Bergström"     "SS1 - Forest Road")"
+
+echo ""
+echo "  Rally Norway 2025 — SS2 elapsed times (ms):"
+check "Diana   — SS2 — 3:25 (205000ms)" "205000" "$(get_elapsed "$norway" "Diana Dahl"        "SS2 - Mountain Pass")"
+check "Alice   — SS2 — 3:50 (230000ms)" "230000" "$(get_elapsed "$norway" "Alice Andersson"  "SS2 - Mountain Pass")"
+check "Charlie — SS2 — 3:40 (220000ms)" "220000" "$(get_elapsed "$norway" "Charlie Svensson"  "SS2 - Mountain Pass")"
+check "Bob     — SS2 — 3:55 (235000ms)" "235000" "$(get_elapsed "$norway" "Bob Bergström"     "SS2 - Mountain Pass")"
+
 # ---------------------------------------------------------------------------
 echo ""
 echo "── Championship Standings ──────────────────────────────────────────────"
@@ -111,22 +128,28 @@ get_rally_points() {
 }
 
 echo ""
-echo "  Nordic Rally Championship (2 rallies, 1 driver/class → P1 each → 25+25=50):"
-check "Alice   total 50 pts" "50" "$(get_points "$nordic_standings" "Alice Andersson")"
-check "Charlie total 50 pts" "50" "$(get_points "$nordic_standings" "Charlie Svensson")"
-check "Bob     total 50 pts" "50" "$(get_points "$nordic_standings" "Bob Bergström")"
+echo "  Nordic Rally Championship (3 rallies):"
+echo "    Alice   25+25+18=68  Charlie 25+25+25=75  Bob 25+25+25=75  Diana 25"
+check "Alice   total 68 pts"  "68" "$(get_points "$nordic_standings" "Alice Andersson")"
+check "Charlie total 75 pts"  "75" "$(get_points "$nordic_standings" "Charlie Svensson")"
+check "Bob     total 75 pts"  "75" "$(get_points "$nordic_standings" "Bob Bergström")"
+check "Diana   total 25 pts"  "25" "$(get_points "$nordic_standings" "Diana Dahl")"
 
 echo ""
 echo "  Nordic — points breakdown per rally:"
 check "Alice   — Finland — 25 pts (P1 Group A)" "25" "$(get_rally_points "$nordic_standings" "Alice Andersson"  "Rally Finland 2024")"
 check "Alice   — Sweden  — 25 pts (P1 Group A)" "25" "$(get_rally_points "$nordic_standings" "Alice Andersson"  "Rally Sweden 2025")"
+check "Alice   — Norway  — 18 pts (P2 Group A)" "18" "$(get_rally_points "$nordic_standings" "Alice Andersson"  "Rally Norway 2025")"
+check "Diana   — Norway  — 25 pts (P1 Group A)" "25" "$(get_rally_points "$nordic_standings" "Diana Dahl"       "Rally Norway 2025")"
 check "Charlie — Finland — 25 pts (P1 Group S)" "25" "$(get_rally_points "$nordic_standings" "Charlie Svensson" "Rally Finland 2024")"
 check "Charlie — Sweden  — 25 pts (P1 Group S)" "25" "$(get_rally_points "$nordic_standings" "Charlie Svensson" "Rally Sweden 2025")"
+check "Charlie — Norway  — 25 pts (P1 Group S)" "25" "$(get_rally_points "$nordic_standings" "Charlie Svensson" "Rally Norway 2025")"
 check "Bob     — Finland — 25 pts (P1 Group B)" "25" "$(get_rally_points "$nordic_standings" "Bob Bergström"    "Rally Finland 2024")"
 check "Bob     — Sweden  — 25 pts (P1 Group B)" "25" "$(get_rally_points "$nordic_standings" "Bob Bergström"    "Rally Sweden 2025")"
+check "Bob     — Norway  — 25 pts (P1 Group B)" "25" "$(get_rally_points "$nordic_standings" "Bob Bergström"    "Rally Norway 2025")"
 
 echo ""
-echo "  Regional Cup (1 rally → 25 pts each):"
+echo "  Regional Cup (1 rally → 25 pts each; Diana not entered):"
 check "Alice   total 25 pts" "25" "$(get_points "$regional_standings" "Alice Andersson")"
 check "Charlie total 25 pts" "25" "$(get_points "$regional_standings" "Charlie Svensson")"
 check "Bob     total 25 pts" "25" "$(get_points "$regional_standings" "Bob Bergström")"

@@ -89,6 +89,7 @@ clear_and_setup_stage() {
 
 now=$(date +%s%3N)
 week=$((7 * 24 * 3600 * 1000))
+day=$((24 * 3600 * 1000))
 
 # ---------------------------------------------------------------------------
 echo "==> Fetching classes..."
@@ -115,13 +116,17 @@ driver_b=$(post /api/driver \
   "{\"name\":\"Bob Bergström\",\"class_id\":$class_b,\"tag\":\"DDEEFF334455\"}" "${auth[@]}")
 driver_s=$(post /api/driver \
   "{\"name\":\"Charlie Svensson\",\"class_id\":$class_s,\"tag\":\"112233AABBCC\"}" "${auth[@]}")
+driver_d=$(post /api/driver \
+  "{\"name\":\"Diana Dahl\",\"class_id\":$class_a,\"tag\":\"FFEE00112233\"}" "${auth[@]}")
 id_a=$(echo "$driver_a" | jq -r '.id')
 id_b=$(echo "$driver_b" | jq -r '.id')
 id_s=$(echo "$driver_s" | jq -r '.id')
+id_d=$(echo "$driver_d" | jq -r '.id')
 tag_a=$(echo "$driver_a" | jq -r '.tag')
 tag_b=$(echo "$driver_b" | jq -r '.tag')
 tag_s=$(echo "$driver_s" | jq -r '.tag')
-echo "    Alice id=$id_a  Bob id=$id_b  Charlie id=$id_s"
+tag_d=$(echo "$driver_d" | jq -r '.tag')
+echo "    Alice id=$id_a  Bob id=$id_b  Charlie id=$id_s  Diana id=$id_d"
 
 echo "==> Registering and assigning finish gate..."
 gate_id="a1b2c3d4-e5f6-7890-abcd-ef1234567890"
@@ -178,19 +183,57 @@ stage_id=$(clear_and_setup_stage "SS1 - Forest Road")
 echo "    Stage reset id=$stage_id"
 
 # ---------------------------------------------------------------------------
-# Rally Norway 2025 — ongoing, not submitted
-# Starts recorded now, finishes in ~4 minutes
+# Rally Norway 2025 — 2 stages, submitted to Nordic only, NOT cleared
+# Group A has 2 drivers so we can test class deltas and that SS1 leader ≠ winner.
+#
+# SS1 - Forest Road  (stage_id from clear after Sweden)
+#   Alice:   3:30 (210 000 ms)  — P1 Group A on SS1
+#   Diana:   3:38 (218 000 ms)  — P2 Group A on SS1
+#   Charlie: 3:45 (225 000 ms)  — P1 Group S
+#   Bob:     4:05 (245 000 ms)  — P1 Group B
+#
+# SS2 - Mountain Pass
+#   Diana:   3:25 (205 000 ms)  — P1 Group A on SS2
+#   Alice:   3:50 (230 000 ms)  — P2 Group A on SS2
+#   Charlie: 3:40 (220 000 ms)  — P1 Group S
+#   Bob:     3:55 (235 000 ms)  — P1 Group B
+#
+# Overall Group A: 1. Diana 423 000 ms  2. Alice 440 000 ms
+#   (SS1 leader Alice is beaten overall — good test for delta/ranking logic)
 # ---------------------------------------------------------------------------
 echo ""
-echo "==> Rally Norway 2025 (ongoing, not submitted)..."
+echo "==> Rally Norway 2025 (2 stages, submitted to Nordic)..."
+t3=$((now - day))
+t3_2=$((t3 + 2 * 3600 * 1000))
 
-start_at "$stage_id" "$id_s" "$now"                 > /dev/null
-start_at "$stage_id" "$id_a" "$((now + 30000))"     > /dev/null
-start_at "$stage_id" "$id_b" "$((now + 60000))"     > /dev/null
-finish_at "$gate_id" "$tag_s" "$((now + 225000))"  -64  # 3:45
-finish_at "$gate_id" "$tag_a" "$((now + 262000))"  -69  # 3:52
-finish_at "$gate_id" "$tag_b" "$((now + 308000))"  -71  # 4:08
-echo "    Live timing seeded — not submitted yet"
+# SS1 - Forest Road
+start_at "$stage_id" "$id_a" "$t3"                    > /dev/null
+start_at "$stage_id" "$id_d" "$((t3 + 30000))"       > /dev/null
+start_at "$stage_id" "$id_s" "$((t3 + 60000))"       > /dev/null
+start_at "$stage_id" "$id_b" "$((t3 + 90000))"       > /dev/null
+finish_at "$gate_id" "$tag_a" "$((t3 + 210000))"    -70  # 3:30
+finish_at "$gate_id" "$tag_d" "$((t3 + 248000))"    -68  # 3:38
+finish_at "$gate_id" "$tag_s" "$((t3 + 285000))"    -64  # 3:45
+finish_at "$gate_id" "$tag_b" "$((t3 + 335000))"    -71  # 4:05
+
+# Reassign gate to SS2 - Mountain Pass
+stage2_id=$(post /api/stage '{"name":"SS2 - Mountain Pass"}' "${auth[@]}" | jq -r '.id')
+patch /api/gate/"$gate_id" "{\"stage_id\":$stage2_id}" "${anon[@]}" > /dev/null
+echo "    SS1 done. Gate reassigned to stage2 id=$stage2_id"
+
+# SS2 - Mountain Pass
+start_at "$stage2_id" "$id_a" "$t3_2"                    > /dev/null
+start_at "$stage2_id" "$id_d" "$((t3_2 + 30000))"       > /dev/null
+start_at "$stage2_id" "$id_s" "$((t3_2 + 60000))"       > /dev/null
+start_at "$stage2_id" "$id_b" "$((t3_2 + 90000))"       > /dev/null
+finish_at "$gate_id" "$tag_a" "$((t3_2 + 230000))"    -69  # 3:50
+finish_at "$gate_id" "$tag_d" "$((t3_2 + 235000))"    -67  # 3:25
+finish_at "$gate_id" "$tag_s" "$((t3_2 + 280000))"    -63  # 3:40
+finish_at "$gate_id" "$tag_b" "$((t3_2 + 325000))"    -72  # 3:55
+
+rally3_id=$(submit_rally "Rally Norway 2025" "$champ1_id")
+echo "    Submitted id=$rally3_id"
+echo "    NOT cleared — events remain visible in manage view"
 
 # ---------------------------------------------------------------------------
 echo ""
@@ -198,10 +241,13 @@ echo "Done."
 echo ""
 echo "Championships:"
 echo "  Nordic Rally Championship ($champ1_id)"
-echo "    Rally Finland 2024  → Charlie 1st, Alice 2nd, Bob 3rd"
-echo "    Rally Sweden 2025   → Alice 1st, Charlie 2nd, Bob 3rd"
+echo "    Rally Finland 2024  → Charlie 1st (S), Alice 2nd (A), Bob 3rd (B)  [by class P1 each]"
+echo "    Rally Sweden 2025   → Alice 1st (A), Charlie 2nd (S), Bob 3rd (B)  [by class P1 each]"
+echo "    Rally Norway 2025   → Diana 1st A (423s), Alice 2nd A (440s) | Charlie P1 S | Bob P1 B"
 echo "  Regional Cup ($champ2_id)"
-echo "    Rally Finland 2024  → Charlie 1st, Alice 2nd, Bob 3rd"
+echo "    Rally Finland 2024  → Charlie 1st (S), Alice 2nd (A), Bob 3rd (B)"
 echo ""
-echo "Ongoing (Rally Norway 2025, not submitted):"
-echo "  Expected: 1. Charlie (3:45)  2. Alice (3:52)  3. Bob (4:08)"
+echo "Nordic standings:"
+echo "  Group A:  Alice 68 pts (25+25+18)   Diana 25 pts (25)"
+echo "  Group S:  Charlie 75 pts (25+25+25)"
+echo "  Group B:  Bob 75 pts (25+25+25)"
