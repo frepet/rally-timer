@@ -37,3 +37,12 @@
 		display: none;
 	}
 }
+
+@layer components {
+	/* Reduce table cell vertical padding while maintaining horizontal padding */
+	table tbody td,
+	table tbody th,
+	table thead th {
+		@apply py-1 px-4;
+	}
+}
