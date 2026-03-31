@@ -2,7 +2,7 @@ import { json, error, type RequestEvent } from '@sveltejs/kit';
 import { sql } from '../../../lib/server/db';
 import { throwIfNotAdmin } from '../../../lib/server/keycloak';
 import { submitRallySchema } from '../../../lib/server/schemas';
-import { calculateStageTime } from '../../../lib/domain/timing';
+import { buildStageTimes } from '../../../lib/domain/rallySubmission';
 
 export async function POST(event: RequestEvent): Promise<Response> {
 	await throwIfNotAdmin(event);
@@ -27,7 +27,7 @@ export async function POST(event: RequestEvent): Promise<Response> {
 		throw error(400, 'One or more championship IDs are invalid');
 	}
 
-	const startRows = await sql`
+	const rawStarts = await sql`
 		SELECT
 			se.driver_id,
 			se.stage_id,
@@ -44,59 +44,28 @@ export async function POST(event: RequestEvent): Promise<Response> {
 		JOIN stages  s ON s.id  = se.stage_id
 	`;
 
-	const finishRows = await sql`
+	const rawFinishes = await sql`
 		SELECT stage_id, timestamp, tag FROM finish_events
 	`;
 
-	// Build finish lookup: "stage_id:tag" -> timestamp[]
-	const finishMap = new Map<string, number[]>();
-	for (const fe of finishRows) {
-		const key = `${fe.stage_id}:${fe.tag}`;
-		const bucket = finishMap.get(key) ?? [];
-		bucket.push(Number(fe.timestamp));
-		finishMap.set(key, bucket);
-	}
-
-	// Group starts by (driver_id, stage_id), keeping driver/stage metadata from any row in the group
-	type DriverStageGroup = {
-		stage_id: number;
-		driver_uuid: string;
-		driver_name: string;
-		driver_tag: string;
-		class_id: number;
-		class_name: string;
-		stage_name: string;
-		starts: number[];
-	};
-	const groups = new Map<string, DriverStageGroup>();
-	for (const se of startRows) {
-		const key = `${se.driver_id}:${se.stage_id}`;
-		if (!groups.has(key)) {
-			groups.set(key, {
-				stage_id: se.stage_id as number,
-				driver_uuid: se.driver_uuid as string,
-				driver_name: se.driver_name as string,
-				driver_tag: se.driver_tag as string,
-				class_id: se.class_id as number,
-				class_name: se.class_name as string,
-				stage_name: se.stage_name as string,
-				starts: []
-			});
-		}
-		groups.get(key)!.starts.push(Number(se.ts_ms));
-	}
-
-	const stageTimes = [...groups.values()].map((g) => {
-		const finishes = finishMap.get(`${g.stage_id}:${g.driver_tag}`) ?? [];
-		return {
-			driver_uuid: g.driver_uuid,
-			driver_name: g.driver_name,
-			class_id: g.class_id,
-			class_name: g.class_name,
-			stage_name: g.stage_name,
-			elapsed_ms: calculateStageTime(g.starts, finishes)
-		};
-	});
+	const stageTimes = buildStageTimes(
+		rawStarts.map((se) => ({
+			driver_id: se.driver_id as number,
+			stage_id: se.stage_id as number,
+			ts_ms: Number(se.ts_ms),
+			driver_uuid: se.driver_uuid as string,
+			driver_name: se.driver_name as string,
+			driver_tag: se.driver_tag as string,
+			class_id: se.class_id as number,
+			class_name: se.class_name as string,
+			stage_name: se.stage_name as string
+		})),
+		rawFinishes.map((fe) => ({
+			stage_id: fe.stage_id as number,
+			tag: fe.tag as string,
+			timestamp: Number(fe.timestamp)
+		}))
+	);
 
 	let submittedRallyId: string;
 

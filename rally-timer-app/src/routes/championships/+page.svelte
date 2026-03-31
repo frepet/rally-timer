@@ -156,7 +156,7 @@
 					{#each championships as c (c.id)}
 						<li class="flex items-center gap-1">
 							<button
-								class="flex-1 rounded px-3 py-2 text-left text-sm transition-colors text-gray-900 dark:text-white {selectedId ===
+								class="flex-1 rounded px-3 py-2 text-left text-sm text-gray-900 transition-colors dark:text-white {selectedId ===
 								c.id
 									? 'bg-blue-100 font-semibold dark:bg-blue-900'
 									: 'hover:bg-gray-100 dark:hover:bg-gray-700'}"
@@ -189,7 +189,11 @@
 							<P class="mb-2 font-semibold">Included Rallies</P>
 							<div class="flex flex-wrap gap-2">
 								{#each rallies as r (r.id)}
-									<a href="/rallies/{r.id}"><Badge color="blue" class="cursor-pointer hover:brightness-90">{r.name} ({fmtDate(r.submitted_at)})</Badge></a>
+									<a href="/rallies/{r.id}"
+										><Badge color="blue" class="cursor-pointer hover:brightness-90"
+											>{r.name} ({fmtDate(r.submitted_at)})</Badge
+										></a
+									>
 								{/each}
 							</div>
 						</Card>
