@@ -9,24 +9,24 @@
 		TableBodyCell,
 		Button,
 		Heading
-	} from 'flowbite-svelte'
-	import { formatMs, type DisplayRallyRow, type StageData } from './results'
+	} from 'flowbite-svelte';
+	import { formatMs, type DisplayRallyRow, type StageData } from './results';
 
 	let {
 		rallyRows,
 		stages
 	}: {
-		rallyRows: DisplayRallyRow[]
-		stages: StageData[]
-	} = $props()
+		rallyRows: DisplayRallyRow[];
+		stages: StageData[];
+	} = $props();
 
-	let activeStage = $state(stages[0]?.name ?? null)
+	let activeStage = $state(stages[0]?.name ?? null);
 
 	$effect(() => {
-		if (activeStage == null && stages.length) activeStage = stages[0].name
-	})
+		if (activeStage == null && stages.length) activeStage = stages[0].name;
+	});
 
-	const activeRows = $derived(stages.find((s) => s.name === activeStage)?.rows ?? [])
+	const activeRows = $derived(stages.find((s) => s.name === activeStage)?.rows ?? []);
 </script>
 
 <!-- Rally leaderboard -->

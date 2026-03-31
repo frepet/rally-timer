@@ -186,21 +186,21 @@
 	}
 
 	// --- Clear rally
-	let clearModalOpen = $state(false)
-	let clearing = $state(false)
+	let clearModalOpen = $state(false);
+	let clearing = $state(false);
 
 	async function clearRally() {
-		clearing = true
+		clearing = true;
 		try {
-			const res = await kcFetch('/api/clear-rally', { method: 'DELETE' })
-			if (!res.ok) throw new Error(await res.text())
-			clearModalOpen = false
-			await loadStages()
-			await loadGates()
+			const res = await kcFetch('/api/clear-rally', { method: 'DELETE' });
+			if (!res.ok) throw new Error(await res.text());
+			clearModalOpen = false;
+			await loadStages();
+			await loadGates();
 		} catch (e) {
-			alert('Clear failed: ' + (e as Error).message)
+			alert('Clear failed: ' + (e as Error).message);
 		} finally {
-			clearing = false
+			clearing = false;
 		}
 	}
 
