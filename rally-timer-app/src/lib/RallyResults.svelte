@@ -8,7 +8,9 @@
 		TableBodyRow,
 		TableBodyCell,
 		Button,
-		Heading
+		Heading,
+		AccordionItem,
+		Accordion
 	} from 'flowbite-svelte';
 	import { formatMs, type DisplayRallyRow, type StageData } from './results';
 
@@ -83,36 +85,54 @@
 	</div>
 
 	{#if activeStage}
-		<Table hoverable>
-			<TableHead>
-				<TableHeadCell>#</TableHeadCell>
-				<TableHeadCell>Driver</TableHeadCell>
-				<TableHeadCell>Class</TableHeadCell>
-				<TableHeadCell>Stage Time</TableHeadCell>
-				<TableHeadCell>Δ P1</TableHeadCell>
-				<TableHeadCell>Δ Prev</TableHeadCell>
-			</TableHead>
-			<TableBody>
+		{#if activeRows.length}
+			<Accordion flush>
 				{#each activeRows as r (r.driver_name)}
-					<TableBodyRow>
-						<TableBodyCell class="font-semibold">{r.position}</TableBodyCell>
-						<TableBodyCell>{r.driver_name}</TableBodyCell>
-						<TableBodyCell class="opacity-80">{r.class_name}</TableBodyCell>
-						<TableBodyCell class="font-mono">{formatMs(r.stage_ms)}</TableBodyCell>
-						<TableBodyCell class="font-mono"
-							>{r.delta_p1 != null ? '+' + formatMs(r.delta_p1) : '—'}</TableBodyCell
-						>
-						<TableBodyCell class="font-mono"
-							>{r.delta_prev != null ? '+' + formatMs(r.delta_prev) : '—'}</TableBodyCell
-						>
-					</TableBodyRow>
+					<AccordionItem>
+						{#snippet header()}
+							<span class="flex w-full items-center gap-3 font-mono text-sm">
+								<span class="w-6 text-right font-semibold">{r.position}</span>
+								<span class="flex-1 font-sans font-medium">
+									{r.driver_name}<span class="ml-1 text-xs font-normal opacity-60">({r.class_name})</span>
+								</span>
+								<span class="text-right">
+									{#if r.position === 1}
+										{formatMs(r.stage_ms)}
+									{:else}
+										{r.delta_prev != null ? '+' + formatMs(r.delta_prev) : '—'}
+									{/if}
+								</span>
+							</span>
+						{/snippet}
+						<Table>
+							<TableHead>
+								<TableHeadCell>#</TableHeadCell>
+								<TableHeadCell>Driver</TableHeadCell>
+								<TableHeadCell>Class</TableHeadCell>
+								<TableHeadCell>Stage Time</TableHeadCell>
+								<TableHeadCell>Δ P1</TableHeadCell>
+								<TableHeadCell>Δ Prev</TableHeadCell>
+							</TableHead>
+							<TableBody>
+								<TableBodyRow>
+									<TableBodyCell class="font-semibold">{r.position}</TableBodyCell>
+									<TableBodyCell>{r.driver_name}</TableBodyCell>
+									<TableBodyCell class="opacity-80">{r.class_name}</TableBodyCell>
+									<TableBodyCell class="font-mono">{formatMs(r.stage_ms)}</TableBodyCell>
+									<TableBodyCell class="font-mono"
+										>{r.delta_p1 != null ? '+' + formatMs(r.delta_p1) : '—'}</TableBodyCell
+									>
+									<TableBodyCell class="font-mono"
+										>{r.delta_prev != null ? '+' + formatMs(r.delta_prev) : '—'}</TableBodyCell
+									>
+								</TableBodyRow>
+							</TableBody>
+						</Table>
+					</AccordionItem>
 				{/each}
-				{#if !activeRows.length}
-					<TableBodyRow
-						><TableBodyCell colspan={6}>No stage results yet.</TableBodyCell></TableBodyRow
-					>
-				{/if}
-			</TableBody>
-		</Table>
+			</Accordion>
+		{:else}
+			<p class="text-sm opacity-70">No stage results yet.</p>
+		{/if}
 	{/if}
 </Card>
