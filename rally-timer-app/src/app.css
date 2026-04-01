@@ -38,7 +38,7 @@
 	}
 }
 
-@layer components {
+@layer utilities {
 	/* Reduce table cell vertical padding while maintaining horizontal padding */
 	table tbody td,
 	table tbody th,
