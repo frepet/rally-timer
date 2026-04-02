@@ -38,14 +38,10 @@
 	}
 }
 
-@layer overrides {
-	/* Reduce table cell vertical padding while maintaining horizontal padding.
-	   Must be in a layer declared after Tailwind's layers so it wins over
-	   class-based utility rules (.py-4 etc.) applied directly by Flowbite. */
-	table tbody td,
-	table tbody th,
-	table thead th {
-		padding-block: calc(var(--spacing) * 1);
-		padding-inline: calc(var(--spacing) * 4);
-	}
+/* Unlayered — beats all Tailwind/Flowbite layered utility classes (py-4, py-3, etc.).
+   Only overrides vertical padding; horizontal padding is left to Flowbite defaults. */
+table tbody td,
+table tbody th,
+table thead th {
+	padding-block: calc(var(--spacing) * 1);
 }
