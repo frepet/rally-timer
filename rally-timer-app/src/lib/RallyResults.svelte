@@ -12,6 +12,7 @@
 		AccordionItem,
 		Accordion
 	} from 'flowbite-svelte';
+
 	import { formatMs, type DisplayRallyRow, type StageData } from './results';
 
 	let {
@@ -104,30 +105,11 @@
 								</span>
 							</span>
 						{/snippet}
-						<Table>
-							<TableHead>
-								<TableHeadCell>#</TableHeadCell>
-								<TableHeadCell>Driver</TableHeadCell>
-								<TableHeadCell>Class</TableHeadCell>
-								<TableHeadCell>Stage Time</TableHeadCell>
-								<TableHeadCell>Δ P1</TableHeadCell>
-								<TableHeadCell>Δ Prev</TableHeadCell>
-							</TableHead>
-							<TableBody>
-								<TableBodyRow>
-									<TableBodyCell class="font-semibold">{r.position}</TableBodyCell>
-									<TableBodyCell>{r.driver_name}</TableBodyCell>
-									<TableBodyCell class="opacity-80">{r.class_name}</TableBodyCell>
-									<TableBodyCell class="font-mono">{formatMs(r.stage_ms)}</TableBodyCell>
-									<TableBodyCell class="font-mono"
-										>{r.delta_p1 != null ? '+' + formatMs(r.delta_p1) : '—'}</TableBodyCell
-									>
-									<TableBodyCell class="font-mono"
-										>{r.delta_prev != null ? '+' + formatMs(r.delta_prev) : '—'}</TableBodyCell
-									>
-								</TableBodyRow>
-							</TableBody>
-						</Table>
+						<div class="flex gap-6 px-2 py-1 font-mono text-sm">
+							<span><span class="mr-1 opacity-50">Time</span>{formatMs(r.stage_ms)}</span>
+							<span><span class="mr-1 opacity-50">Δ P1</span>{r.delta_p1 != null ? '+' + formatMs(r.delta_p1) : '—'}</span>
+							<span><span class="mr-1 opacity-50">Δ Prev</span>{r.delta_prev != null ? '+' + formatMs(r.delta_prev) : '—'}</span>
+						</div>
 					</AccordionItem>
 				{/each}
 			</Accordion>
