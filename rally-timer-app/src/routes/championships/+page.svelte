@@ -130,10 +130,10 @@
 </script>
 
 <div class="w-full space-y-6 p-5">
-	<div class="flex items-center justify-between">
+	<div class="flex flex-wrap items-center justify-between gap-2">
 		<P class="text-3xl font-bold">Championships</P>
 		{#if $isAdmin}
-			<Button size="sm" onclick={() => (createModalOpen = true)}>
+			<Button size="sm" class="whitespace-nowrap" onclick={() => (createModalOpen = true)}>
 				<PlusOutline size="sm" class="mr-1" /> New Championship
 			</Button>
 		{/if}
@@ -210,11 +210,11 @@
 								<Card class="max-w-none p-4">
 									<Table class="[&_tr]:border-0">
 										<TableHead class="bg-transparent dark:bg-transparent">
-											<TableHeadCell class="w-8 px-2 text-center">#</TableHeadCell>
+											<TableHeadCell class="w-8 px-2 text-right">#</TableHeadCell>
 											<TableHeadCell>Driver</TableHeadCell>
-											<TableHeadCell>Points</TableHeadCell>
+											<TableHeadCell class="text-right">Points</TableHeadCell>
 											{#each rallies as r (r.id)}
-												<TableHeadCell class="text-center text-xs">{r.name}</TableHeadCell>
+												<TableHeadCell class="text-right text-xs">{r.name}</TableHeadCell>
 											{/each}
 										</TableHead>
 										<TableBody>
@@ -224,14 +224,12 @@
 														? 'bg-gray-50 dark:bg-gray-700/40'
 														: 'bg-white dark:bg-gray-800'}"
 												>
-													<TableBodyCell class="w-8 px-2 text-center font-semibold"
-														>{i + 1}</TableBodyCell
-													>
+													<TableBodyCell class="w-8 px-2 text-right font-semibold">{i + 1}</TableBodyCell>
 													<TableBodyCell>{row.driver_name}</TableBodyCell>
-													<TableBodyCell class="font-bold">{row.total_points}</TableBodyCell>
+													<TableBodyCell class="text-right font-bold">{row.total_points}</TableBodyCell>
 													{#each rallies as r (r.id)}
 														{@const rp = row.rally_points.find((x) => x.rally_id === r.id)}
-														<TableBodyCell class="text-center font-mono">
+														<TableBodyCell class="text-right font-mono">
 															{#if rp}
 																<span title="P{rp.position}">{rp.points}</span>
 															{:else}
