@@ -31,8 +31,8 @@
 	<Heading class="mb-4 text-2xl font-bold">Rally Leaderboard</Heading>
 	{#if rallyRows.length}
 		<div>
-			{#each rallyRows as r (r.driver_name)}
-				<div class="py-1">
+			{#each rallyRows as r, i (r.driver_name)}
+				<div class="rounded px-2 py-1 {i % 2 === 0 ? 'bg-gray-50 dark:bg-gray-700/40' : ''}">
 					<div class="flex items-center font-mono text-sm">
 						<span class="w-6 text-right font-semibold text-gray-900 dark:text-white"
 							>{r.position}</span
@@ -95,8 +95,8 @@
 	{#if activeStage}
 		{#if activeRows.length}
 			<div>
-				{#each activeRows as r (r.driver_name)}
-					<div class="py-1">
+				{#each activeRows as r, i (r.driver_name)}
+					<div class="rounded px-2 py-1 {i % 2 === 0 ? 'bg-gray-50 dark:bg-gray-700/40' : ''}">
 						<div class="flex items-center font-mono text-sm">
 							<span class="w-6 text-right font-semibold text-gray-900 dark:text-white"
 								>{r.position}</span
