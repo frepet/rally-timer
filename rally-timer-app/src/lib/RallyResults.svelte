@@ -1,12 +1,5 @@
 <script lang="ts">
-	import {
-		Card,
-		Button,
-		Heading,
-		AccordionItem,
-		Accordion,
-		P
-	} from 'flowbite-svelte';
+	import { Card, Button, Heading } from 'flowbite-svelte';
 
 	import { formatMs, type DisplayRallyRow, type StageData } from './results';
 
@@ -37,47 +30,46 @@
 <Card class="max-w-none p-4 sm:p-6 md:p-8">
 	<Heading class="mb-4 text-2xl font-bold">Rally Leaderboard</Heading>
 	{#if rallyRows.length}
-		<Accordion flush>
+		<div>
 			{#each rallyRows as r (r.driver_name)}
-				<AccordionItem>
-					{#snippet header()}
-						<P class="flex w-full items-center gap-3 font-mono text-sm">
-							<span class="w-6 text-right font-semibold"><P>{r.position}</P></span>
-							<span class="flex-1 font-sans font-medium">
-								{r.driver_name}<span class="ml-1 text-xs font-normal opacity-60"
-									>({classAbbreviations[r.class_name]})</span
-								>
-							</span>
-							<span class="text-right">
-								{#if r.position === 1}
-									{formatMs(r.total_ms)}
-								{:else}
-									{r.delta_prev != null ? '+' + formatMs(r.delta_prev) : '—'}
-								{/if}
-							</span>
-						</P>
-					{/snippet}
-					<P class="flex gap-6 px-2 py-1 font-mono text-sm">
-						<span>
-							<span class="mr-1 opacity-50"><P>Total</P></span>{formatMs(r.total_ms)}
+				<div class="py-1">
+					<div class="flex items-center font-mono text-sm">
+						<span class="w-6 text-right font-semibold text-gray-900 dark:text-white"
+							>{r.position}</span
+						>
+						<span class="ml-3 flex-1 font-sans font-medium text-gray-900 dark:text-white">
+							{r.driver_name}<span class="ml-1 text-xs font-normal opacity-60"
+								>({classAbbreviations[r.class_name]})</span
+							>
 						</span>
-						<span>
-							<span class="mr-1 opacity-50"><P>Δ P1</P></span>{r.delta_p1 != null
-								? '+' + formatMs(r.delta_p1)
-								: '—'}
+						<span class="text-right text-gray-900 dark:text-white">
+							{#if r.position === 1}
+								{formatMs(r.total_ms)}
+							{:else}
+								{r.delta_prev != null ? '+' + formatMs(r.delta_prev) : '—'}
+							{/if}
 						</span>
-						<span>
-							<span class="mr-1 opacity-50"><P>Δ Prev</P></span>{r.delta_prev != null
-								? '+' + formatMs(r.delta_prev)
-								: '—'}
-						</span>
-						<span>
-							<span class="mr-1 opacity-50"><P>Stages</P></span>{r.finished_stages}
-						</span>
-					</P>
-				</AccordionItem>
+					</div>
+					<div
+						class="ml-9 flex flex-wrap gap-x-6 gap-y-0.5 font-mono text-xs text-gray-500 dark:text-gray-400"
+					>
+						{#if r.position !== 1}
+							<span class="whitespace-nowrap"
+								><span class="mr-1 opacity-50">Total</span>{formatMs(r.total_ms)}</span
+							>
+							<span class="whitespace-nowrap"
+								><span class="mr-1 opacity-50">Δ P1</span>{r.delta_p1 != null
+									? '+' + formatMs(r.delta_p1)
+									: '—'}</span
+							>
+						{/if}
+						<span class="whitespace-nowrap"
+							><span class="mr-1 opacity-50">Stages</span>{r.finished_stages}</span
+						>
+					</div>
+				</div>
 			{/each}
-		</Accordion>
+		</div>
 	{:else}
 		<p class="text-sm opacity-70">No results yet.</p>
 	{/if}
@@ -102,44 +94,43 @@
 
 	{#if activeStage}
 		{#if activeRows.length}
-			<Accordion flush>
+			<div>
 				{#each activeRows as r (r.driver_name)}
-					<AccordionItem>
-						{#snippet header()}
-							<P class="flex w-full items-center gap-3 font-mono text-sm">
-								<span class="w-6 text-right font-semibold"><P>{r.position}</P></span>
-								<span class="flex-1 font-sans font-medium">
-									{r.driver_name}<span class="ml-1 text-xs font-normal opacity-60"
-										>({classAbbreviations[r.class_name]})</span
-									>
-								</span>
-								<span class="text-right">
-									{#if r.position === 1}
-										{formatMs(r.stage_ms)}
-									{:else}
-										{r.delta_prev != null ? '+' + formatMs(r.delta_prev) : '—'}
-									{/if}
-								</span>
-							</P>
-						{/snippet}
-						<P class="flex gap-6 px-2 py-1 font-mono text-sm">
-							<span>
-								<span class="mr-1 opacity-50"><P>Time</P></span>{formatMs(r.stage_ms)}
+					<div class="py-1">
+						<div class="flex items-center font-mono text-sm">
+							<span class="w-6 text-right font-semibold text-gray-900 dark:text-white"
+								>{r.position}</span
+							>
+							<span class="ml-3 flex-1 font-sans font-medium text-gray-900 dark:text-white">
+								{r.driver_name}<span class="ml-1 text-xs font-normal opacity-60"
+									>({classAbbreviations[r.class_name]})</span
+								>
 							</span>
-							<span>
-								<span class="mr-1 opacity-50"><P>Δ P1</P></span>{r.delta_p1 != null
-									? '+' + formatMs(r.delta_p1)
-									: '—'}
+							<span class="text-right text-gray-900 dark:text-white">
+								{#if r.position === 1}
+									{formatMs(r.stage_ms)}
+								{:else}
+									{r.delta_prev != null ? '+' + formatMs(r.delta_prev) : '—'}
+								{/if}
 							</span>
-							<span>
-								<span class="mr-1 opacity-50"><P>Δ Prev</P></span>{r.delta_prev != null
-									? '+' + formatMs(r.delta_prev)
-									: '—'}
-							</span>
-						</P>
-					</AccordionItem>
+						</div>
+						<div
+							class="ml-9 flex flex-wrap gap-x-6 gap-y-0.5 font-mono text-xs text-gray-500 dark:text-gray-400"
+						>
+							{#if r.position !== 1}
+								<span class="whitespace-nowrap"
+									><span class="mr-1 opacity-50">Time</span>{formatMs(r.stage_ms)}</span
+								>
+								<span class="whitespace-nowrap"
+									><span class="mr-1 opacity-50">Δ P1</span>{r.delta_p1 != null
+										? '+' + formatMs(r.delta_p1)
+										: '—'}</span
+								>
+							{/if}
+						</div>
+					</div>
 				{/each}
-			</Accordion>
+			</div>
 		{:else}
 			<p class="text-sm opacity-70">No stage results yet.</p>
 		{/if}
