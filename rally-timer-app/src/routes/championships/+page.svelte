@@ -4,6 +4,7 @@
 	import {
 		Card,
 		Button,
+		Select,
 		Table,
 		TableHead,
 		TableHeadCell,
@@ -142,122 +143,100 @@
 		<Card class="max-w-none p-8 text-center">
 			<P class="text-gray-500 dark:text-gray-400">No championships yet.</P>
 			{#if $isAdmin}
-				<Button class="mt-4" onclick={() => (createModalOpen = true)}
-					>Create your first championship</Button
-				>
+				<Button class="mt-4" onclick={() => (createModalOpen = true)}>Create your first championship</Button>
 			{/if}
 		</Card>
 	{:else}
-		<div class="flex flex-col gap-6 lg:flex-row">
-			<!-- Championship list -->
-			<Card class="w-full p-4 lg:w-64 lg:flex-none">
-				<P class="mb-3 font-semibold">Championships</P>
-				<ul class="space-y-1">
-					{#each championships as c (c.id)}
-						<li class="flex items-center gap-1">
-							<button
-								class="flex-1 rounded px-3 py-2 text-left text-sm text-gray-900 transition-colors dark:text-white {selectedId ===
-								c.id
-									? 'bg-blue-100 font-semibold dark:bg-blue-900'
-									: 'hover:bg-gray-100 dark:hover:bg-gray-700'}"
-								onclick={() => selectChampionship(c.id)}
-							>
-								{c.name}
-							</button>
-							{#if $isAdmin}
-								<button
-									class="rounded p-1 text-red-500 hover:bg-gray-100 dark:hover:bg-gray-700"
-									title="Delete"
-									onclick={() => deleteChampionship(c.id)}
+		<!-- Championship selector -->
+		<div class="flex items-center gap-2">
+			<Select
+				class="w-64"
+				value={selectedId}
+				onchange={(e) => selectChampionship((e.target as HTMLSelectElement).value)}
+			>
+				{#each championships as c (c.id)}
+					<option value={c.id}>{c.name}</option>
+				{/each}
+			</Select>
+			{#if $isAdmin && selectedId}
+				<button
+					class="rounded p-2 text-red-500 hover:bg-gray-100 dark:hover:bg-gray-700"
+					title="Delete championship"
+					onclick={() => deleteChampionship(selectedId!)}
+				>
+					<TrashBinOutline size="sm" />
+				</button>
+			{/if}
+		</div>
+
+		{#if selectedChamp}
+			<div class="space-y-4">
+				<!-- Rallies list -->
+				{#if rallies.length}
+					<div class="flex flex-wrap gap-2">
+						{#each rallies as r (r.id)}
+							<a href="/rallies/{r.id}">
+								<Badge color="blue" class="cursor-pointer hover:brightness-90"
+									>{r.name} ({fmtDate(r.submitted_at)})</Badge
 								>
-									<TrashBinOutline size="xs" />
-								</button>
-							{/if}
-						</li>
-					{/each}
-				</ul>
-			</Card>
+							</a>
+						{/each}
+					</div>
+				{/if}
 
-			<!-- Championship detail -->
-			<div class="flex-1 space-y-4">
-				{#if selectedChamp}
-					<P class="text-2xl font-bold">{selectedChamp.name}</P>
-
-					<!-- Rallies list -->
-					{#if rallies.length}
-						<Card class="max-w-none p-4">
-							<P class="mb-2 font-semibold">Included Rallies</P>
-							<div class="flex flex-wrap gap-2">
-								{#each rallies as r (r.id)}
-									<a href="/rallies/{r.id}"
-										><Badge color="blue" class="cursor-pointer hover:brightness-90"
-											>{r.name} ({fmtDate(r.submitted_at)})</Badge
-										></a
-									>
-								{/each}
-							</div>
-						</Card>
-					{/if}
-
-					<!-- Standings per class -->
-					{#if loading}
-						<P class="text-gray-400">Loading standings…</P>
-					{:else if standings.length === 0}
-						<Card class="max-w-none p-6 text-center">
-							<P class="text-gray-500 dark:text-gray-400"
-								>No results yet. Submit a rally to see standings.</P
-							>
-							{#if $isAdmin}
-								<a
-									href="/rallies"
-									class="mt-2 block text-sm text-blue-600 hover:underline dark:text-blue-400"
-								>
-									Go to Manage →
-								</a>
-							{/if}
-						</Card>
-					{:else}
-						<Tabs style="underline">
-							{#each classes as cls (cls)}
-								<TabItem title={cls} open={cls === classes[0]}>
-									<Card class="max-w-none p-4">
-										<Table hoverable>
-											<TableHead>
-												<TableHeadCell>#</TableHeadCell>
-												<TableHeadCell>Driver</TableHeadCell>
-												<TableHeadCell>Points</TableHeadCell>
-												{#each rallies as r (r.id)}
-													<TableHeadCell class="text-center text-xs">{r.name}</TableHeadCell>
-												{/each}
-											</TableHead>
-											<TableBody>
-												{#each standingsByClass[cls] as row, i (row.driver_uuid)}
-													<TableBodyRow>
-														<TableBodyCell class="font-semibold">{i + 1}</TableBodyCell>
-														<TableBodyCell>{row.driver_name}</TableBodyCell>
-														<TableBodyCell class="font-bold">{row.total_points}</TableBodyCell>
-														{#each rallies as r (r.id)}
-															{@const rp = row.rally_points.find((x) => x.rally_id === r.id)}
-															<TableBodyCell class="text-center font-mono">
-																{#if rp}
-																	<span title="P{rp.position}">{rp.points}</span>
-																{:else}
-																	<span class="opacity-40">—</span>
-																{/if}
-															</TableBodyCell>
-														{/each}
-													</TableBodyRow>
-												{/each}
-											</TableBody>
-										</Table>
-									</Card>
-								</TabItem>
-							{/each}
-						</Tabs>
-					{/if}
+				<!-- Standings per class -->
+				{#if loading}
+					<P class="text-gray-400">Loading standings…</P>
+				{:else if standings.length === 0}
+					<Card class="max-w-none p-6 text-center">
+						<P class="text-gray-500 dark:text-gray-400">No results yet. Submit a rally to see standings.</P>
+						{#if $isAdmin}
+							<a href="/rallies" class="mt-2 block text-sm text-blue-600 hover:underline dark:text-blue-400">
+								Go to Manage →
+							</a>
+						{/if}
+					</Card>
+				{:else}
+					<Tabs style="underline">
+						{#each classes as cls (cls)}
+							<TabItem title={cls} open={cls === classes[0]}>
+								<Card class="max-w-none p-4">
+									<Table hoverable>
+										<TableHead>
+											<TableHeadCell class="w-8 px-2 text-center">#</TableHeadCell>
+											<TableHeadCell>Driver</TableHeadCell>
+											<TableHeadCell>Points</TableHeadCell>
+											{#each rallies as r (r.id)}
+												<TableHeadCell class="text-center text-xs">{r.name}</TableHeadCell>
+											{/each}
+										</TableHead>
+										<TableBody>
+											{#each standingsByClass[cls] as row, i (row.driver_uuid)}
+												<TableBodyRow>
+													<TableBodyCell class="w-8 px-2 text-center font-semibold">{i + 1}</TableBodyCell>
+													<TableBodyCell>{row.driver_name}</TableBodyCell>
+													<TableBodyCell class="font-bold">{row.total_points}</TableBodyCell>
+													{#each rallies as r (r.id)}
+														{@const rp = row.rally_points.find((x) => x.rally_id === r.id)}
+														<TableBodyCell class="text-center font-mono">
+															{#if rp}
+																<span title="P{rp.position}">{rp.points}</span>
+															{:else}
+																<span class="opacity-40">—</span>
+															{/if}
+														</TableBodyCell>
+													{/each}
+												</TableBodyRow>
+											{/each}
+										</TableBody>
+									</Table>
+								</Card>
+							</TabItem>
+						{/each}
+					</Tabs>
 				{/if}
 			</div>
-		</div>
+		{/if}
 	{/if}
 </div>
 
