@@ -10,7 +10,8 @@
 		Button,
 		Heading,
 		AccordionItem,
-		Accordion
+		Accordion,
+		P
 	} from 'flowbite-svelte';
 
 	import { formatMs, type DisplayRallyRow, type StageData } from './results';
@@ -91,10 +92,12 @@
 				{#each activeRows as r (r.driver_name)}
 					<AccordionItem>
 						{#snippet header()}
-							<span class="flex w-full items-center gap-3 font-mono text-sm">
-								<span class="w-6 text-right font-semibold">{r.position}</span>
+							<P class="flex w-full items-center gap-3 font-mono text-sm">
+								<span class="w-6 text-right font-semibold"><P>{r.position}</P></span>
 								<span class="flex-1 font-sans font-medium">
-									{r.driver_name}<span class="ml-1 text-xs font-normal opacity-60">({r.class_name})</span>
+									{r.driver_name}<span class="ml-1 text-xs font-normal opacity-60"
+										>({r.class_name})</span
+									>
 								</span>
 								<span class="text-right">
 									{#if r.position === 1}
@@ -103,13 +106,23 @@
 										{r.delta_prev != null ? '+' + formatMs(r.delta_prev) : '—'}
 									{/if}
 								</span>
-							</span>
+							</P>
 						{/snippet}
-						<div class="flex gap-6 px-2 py-1 font-mono text-sm">
-							<span><span class="mr-1 opacity-50">Time</span>{formatMs(r.stage_ms)}</span>
-							<span><span class="mr-1 opacity-50">Δ P1</span>{r.delta_p1 != null ? '+' + formatMs(r.delta_p1) : '—'}</span>
-							<span><span class="mr-1 opacity-50">Δ Prev</span>{r.delta_prev != null ? '+' + formatMs(r.delta_prev) : '—'}</span>
-						</div>
+						<P class="flex gap-6 px-2 py-1 font-mono text-sm">
+							<span>
+								<span class="mr-1 opacity-50"><P>Time</P></span>{formatMs(r.stage_ms)}
+							</span>
+							<span>
+								<span class="mr-1 opacity-50"><P>Δ P1</P></span>{r.delta_p1 != null
+									? '+' + formatMs(r.delta_p1)
+									: '—'}
+							</span>
+							<span>
+								<span class="mr-1 opacity-50"><P>Δ Prev</P></span>{r.delta_prev != null
+									? '+' + formatMs(r.delta_prev)
+									: '—'}
+							</span>
+						</P>
 					</AccordionItem>
 				{/each}
 			</Accordion>
