@@ -11,7 +11,7 @@
 		driver_name: string;
 		class_name: string;
 		stage_name: string;
-		elapsed_ms: number | null;
+		elapsed_ms: string | null;
 	};
 	type Championship = { id: string; name: string };
 	type RallyDetail = {
@@ -32,7 +32,7 @@
 				.map((r) => ({
 					driver_name: r.driver_name,
 					class_name: r.class_name,
-					stage_ms: r.elapsed_ms as number,
+					stage_ms: Number(r.elapsed_ms),
 					delta_p1: null,
 					delta_prev: null,
 					position: 0
@@ -52,7 +52,7 @@
 				total: 0,
 				finished: 0
 			};
-			existing.total += r.elapsed_ms;
+			existing.total += Number(r.elapsed_ms);
 			existing.finished++;
 			totals.set(r.driver_name, existing);
 		}
