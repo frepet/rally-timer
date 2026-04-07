@@ -143,7 +143,9 @@
 		<Card class="max-w-none p-8 text-center">
 			<P class="text-gray-500 dark:text-gray-400">No championships yet.</P>
 			{#if $isAdmin}
-				<Button class="mt-4" onclick={() => (createModalOpen = true)}>Create your first championship</Button>
+				<Button class="mt-4" onclick={() => (createModalOpen = true)}
+					>Create your first championship</Button
+				>
 			{/if}
 		</Card>
 	{:else}
@@ -189,20 +191,25 @@
 					<P class="text-gray-400">Loading standings…</P>
 				{:else if standings.length === 0}
 					<Card class="max-w-none p-6 text-center">
-						<P class="text-gray-500 dark:text-gray-400">No results yet. Submit a rally to see standings.</P>
+						<P class="text-gray-500 dark:text-gray-400"
+							>No results yet. Submit a rally to see standings.</P
+						>
 						{#if $isAdmin}
-							<a href="/rallies" class="mt-2 block text-sm text-blue-600 hover:underline dark:text-blue-400">
+							<a
+								href="/rallies"
+								class="mt-2 block text-sm text-blue-600 hover:underline dark:text-blue-400"
+							>
 								Go to Manage →
 							</a>
 						{/if}
 					</Card>
 				{:else}
-					<Tabs style="underline">
+					<Tabs style="underline" class="m-0" classes={{ content: 'p-0' }}>
 						{#each classes as cls (cls)}
-							<TabItem title={cls} open={cls === classes[0]}>
+							<TabItem title={cls} open={cls === classes[0]} class="p-0">
 								<Card class="max-w-none p-4">
-									<Table hoverable>
-										<TableHead>
+									<Table class="[&_tr]:border-0">
+										<TableHead class="bg-transparent dark:bg-transparent">
 											<TableHeadCell class="w-8 px-2 text-center">#</TableHeadCell>
 											<TableHeadCell>Driver</TableHeadCell>
 											<TableHeadCell>Points</TableHeadCell>
@@ -212,8 +219,14 @@
 										</TableHead>
 										<TableBody>
 											{#each standingsByClass[cls] as row, i (row.driver_uuid)}
-												<TableBodyRow>
-													<TableBodyCell class="w-8 px-2 text-center font-semibold">{i + 1}</TableBodyCell>
+												<TableBodyRow
+													class="border-0 {i % 2 === 0
+														? 'bg-gray-50 dark:bg-gray-700/40'
+														: 'bg-white dark:bg-gray-800'}"
+												>
+													<TableBodyCell class="w-8 px-2 text-center font-semibold"
+														>{i + 1}</TableBodyCell
+													>
 													<TableBodyCell>{row.driver_name}</TableBodyCell>
 													<TableBodyCell class="font-bold">{row.total_points}</TableBodyCell>
 													{#each rallies as r (r.id)}
