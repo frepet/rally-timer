@@ -31,33 +31,37 @@
 	});
 
 	const activeRows = $derived(stages.find((s) => s.name === activeStage)?.rows ?? []);
+
+	let classAbbreviations: Record<string, string> = {
+		'Group A': 'A',
+		'Group B': 'B',
+		'Group S': 'S'
+	};
 </script>
 
 <!-- Rally leaderboard -->
 <Card class="max-w-none p-4 sm:p-6 md:p-8">
 	<Heading class="mb-4 text-2xl font-bold">Rally Leaderboard</Heading>
-	<Table hoverable>
+	<Table hoverable class="m-0 p-0 sm:p-0">
 		<TableHead>
-			<TableHeadCell>#</TableHeadCell>
-			<TableHeadCell>Driver</TableHeadCell>
-			<TableHeadCell>Class</TableHeadCell>
-			<TableHeadCell>Total</TableHeadCell>
+			<TableHeadCell>#: Driver (Class)</TableHeadCell>
+			<TableHeadCell>Total (Δ Prev)</TableHeadCell>
 			<TableHeadCell>Δ P1</TableHeadCell>
-			<TableHeadCell>Δ Prev</TableHeadCell>
 			<TableHeadCell title="How many stages finished">✓ Stg</TableHeadCell>
 		</TableHead>
 		<TableBody>
 			{#each rallyRows as r (r.driver_name)}
 				<TableBodyRow>
-					<TableBodyCell class="font-semibold">{r.position}</TableBodyCell>
-					<TableBodyCell>{r.driver_name}</TableBodyCell>
-					<TableBodyCell class="opacity-80">{r.class_name}</TableBodyCell>
-					<TableBodyCell class="font-mono">{formatMs(r.total_ms)}</TableBodyCell>
-					<TableBodyCell class="font-mono"
-						>{r.delta_p1 != null ? '+' + formatMs(r.delta_p1) : '—'}</TableBodyCell
+					<TableBodyCell
+						>{r.position}: {r.driver_name} ({classAbbreviations[r.class_name]})</TableBodyCell
 					>
 					<TableBodyCell class="font-mono"
-						>{r.delta_prev != null ? '+' + formatMs(r.delta_prev) : '—'}</TableBodyCell
+						>{formatMs(r.total_ms)} ({r.delta_prev != null
+							? '+' + formatMs(r.delta_prev)
+							: '—'})</TableBodyCell
+					>
+					<TableBodyCell class="font-mono"
+						>{r.delta_p1 != null ? '+' + formatMs(r.delta_p1) : '—'}</TableBodyCell
 					>
 					<TableBodyCell class="text-center">{r.finished_stages}</TableBodyCell>
 				</TableBodyRow>
@@ -96,7 +100,7 @@
 								<span class="w-6 text-right font-semibold"><P>{r.position}</P></span>
 								<span class="flex-1 font-sans font-medium">
 									{r.driver_name}<span class="ml-1 text-xs font-normal opacity-60"
-										>({r.class_name})</span
+										>({classAbbreviations[r.class_name]})</span
 									>
 								</span>
 								<span class="text-right">
