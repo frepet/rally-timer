@@ -1,23 +1,9 @@
 <script lang="ts">
-	import {
-		Card,
-		Button,
-		Table,
-		TableHead,
-		TableHeadCell,
-		TableBody,
-		TableBodyRow,
-		TableBodyCell,
-		Input,
-		Select,
-		Badge,
-		P,
-		Modal,
-		Toggle
-	} from 'flowbite-svelte';
+	import { Card, Button, Input, Select, Badge, P, Modal, Toggle } from 'flowbite-svelte';
 	import {
 		TrashBinOutline,
 		DotsVerticalOutline,
+		EditOutline,
 		PlayOutline,
 		AwardOutline,
 		RefreshOutline
@@ -42,6 +28,7 @@
 	let stages = $state<Stage[]>([]);
 	let gates = $state<Gate[]>([]);
 	let stageGateSelect = $state<Record<number, string>>({});
+	let closeStageStatus = $state<Record<number, string>>({});
 	let allDrivers = $state<Driver[]>([]);
 
 	// Create stage
@@ -63,7 +50,7 @@
 			return;
 		}
 		const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-		const menuHeight = 110;
+		const menuHeight = 70;
 		const flip = rect.bottom + menuHeight > window.innerHeight;
 		stageMenuPos = {
 			top: flip ? 'auto' : `${rect.bottom}px`,
@@ -131,6 +118,33 @@
 		if (!confirm('Delete this stage? This also removes all its events.')) return;
 		await kcFetch(`/api/stage/${id}`, { method: 'DELETE' });
 		await loadStages();
+	}
+
+	async function closeStage(stageId: number) {
+		if (
+			!confirm(
+				'Close this stage?\n\n' +
+					'• DNF penalty times will be applied to drivers without a finish.\n' +
+					'• The gate will be unassigned and moved to the next stage.'
+			)
+		)
+			return;
+		try {
+			const result = await kcFetchJSON<{ dnfCount: number; gateMovedToStageId: number | null }>(
+				`/api/stage/${stageId}/close`,
+				{ method: 'POST' }
+			);
+			const moved = result.gateMovedToStageId
+				? ` Gate moved to stage #${result.gateMovedToStageId}.`
+				: '';
+			closeStageStatus = {
+				...closeStageStatus,
+				[stageId]: `Stage closed — ${result.dnfCount} DNF penalt${result.dnfCount !== 1 ? 'ies' : 'y'} applied.${moved}`
+			};
+		} catch (e) {
+			closeStageStatus = { ...closeStageStatus, [stageId]: `Error: ${(e as Error).message}` };
+		}
+		await loadGates();
 	}
 
 	async function loadAllDrivers() {
@@ -282,16 +296,11 @@
 		onclick={(e) => e.stopPropagation()}
 		onkeydown={(e) => e.key === 'Escape' && (openStageMenuId = null)}
 	>
-		<a href={`/stages/${menuStage.id}/events`} class={stageMenuItemClass}>Events</a>
-		<button
-			type="button"
-			class={stageMenuItemClass}
-			onclick={() => {
-				const s = menuStage!;
-				openStageMenuId = null;
-				startEdit(s);
-			}}>Rename</button
-		>
+		{#if assignedGatesForStage(menuStage.id).length > 0}
+			<a href={`/stages/${menuStage.id}/start`} class="{stageMenuItemClass} sm:hidden">
+				▶ Start
+			</a>
+		{/if}
 		<button
 			type="button"
 			class="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-red-600 hover:bg-gray-100 dark:text-red-400 dark:hover:bg-gray-600"
@@ -331,6 +340,140 @@
 			<P class="text-2xl font-bold">Stages</P>
 		</div>
 
+		<!-- Stages Cards -->
+		<div class="flex flex-col gap-4">
+			{#each stages as s (s.id)}
+				<Card class="max-w-none p-4">
+					<!-- Header: name + pen icon (admin) -->
+					<div class="mb-3 flex flex-wrap items-center gap-2">
+						{#if editingId === s.id}
+							<Input
+								aria-label="Stage name"
+								bind:value={editName}
+								class="flex-1"
+								onkeydown={(e) => {
+									if (e.key === 'Enter') saveEdit(s.id);
+									if (e.key === 'Escape') cancelEdit();
+								}}
+							/>
+							<Button size="xs" onclick={() => saveEdit(s.id)}>Save</Button>
+							<Button size="xs" color="light" onclick={cancelEdit}>Cancel</Button>
+						{:else}
+							<P class="flex-1 text-lg font-semibold">{s.name}</P>
+							{#if $isAdmin}
+								<button
+									type="button"
+									class="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300"
+									onclick={() => startEdit(s)}
+									title="Rename stage"
+								>
+									<EditOutline size="sm" />
+								</button>
+							{/if}
+						{/if}
+					</div>
+
+					<!-- Gate area -->
+					<div class="mb-3 flex flex-wrap items-center gap-2">
+						{#each assignedGatesForStage(s.id) as g (g.id)}
+							<span
+								class="flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-sm dark:bg-blue-900"
+							>
+								<span class="font-medium">{g.name ?? g.id.slice(0, 8)}</span>
+								{#if isOnline(g)}
+									<Badge color="green" class="ml-1">Online</Badge>
+								{:else}
+									<Badge color="gray" class="ml-1">Offline</Badge>
+								{/if}
+								{#if $isAdmin}
+									<button
+										class="ml-1 text-red-500 hover:text-red-700"
+										onclick={() => unassignGate(g)}
+										title="Unassign gate">×</button
+									>
+								{/if}
+							</span>
+						{/each}
+						{#if $isAdmin && availableGatesForAssign().length}
+							<div class="flex items-center gap-1">
+								<Select
+									placeholder=""
+									size="sm"
+									class="w-36"
+									value={stageGateSelect[s.id] || availableGatesForAssign()[0]?.id || ''}
+									onchange={(e) => {
+										stageGateSelect = {
+											...stageGateSelect,
+											[s.id]: (e.currentTarget as HTMLSelectElement).value
+										};
+									}}
+								>
+									{#each availableGatesForAssign() as g (g.id)}
+										<option value={g.id}>{g.name ?? g.id.slice(0, 8)}</option>
+									{/each}
+								</Select>
+								<Button size="xs" onclick={() => assignGateToStage(s.id)}>Assign</Button>
+							</div>
+						{:else if !assignedGatesForStage(s.id).length}
+							<span class="text-sm text-gray-400 dark:text-gray-500">No gate</span>
+						{/if}
+					</div>
+
+					<!-- Actions row -->
+					<div class="flex flex-wrap items-center gap-2">
+						<!-- Start: hidden on mobile, visible sm+ -->
+						{#if assignedGatesForStage(s.id).length > 0}
+							<a
+								href={`/stages/${s.id}/start`}
+								class="hidden items-center gap-1 rounded px-2 py-1 text-sm font-medium text-green-600 hover:bg-gray-100 sm:inline-flex dark:text-green-400 dark:hover:bg-gray-700"
+								title="Open Start"
+							>
+								<PlayOutline size="sm" /> Start
+							</a>
+						{:else}
+							<span class="hidden text-xs text-gray-400 sm:inline dark:text-gray-500"
+								>Select gate first</span
+							>
+						{/if}
+
+						<!-- Close Stage: admin only -->
+						{#if $isAdmin}
+							<Button size="xs" color="red" onclick={() => closeStage(s.id)}>Close Stage</Button>
+						{/if}
+
+						<!-- Events: always visible -->
+						<a
+							href={`/stages/${s.id}/events`}
+							class="inline-flex items-center rounded px-2 py-1 text-sm font-medium text-blue-600 hover:bg-gray-100 dark:text-blue-400 dark:hover:bg-gray-700"
+						>
+							Events
+						</a>
+
+						<!-- Hamburger: admin only -->
+						{#if $isAdmin}
+							<button
+								type="button"
+								onclick={(e) => openStageMenu(e, s.id)}
+								class="ml-auto rounded p-1 hover:bg-gray-100 dark:hover:bg-gray-700"
+							>
+								<DotsVerticalOutline class="text-gray-500 dark:text-gray-400" size="sm" />
+							</button>
+						{/if}
+					</div>
+
+					<!-- Close stage status -->
+					{#if closeStageStatus[s.id]}
+						<p class="mt-2 text-sm font-medium text-green-600 dark:text-green-400">
+							{closeStageStatus[s.id]}
+						</p>
+					{/if}
+				</Card>
+			{/each}
+			{#if !stages.length}
+				<p class="opacity-70">No stages yet.</p>
+			{/if}
+		</div>
+
 		{#if $isAdmin}
 			<!-- Add Stage -->
 			<div class="mb-4 grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -348,113 +491,6 @@
 				</div>
 			</div>
 		{/if}
-
-		<!-- Stages Table -->
-		<Table hoverable={true}>
-			<TableHead>
-				<TableHeadCell>Name</TableHeadCell>
-				<TableHeadCell>Gate</TableHeadCell>
-				<TableHeadCell class="text-center">Start</TableHeadCell>
-				{#if $isAdmin}<TableHeadCell class="text-right">Actions</TableHeadCell>{/if}
-			</TableHead>
-			<TableBody>
-				{#each stages as s (s.id)}
-					<TableBodyRow>
-						<TableBodyCell>
-							{#if editingId === s.id}
-								<Input
-									aria-label="Stage name"
-									bind:value={editName}
-									onkeydown={(e) => e.key === 'Enter' && saveEdit(s.id)}
-								/>
-							{:else}{s.name}{/if}
-						</TableBodyCell>
-						<TableBodyCell>
-							<div class="flex flex-wrap items-center gap-2">
-								{#each assignedGatesForStage(s.id) as g (g.id)}
-									<span
-										class="flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-sm dark:bg-blue-900"
-									>
-										<span class="font-medium">{g.name ?? g.id.slice(0, 8)}</span>
-										{#if isOnline(g)}
-											<Badge color="green" class="ml-1">Online</Badge>
-										{:else}
-											<Badge color="gray" class="ml-1">Offline</Badge>
-										{/if}
-										{#if $isAdmin}
-											<button
-												class="ml-1 text-red-500 hover:text-red-700"
-												onclick={() => unassignGate(g)}
-												title="Unassign gate">×</button
-											>
-										{/if}
-									</span>
-								{/each}
-								{#if $isAdmin && availableGatesForAssign().length}
-									<div class="flex items-center gap-1">
-										<Select
-											placeholder=""
-											size="sm"
-											class="w-36"
-											value={stageGateSelect[s.id] || availableGatesForAssign()[0]?.id || ''}
-											onchange={(e) => {
-												stageGateSelect = {
-													...stageGateSelect,
-													[s.id]: (e.currentTarget as HTMLSelectElement).value
-												};
-											}}
-										>
-											{#each availableGatesForAssign() as g (g.id)}
-												<option value={g.id}>{g.name ?? g.id.slice(0, 8)}</option>
-											{/each}
-										</Select>
-										<Button size="xs" onclick={() => assignGateToStage(s.id)}>Assign</Button>
-									</div>
-								{:else if !assignedGatesForStage(s.id).length}
-									<span class="text-sm text-gray-400 dark:text-gray-500">No gate</span>
-								{/if}
-							</div>
-						</TableBodyCell>
-						<TableBodyCell class="text-center">
-							{#if assignedGatesForStage(s.id).length > 0}
-								<a
-									href={`/stages/${s.id}/start`}
-									class="inline-flex items-center justify-center rounded p-1 text-green-600 hover:bg-gray-100 dark:text-green-400 dark:hover:bg-gray-700"
-									title="Open Start"
-								>
-									<PlayOutline size="md" />
-								</a>
-							{:else}
-								<span class="text-xs text-gray-400 dark:text-gray-500">Select gate first</span>
-							{/if}
-						</TableBodyCell>
-						{#if $isAdmin}
-							<TableBodyCell class="text-right">
-								{#if editingId === s.id}
-									<div class="flex justify-end gap-2">
-										<Button size="xs" onclick={() => saveEdit(s.id)}>Save</Button>
-										<Button size="xs" color="light" onclick={cancelEdit}>Cancel</Button>
-									</div>
-								{:else}
-									<button
-										type="button"
-										onclick={(e) => openStageMenu(e, s.id)}
-										class="rounded p-1 hover:bg-gray-100 dark:hover:bg-gray-700"
-									>
-										<DotsVerticalOutline class="text-gray-500 dark:text-gray-400" size="sm" />
-									</button>
-								{/if}
-							</TableBodyCell>
-						{/if}
-					</TableBodyRow>
-				{/each}
-				{#if !stages.length}
-					<TableBodyRow>
-						<TableBodyCell colspan={4} class="opacity-70">No stages yet.</TableBodyCell>
-					</TableBodyRow>
-				{/if}
-			</TableBody>
-		</Table>
 	</Card>
 </div>
 
