@@ -25,10 +25,11 @@ const startRow = (
 	stage_name: opts.stage_name ?? `SS${stage_id}`
 });
 
-const finishRow = (stage_id: number, tag: string, timestamp: number) => ({
+const finishRow = (stage_id: number, tag: string, timestamp: number, dnf = false) => ({
 	stage_id,
 	tag,
-	timestamp
+	timestamp,
+	dnf
 });
 
 describe('buildStageTimes', () => {
@@ -120,5 +121,44 @@ describe('buildStageTimes', () => {
 			stage_name: 'Norway SS1',
 			elapsed_ms: null
 		});
+	});
+
+	it('dnf is false for a driver with a real finish', () => {
+		const result = buildStageTimes(
+			[startRow(1, 1, 1000, { driver_tag: 'tagA' })],
+			[finishRow(1, 'tagA', 5000, false)]
+		);
+		expect(result[0].elapsed_ms).toBe(4000);
+		expect(result[0].dnf).toBe(false);
+	});
+
+	it('dnf is true when the matching finish event is a synthetic DNF finish', () => {
+		const result = buildStageTimes(
+			[startRow(1, 1, 1000, { driver_tag: 'tagA' })],
+			[finishRow(1, 'tagA', 31000, true)] // synthetic: start + 30 s penalty
+		);
+		expect(result[0].elapsed_ms).toBe(30000);
+		expect(result[0].dnf).toBe(true);
+	});
+
+	it('dnf is false when no finish event exists (pre-close-stage state)', () => {
+		const result = buildStageTimes([startRow(1, 1, 1000, { driver_tag: 'tagA' })], []);
+		expect(result[0].elapsed_ms).toBeNull();
+		expect(result[0].dnf).toBe(false);
+	});
+
+	it('real finish takes precedence — dnf is false even if a dnf finish also exists', () => {
+		// In practice close-stage skips drivers that already have a real finish,
+		// but buildStageTimes should use the earliest valid finish regardless.
+		const result = buildStageTimes(
+			[startRow(1, 1, 1000, { driver_tag: 'tagA' })],
+			[
+				finishRow(1, 'tagA', 3000, false), // real RFID finish
+				finishRow(1, 'tagA', 31000, true) // synthetic (should not be used)
+			]
+		);
+		// calculateStageTime picks MIN valid finish → 3000
+		expect(result[0].elapsed_ms).toBe(2000);
+		expect(result[0].dnf).toBe(false);
 	});
 });

@@ -12,6 +12,7 @@
 		class_name: string;
 		stage_name: string;
 		elapsed_ms: string | null;
+		dnf: boolean;
 	};
 	type Championship = { id: string; name: string };
 	type RallyDetail = {
@@ -35,7 +36,8 @@
 					stage_ms: Number(r.elapsed_ms),
 					delta_p1: null,
 					delta_prev: null,
-					position: 0
+					position: 0,
+					dnf: r.dnf
 				}));
 			rows.sort((a, b) => a.stage_ms - b.stage_ms);
 			assignPositionsAndDeltas(rows, (r) => r.stage_ms);
@@ -44,16 +46,21 @@
 	}
 
 	function buildRallyRows(results: RallyResult[]): DisplayRallyRow[] {
-		const totals = new Map<string, { class_name: string; total: number; finished: number }>();
+		const totals = new Map<
+			string,
+			{ class_name: string; total: number; finished: number; dnf: boolean }
+		>();
 		for (const r of results) {
 			if (r.elapsed_ms == null) continue;
 			const existing = totals.get(r.driver_name) ?? {
 				class_name: r.class_name,
 				total: 0,
-				finished: 0
+				finished: 0,
+				dnf: false
 			};
 			existing.total += Number(r.elapsed_ms);
-			existing.finished++;
+			if (!r.dnf) existing.finished++;
+			if (r.dnf) existing.dnf = true;
 			totals.set(r.driver_name, existing);
 		}
 		const rows: DisplayRallyRow[] = [...totals.entries()].map(([name, v]) => ({
@@ -63,7 +70,8 @@
 			finished_stages: v.finished,
 			delta_p1: null,
 			delta_prev: null,
-			position: 0
+			position: 0,
+			dnf: v.dnf
 		}));
 		rows.sort((a, b) => a.total_ms - b.total_ms);
 		assignPositionsAndDeltas(rows, (r) => r.total_ms);

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Card, Button, Heading } from 'flowbite-svelte';
+	import { Card, Button, Heading, Badge } from 'flowbite-svelte';
 
 	import { formatMs, type DisplayRallyRow, type StageData } from './results';
 
@@ -98,16 +98,22 @@
 				{#each activeRows as r, i (r.driver_name)}
 					<div class="rounded px-2 py-1 {i % 2 === 0 ? 'bg-gray-50 dark:bg-gray-700/40' : ''}">
 						<div class="flex items-center font-mono text-sm">
-							<span class="w-6 text-right font-semibold text-gray-900 dark:text-white"
-								>{r.position}</span
-							>
+							{#if r.dnf}
+								<Badge color="red" class="w-9 justify-center text-xs">DNF</Badge>
+							{:else}
+								<span class="w-6 text-right font-semibold text-gray-900 dark:text-white"
+									>{r.position}</span
+								>
+							{/if}
 							<span class="ml-3 flex-1 font-sans font-medium text-gray-900 dark:text-white">
 								{r.driver_name}<span class="ml-1 text-xs font-normal opacity-60"
 									>({classAbbreviations[r.class_name]})</span
 								>
 							</span>
 							<span class="text-right text-gray-900 dark:text-white">
-								{#if r.position === 1}
+								{#if r.dnf}
+									{formatMs(r.stage_ms)}
+								{:else if r.position === 1}
 									{formatMs(r.stage_ms)}
 								{:else}
 									{r.delta_prev != null ? '+' + formatMs(r.delta_prev) : '—'}
@@ -121,11 +127,13 @@
 								<span class="whitespace-nowrap"
 									><span class="mr-1 opacity-50">Time</span>{formatMs(r.stage_ms)}</span
 								>
-								<span class="whitespace-nowrap"
-									><span class="mr-1 opacity-50">Δ P1</span>{r.delta_p1 != null
-										? '+' + formatMs(r.delta_p1)
-										: '—'}</span
-								>
+								{#if !r.dnf}
+									<span class="whitespace-nowrap"
+										><span class="mr-1 opacity-50">Δ P1</span>{r.delta_p1 != null
+											? '+' + formatMs(r.delta_p1)
+											: '—'}</span
+									>
+								{/if}
 							{/if}
 						</div>
 					</div>

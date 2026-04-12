@@ -236,6 +236,43 @@ echo "    Submitted id=$rally3_id"
 echo "    NOT cleared — events remain visible in manage view"
 
 # ---------------------------------------------------------------------------
+# Rally DNF Test — Group A: Alice finishes 4:00, Diana DNFs (no finish)
+# Penalty for Diana = Alice's time + 30 s = 240 000 + 30 000 = 270 000 ms
+# Charlie (Group S) finishes 3:50 = 230 000 ms (unaffected)
+# Bob (Group B) finishes 4:15 = 255 000 ms (unaffected)
+# ---------------------------------------------------------------------------
+echo ""
+echo "==> Rally DNF Test (now, not in any championship)..."
+echo "    Clearing..."
+stage_id=$(clear_and_setup_stage "SS1 - DNF Test")
+echo "    Stage id=$stage_id"
+t4=$((now - 3600000))  # 1 hour ago
+
+start_at "$stage_id" "$id_a" "$t4"               > /dev/null
+start_at "$stage_id" "$id_d" "$((t4 + 30000))"   > /dev/null  # Diana starts but will DNF
+start_at "$stage_id" "$id_s" "$((t4 + 60000))"   > /dev/null
+start_at "$stage_id" "$id_b" "$((t4 + 90000))"   > /dev/null
+
+# Alice: 4:00 = 240 000 ms from her start
+finish_at "$gate_id" "$tag_a" "$((t4 + 240000))"  -70
+# Diana: NO finish — DNF
+# Charlie: 3:50 = 230 000 ms from his start
+finish_at "$gate_id" "$tag_s" "$((t4 + 290000))"  -66  # 60000 offset + 230000
+# Bob: 4:15 = 255 000 ms from his start
+finish_at "$gate_id" "$tag_b" "$((t4 + 345000))"  -73  # 90000 offset + 255000
+
+# Close the stage: inserts synthetic finish event for Diana (DNF penalty = 240000+30000=270000ms)
+echo "    Closing stage (applying DNF penalties)..."
+close_result=$(post /api/stage/"$stage_id"/close "" "${auth[@]}")
+echo "    Close result: $close_result"
+
+rally_dnf_id=$(submit_rally "Rally DNF Test" "$champ2_id")
+echo "    Submitted id=$rally_dnf_id (Regional Cup)"
+echo "    Group A: Alice 4:00 (240000ms), Diana DNF → penalty 4:30 (270000ms)"
+echo "    Group S: Charlie 3:50 (230000ms)"
+echo "    Group B: Bob 4:15 (255000ms)"
+
+# ---------------------------------------------------------------------------
 echo ""
 echo "Done."
 echo ""
@@ -251,3 +288,6 @@ echo "Nordic standings:"
 echo "  Group A:  Alice 68 pts (25+25+18)   Diana 25 pts (25)"
 echo "  Group S:  Charlie 75 pts (25+25+25)"
 echo "  Group B:  Bob 75 pts (25+25+25)"
+echo ""
+echo "Rally DNF Test id=$rally_dnf_id"
+echo "  Diana DNF penalty = 240000 + 30000 = 270000 ms"

@@ -102,6 +102,27 @@
 		await loadGates();
 	}
 
+	let closeStageStatus = $state<string | null>(null);
+
+	async function closeStage() {
+		if (
+			!confirm(
+				'Close this stage?\n\n' +
+					'• DNF penalty times will be applied to drivers without a finish.\n' +
+					'• The gate will be unassigned and moved to the next stage.'
+			)
+		)
+			return;
+		closeStageStatus = null;
+		const result = await kcFetchJSON<{ dnfCount: number; gateMovedToStageId: number | null }>(
+			`/api/stage/${data.stageId}/close`,
+			{ method: 'POST' }
+		);
+		const moved = result.gateMovedToStageId ? ` Gate moved to stage #${result.gateMovedToStageId}.` : '';
+		closeStageStatus = `Stage closed — ${result.dnfCount} DNF penalty${result.dnfCount !== 1 ? 's' : ''} applied.${moved}`;
+		await Promise.all([loadEvents(), loadGates()]);
+	}
+
 	function startEdit(e: UnifiedEvent) {
 		editingKey = keyOf(e);
 		editTs = epochToDatetimeLocal(e.timestamp);
@@ -180,8 +201,12 @@
 					{/each}
 				</Select>
 				<Button size="sm" onclick={assignGate} disabled={!selectedGateId}>Assign</Button>
+				<Button size="sm" color="red" onclick={closeStage}>Close Stage</Button>
 			</div>
 		</div>
+		{#if closeStageStatus}
+			<p class="mb-4 text-sm font-medium text-green-600 dark:text-green-400">{closeStageStatus}</p>
+		{/if}
 
 		{#if assignedGates.length}
 			<div class="mb-4 flex flex-wrap gap-2">

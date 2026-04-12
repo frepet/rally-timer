@@ -16,6 +16,7 @@ export type FinishRow = {
 	stage_id: number;
 	tag: string;
 	timestamp: number;
+	dnf: boolean;
 };
 
 export type StageTimeResult = {
@@ -25,15 +26,16 @@ export type StageTimeResult = {
 	class_name: string;
 	stage_name: string;
 	elapsed_ms: number | null;
+	dnf: boolean;
 };
 
 export function buildStageTimes(startRows: StartRow[], finishRows: FinishRow[]): StageTimeResult[] {
-	// Build finish lookup: "stage_id:tag" -> timestamp[]
-	const finishMap = new Map<string, number[]>();
+	// Build finish lookup: "stage_id:tag" -> FinishRow[]
+	const finishMap = new Map<string, FinishRow[]>();
 	for (const fe of finishRows) {
 		const key = `${fe.stage_id}:${fe.tag}`;
 		const bucket = finishMap.get(key) ?? [];
-		bucket.push(fe.timestamp);
+		bucket.push(fe);
 		finishMap.set(key, bucket);
 	}
 
@@ -69,13 +71,23 @@ export function buildStageTimes(startRows: StartRow[], finishRows: FinishRow[]):
 
 	return [...groups.values()].map((g) => {
 		const finishes = finishMap.get(`${g.stage_id}:${g.driver_tag}`) ?? [];
+		const latestStart = g.starts.reduce((max, s) => (s > max ? s : max));
+		const validFinishes = finishes.filter((fe) => fe.timestamp >= latestStart);
+		const elapsed_ms = calculateStageTime(
+			g.starts,
+			finishes.map((fe) => fe.timestamp)
+		);
+		// A result is dnf only when the winning finish is a synthetic DNF finish,
+		// i.e. there is no real (dnf=false) valid finish.
+		const dnf = elapsed_ms !== null && !validFinishes.some((fe) => !fe.dnf);
 		return {
 			driver_uuid: g.driver_uuid,
 			driver_name: g.driver_name,
 			class_id: g.class_id,
 			class_name: g.class_name,
 			stage_name: g.stage_name,
-			elapsed_ms: calculateStageTime(g.starts, finishes)
+			elapsed_ms,
+			dnf
 		};
 	});
 }
