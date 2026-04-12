@@ -9,7 +9,6 @@
 		TableBodyRow,
 		TableBodyCell,
 		Button,
-		Select,
 		P,
 		Badge
 	} from 'flowbite-svelte';
@@ -39,7 +38,6 @@
 	let gates = $state<Gate[]>([]);
 	let editingKey = $state<string | null>(null);
 	let editTs = $state<string>('');
-	let selectedGateId = $state<string | null>(null);
 
 	function keyOf(e: UnifiedEvent) {
 		return `${e.kind}:${e.id}`;
@@ -81,17 +79,6 @@
 		gates = await kcFetchJSON<Gate[]>('/api/gate');
 	}
 
-	async function assignGate() {
-		if (!selectedGateId) return;
-		await kcFetchJSON(`/api/gate/${selectedGateId}`, {
-			method: 'PATCH',
-			headers: { 'content-type': 'application/json' },
-			body: JSON.stringify({ stage_id: data.stageId })
-		});
-		selectedGateId = null;
-		await loadGates();
-	}
-
 	async function unassignGate(gate: Gate) {
 		if (!confirm(`Unassign gate "${gate.name ?? gate.id}" from this stage?`)) return;
 		await kcFetchJSON(`/api/gate/${gate.id}`, {
@@ -100,27 +87,6 @@
 			body: JSON.stringify({ stage_id: null })
 		});
 		await loadGates();
-	}
-
-	let closeStageStatus = $state<string | null>(null);
-
-	async function closeStage() {
-		if (
-			!confirm(
-				'Close this stage?\n\n' +
-					'• DNF penalty times will be applied to drivers without a finish.\n' +
-					'• The gate will be unassigned and moved to the next stage.'
-			)
-		)
-			return;
-		closeStageStatus = null;
-		const result = await kcFetchJSON<{ dnfCount: number; gateMovedToStageId: number | null }>(
-			`/api/stage/${data.stageId}/close`,
-			{ method: 'POST' }
-		);
-		const moved = result.gateMovedToStageId ? ` Gate moved to stage #${result.gateMovedToStageId}.` : '';
-		closeStageStatus = `Stage closed — ${result.dnfCount} DNF penalty${result.dnfCount !== 1 ? 's' : ''} applied.${moved}`;
-		await Promise.all([loadEvents(), loadGates()]);
 	}
 
 	function startEdit(e: UnifiedEvent) {
@@ -181,32 +147,13 @@
 	});
 
 	const assignedGates = $derived(gates.filter((g) => g.stage_id === data.stageId));
-	const availableGates = $derived(gates.filter((g) => !g.stage_id && isOnline(g)));
 </script>
 
 <div class="w-full space-y-6 p-5">
 	<Card class="max-w-none p-4 sm:p-6 md:p-8">
-		<div class="mb-4 flex flex-wrap items-center justify-between gap-4">
+		<div class="mb-4">
 			<P class="text-2xl font-bold">{stageName} events</P>
-			<div class="flex items-center gap-2">
-				<Select
-					id="gateSelect"
-					bind:value={selectedGateId}
-					disabled={!availableGates.length}
-					class="w-48"
-				>
-					<option value={null}>Select gate...</option>
-					{#each availableGates as g (g.id)}
-						<option value={g.id}>{g.name ?? g.id.slice(0, 8)}</option>
-					{/each}
-				</Select>
-				<Button size="sm" onclick={assignGate} disabled={!selectedGateId}>Assign</Button>
-				<Button size="sm" color="red" onclick={closeStage}>Close Stage</Button>
-			</div>
 		</div>
-		{#if closeStageStatus}
-			<p class="mb-4 text-sm font-medium text-green-600 dark:text-green-400">{closeStageStatus}</p>
-		{/if}
 
 		{#if assignedGates.length}
 			<div class="mb-4 flex flex-wrap gap-2">
@@ -230,7 +177,7 @@
 			</div>
 		{:else}
 			<P class="mb-4 text-sm text-yellow-600 dark:text-yellow-400">
-				No gate assigned. Assign a gate above to receive RFID events automatically.
+				No gate assigned. Assign a gate from the Stages page to receive RFID events automatically.
 			</P>
 		{/if}
 
