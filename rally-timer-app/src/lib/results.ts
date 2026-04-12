@@ -6,6 +6,7 @@ export type DisplayRallyRow = {
 	delta_p1: number | null;
 	delta_prev: number | null;
 	position: number;
+	dnf: boolean;
 };
 
 export type DisplayStageRow = {
@@ -15,6 +16,7 @@ export type DisplayStageRow = {
 	delta_p1: number | null;
 	delta_prev: number | null;
 	position: number;
+	dnf: boolean;
 };
 
 export type StageData = {

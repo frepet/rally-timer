@@ -54,7 +54,7 @@ nordic_rally_count=$(echo "$nordic_detail" | jq '.rallies | length')
 regional_rally_count=$(echo "$regional_detail" | jq '.rallies | length')
 
 check "Nordic has 3 rallies"     "3" "$nordic_rally_count"
-check "Regional Cup has 1 rally" "1" "$regional_rally_count"
+check "Regional Cup has 2 rallies" "2" "$regional_rally_count"
 
 # ---------------------------------------------------------------------------
 echo ""
@@ -149,10 +149,42 @@ check "Bob     — Sweden  — 25 pts (P1 Group B)" "25" "$(get_rally_points "$n
 check "Bob     — Norway  — 25 pts (P1 Group B)" "25" "$(get_rally_points "$nordic_standings" "Bob Bergström"    "Rally Norway 2025")"
 
 echo ""
-echo "  Regional Cup (1 rally → 25 pts each; Diana not entered):"
-check "Alice   total 25 pts" "25" "$(get_points "$regional_standings" "Alice Andersson")"
-check "Charlie total 25 pts" "25" "$(get_points "$regional_standings" "Charlie Svensson")"
-check "Bob     total 25 pts" "25" "$(get_points "$regional_standings" "Bob Bergström")"
+echo "  Regional Cup (2 rallies: Finland 2024 + DNF Test):"
+echo "    Alice/Charlie/Bob 25+25=50 pts each; Diana 18 pts (P2 A, penalty time in DNF Test)"
+check "Alice   total 50 pts" "50" "$(get_points "$regional_standings" "Alice Andersson")"
+check "Charlie total 50 pts" "50" "$(get_points "$regional_standings" "Charlie Svensson")"
+check "Bob     total 50 pts" "50" "$(get_points "$regional_standings" "Bob Bergström")"
+check "Diana   total 18 pts (P2 Group A, DNF penalty ranked behind Alice)" "18" "$(get_points "$regional_standings" "Diana Dahl")"
+
+# ---------------------------------------------------------------------------
+echo ""
+echo "── DNF Penalty ─────────────────────────────────────────────────────────"
+
+# Rally DNF Test is submitted to Regional Cup (its 2nd rally)
+dnf_rally_id=$(echo "$regional_detail" | jq -r '.rallies[] | select(.name == "Rally DNF Test") | .id')
+
+if [[ -z "$dnf_rally_id" ]]; then
+  echo "  ERROR: Rally DNF Test not found. Did you run seed.sh?"
+  ((fail++)) || true
+else
+  echo "  Rally DNF Test id=$dnf_rally_id"
+  dnf_rally=$(get /api/submitted-rally/"$dnf_rally_id")
+
+  # Alice finished 4:00 = 240 000 ms. Diana DNF → penalty = 240 000 + 30 000 = 270 000 ms.
+  alice_dnf_time=$(echo "$dnf_rally" | jq -r '.results[] | select(.driver_name == "Alice Andersson"  and .stage_name == "SS1 - DNF Test") | .elapsed_ms')
+  diana_dnf_time=$(echo "$dnf_rally" | jq -r '.results[] | select(.driver_name == "Diana Dahl"       and .stage_name == "SS1 - DNF Test") | .elapsed_ms')
+  diana_dnf_flag=$(echo "$dnf_rally" | jq -r '.results[] | select(.driver_name == "Diana Dahl"       and .stage_name == "SS1 - DNF Test") | .dnf')
+  alice_dnf_flag=$(echo "$dnf_rally" | jq -r '.results[] | select(.driver_name == "Alice Andersson"  and .stage_name == "SS1 - DNF Test") | .dnf')
+  charlie_dnf_time=$(echo "$dnf_rally" | jq -r '.results[] | select(.driver_name == "Charlie Svensson" and .stage_name == "SS1 - DNF Test") | .elapsed_ms')
+  charlie_dnf_flag=$(echo "$dnf_rally" | jq -r '.results[] | select(.driver_name == "Charlie Svensson" and .stage_name == "SS1 - DNF Test") | .dnf')
+
+  check "Alice   — DNF Test — 4:00 (240000ms)"          "240000" "$alice_dnf_time"
+  check "Alice   — DNF Test — dnf flag is false"         "false"  "$alice_dnf_flag"
+  check "Diana   — DNF Test — penalty 4:30 (270000ms)"  "270000" "$diana_dnf_time"
+  check "Diana   — DNF Test — dnf flag is true"          "true"   "$diana_dnf_flag"
+  check "Charlie — DNF Test — 3:50 (230000ms) unaffected" "230000" "$charlie_dnf_time"
+  check "Charlie — DNF Test — dnf flag is false"         "false"  "$charlie_dnf_flag"
+fi
 
 # ---------------------------------------------------------------------------
 echo ""

@@ -45,10 +45,13 @@ export async function POST(event: RequestEvent): Promise<Response> {
 	`;
 
 	const rawFinishes = await sql`
-		SELECT stage_id, timestamp, tag FROM finish_events
+		SELECT stage_id, timestamp, tag, dnf FROM finish_events
 	`;
 
-	const stageTimes = buildStageTimes(
+	// DNF drivers get elapsed_ms = null unless close-stage was run first, which inserts
+	// synthetic finish events so they appear with penalty times and dnf = true.
+	// Filter out any null-elapsed entries — only committed finishes go into results.
+	const allStageTimes = buildStageTimes(
 		rawStarts.map((se) => ({
 			driver_id: se.driver_id as number,
 			stage_id: se.stage_id as number,
@@ -63,8 +66,12 @@ export async function POST(event: RequestEvent): Promise<Response> {
 		rawFinishes.map((fe) => ({
 			stage_id: fe.stage_id as number,
 			tag: fe.tag as string,
-			timestamp: Number(fe.timestamp)
+			timestamp: Number(fe.timestamp),
+			dnf: Boolean(fe.dnf)
 		}))
+	);
+	const stageTimes = allStageTimes.filter(
+		(r): r is typeof r & { elapsed_ms: number } => r.elapsed_ms !== null
 	);
 
 	let submittedRallyId: string;
@@ -94,3 +101,4 @@ export async function POST(event: RequestEvent): Promise<Response> {
 
 	return json({ id: submittedRallyId! }, { status: 201 });
 }
+

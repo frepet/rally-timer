@@ -28,6 +28,7 @@ export type SummaryFinishEvent = {
 	stage_id: number;
 	tag: string | number;
 	ts: number | string;
+	dnf?: boolean;
 };
 
 export function buildStageData(
@@ -44,12 +45,21 @@ export function buildStageData(
 				.filter((se) => se.stage_id === stage.id && se.driver_id === driver.id)
 				.map((se) => Number(se.ts));
 
-			const driverFinishes = finishes
-				.filter((fe) => fe.stage_id === stage.id && String(fe.tag) === String(driver.rfid_tag))
-				.map((fe) => Number(fe.ts));
+			const driverFinishes = finishes.filter(
+				(fe) => fe.stage_id === stage.id && String(fe.tag) === String(driver.rfid_tag)
+			);
 
-			const elapsed = calculateStageTime(driverStarts, driverFinishes);
+			const elapsed = calculateStageTime(
+				driverStarts,
+				driverFinishes.map((fe) => Number(fe.ts))
+			);
 			if (elapsed === null) return [];
+
+			// DNF: all valid finishes (after latest start) are synthetic
+			const latestStart =
+				driverStarts.length > 0 ? driverStarts.reduce((max, s) => (s > max ? s : max)) : 0;
+			const validFinishes = driverFinishes.filter((fe) => Number(fe.ts) >= latestStart);
+			const dnf = !validFinishes.some((fe) => !fe.dnf);
 
 			return [
 				{
@@ -58,7 +68,8 @@ export function buildStageData(
 					stage_ms: elapsed,
 					delta_p1: null,
 					delta_prev: null,
-					position: 0
+					position: 0,
+					dnf
 				}
 			];
 		});
@@ -70,17 +81,22 @@ export function buildStageData(
 }
 
 export function buildRallyRows(stageData: StageData[]): DisplayRallyRow[] {
-	const totals = new Map<string, { class_name: string; total: number; finished: number }>();
+	const totals = new Map<
+		string,
+		{ class_name: string; total: number; finished: number; dnf: boolean }
+	>();
 
 	for (const stage of stageData) {
 		for (const row of stage.rows) {
 			const existing = totals.get(row.driver_name) ?? {
 				class_name: row.class_name,
 				total: 0,
-				finished: 0
+				finished: 0,
+				dnf: false
 			};
 			existing.total += row.stage_ms;
-			existing.finished++;
+			if (!row.dnf) existing.finished++;
+			if (row.dnf) existing.dnf = true;
 			totals.set(row.driver_name, existing);
 		}
 	}
@@ -92,7 +108,8 @@ export function buildRallyRows(stageData: StageData[]): DisplayRallyRow[] {
 		finished_stages: v.finished,
 		delta_p1: null,
 		delta_prev: null,
-		position: 0
+		position: 0,
+		dnf: v.dnf
 	}));
 
 	rows.sort((a, b) => a.total_ms - b.total_ms);
