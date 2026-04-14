@@ -24,7 +24,12 @@ export async function GET(event: RequestEvent): Promise<Response> {
 		`
 	]);
 
-	return json({ ...rally, championships, results });
+	return json({
+		...rally,
+		submitted_at: Number(rally.submitted_at),
+		championships,
+		results: results.map((r) => ({ ...r, elapsed_ms: r.elapsed_ms != null ? Number(r.elapsed_ms) : null }))
+	});
 }
 
 export async function DELETE(event: RequestEvent): Promise<Response> {
