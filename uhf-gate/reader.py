@@ -48,7 +48,7 @@ def parse_inventory(frame: bytes) -> Optional[dict]:
         payload = frame[5 : 5 + pl_len]
         
         if len(payload) >= 5:
-            rssi_raw = payload[0]
+            rssi_raw = payload[0] - 256 if payload[0] > 127 else payload[0]
             pc = payload[1:3]
             epc_len = pl_len - 3 - 2
             if epc_len < 1:
@@ -118,8 +118,11 @@ class YRM100Reader:
             time.sleep(0.3)
             self.serial.reset_input_buffer()
             
-            # Reset to Session S0 for fast polling
-            cmd = bytes([0xBB, 0x00, 0x0E, 0x00, 0x02, 0x10, 0x20, 0x28, 0x7E])
+            # Reset to Session S0, Q=0 (1 timeslot, fastest for single tag)
+            q = 0
+            query_byte2 = (q & 0x0F) << 3
+            cs_q = (0x00 + 0x0E + 0x00 + 0x02 + 0x10 + query_byte2) & 0xFF
+            cmd = bytes([0xBB, 0x00, 0x0E, 0x00, 0x02, 0x10, query_byte2, cs_q, 0x7E])
             self.serial.write(cmd)
             time.sleep(0.3)
             self.serial.read(64)
