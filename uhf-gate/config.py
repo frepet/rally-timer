@@ -12,7 +12,7 @@ class Config:
     api_base_url: str = field(default_factory=lambda: os.getenv("API_BASE_URL", "http://localhost:5173"))
     serial_port: str = field(default_factory=lambda: os.getenv("SERIAL_PORT", ""))
     dedup_seconds: float = field(default_factory=lambda: float(os.getenv("DEDUP_SECONDS", "2")))
-    rssi_threshold: int = field(default_factory=lambda: int(os.getenv("RSSI_THRESHOLD", "200")))
+    rssi_threshold: int = field(default_factory=lambda: int(os.getenv("RSSI_THRESHOLD", "-65")))
     epc_chars: int = field(default_factory=lambda: int(os.getenv("EPC_CHARS", "8")))
     ntp_server: str = field(default_factory=lambda: os.getenv("NTP_SERVER", "pool.ntp.org"))
     gate_uuid: str = field(default_factory=lambda: os.getenv("GATE_UUID", ""))
