@@ -26,5 +26,6 @@ export async function runMigrations() {
 }
 
 export const migrationsReady = runMigrations().catch((e) => {
-	console.error('Migration failed:', e);
+	console.error('Migration failed, crashing:', e);
+	process.exit(1);
 });

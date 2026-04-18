@@ -1,7 +1,7 @@
 import { sql } from '../db';
 
 export async function runMigration() {
-	await sql.unsafe(`
+	await sql.begin(async (tx) => { await tx.unsafe(`
 		ALTER TABLE drivers ADD COLUMN IF NOT EXISTS uuid UUID NOT NULL DEFAULT gen_random_uuid();
 		CREATE UNIQUE INDEX IF NOT EXISTS drivers_uuid_idx ON drivers(uuid);
 
@@ -37,5 +37,5 @@ export async function runMigration() {
 		CREATE INDEX IF NOT EXISTS rally_results_rally_idx  ON rally_results(rally_id);
 		CREATE INDEX IF NOT EXISTS rally_results_driver_idx ON rally_results(driver_uuid);
 		CREATE INDEX IF NOT EXISTS championship_rallies_champ ON championship_rallies(championship_id);
-	`);
+	`); });
 }

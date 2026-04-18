@@ -1,7 +1,7 @@
 import { sql } from '../db';
 
 export async function runMigration() {
-	await sql.unsafe(`
+	await sql.begin(async (tx) => { await tx.unsafe(`
 		CREATE TABLE IF NOT EXISTS classes (
 			id   SERIAL PRIMARY KEY,
 			name TEXT NOT NULL UNIQUE
@@ -168,5 +168,5 @@ export async function runMigration() {
 			st.elapsed_ms - LAG(st.elapsed_ms) OVER (PARTITION BY st.stage_id ORDER BY st.elapsed_ms ASC) AS delta_prev
 		FROM stage_times st
 		WHERE st.elapsed_ms IS NOT NULL;
-	`);
+	`); });
 }
