@@ -18,7 +18,7 @@
 		Tabs,
 		TabItem
 	} from 'flowbite-svelte';
-	import { TrashBinOutline, PlusOutline } from 'flowbite-svelte-icons';
+	import { TrashBinOutline, PlusOutline, PenOutline } from 'flowbite-svelte-icons';
 	import { kcFetch } from '../../lib/kcFetch';
 	import { isAdmin } from '../../lib/stores/auth';
 
@@ -112,6 +112,35 @@
 		await loadChampionships();
 	}
 
+	// Rename championship
+	let renameModalOpen = $state(false);
+	let renameName = $state('');
+	let renaming = $state(false);
+
+	function openRenameModal() {
+		renameName = selectedChamp?.name ?? '';
+		renameModalOpen = true;
+	}
+
+	async function renameChampionship() {
+		const name = renameName.trim();
+		if (!name || !selectedId) return;
+		renaming = true;
+		try {
+			await kcFetchJSON(`/api/championship/${selectedId}`, {
+				method: 'PATCH',
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify({ name })
+			});
+			renameModalOpen = false;
+			await loadChampionships();
+		} catch (e) {
+			alert('Error: ' + (e as Error).message);
+		} finally {
+			renaming = false;
+		}
+	}
+
 	// Group standings by class
 	const classes = $derived([...new Set(standings.map((s) => s.class_name))].sort());
 	const standingsByClass = $derived(
@@ -161,6 +190,13 @@
 				{/each}
 			</Select>
 			{#if $isAdmin && selectedId}
+				<button
+					class="rounded p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
+					title="Rename championship"
+					onclick={openRenameModal}
+				>
+					<PenOutline size="sm" />
+				</button>
 				<button
 					class="rounded p-2 text-red-500 hover:bg-gray-100 dark:hover:bg-gray-700"
 					title="Delete championship"
@@ -250,6 +286,23 @@
 		{/if}
 	{/if}
 </div>
+
+<!-- Rename Championship Modal -->
+<Modal title="Rename Championship" bind:open={renameModalOpen} size="sm" autoclose={false}>
+	<div class="flex flex-col gap-4">
+		<Input
+			bind:value={renameName}
+			placeholder="Championship name"
+			onkeydown={(e) => e.key === 'Enter' && renameChampionship()}
+		/>
+		<div class="flex justify-end gap-2">
+			<Button color="light" onclick={() => (renameModalOpen = false)}>Cancel</Button>
+			<Button onclick={renameChampionship} disabled={renaming || !renameName.trim()}>
+				{renaming ? 'Saving…' : 'Save'}
+			</Button>
+		</div>
+	</div>
+</Modal>
 
 <!-- Create Championship Modal -->
 <Modal title="New Championship" bind:open={createModalOpen} size="sm" autoclose={false}>
