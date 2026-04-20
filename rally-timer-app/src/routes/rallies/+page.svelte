@@ -470,7 +470,7 @@
 				</Card>
 			{/each}
 			{#if !stages.length}
-				<p class="opacity-70">No stages yet.</p>
+				<p class="text-gray-500 dark:text-gray-400">No stages yet.</p>
 			{/if}
 		</div>
 
@@ -511,7 +511,7 @@
 			</li>
 		{/each}
 		{#if !filteredDrivers.length}
-			<li class="opacity-70">{driverSearch ? 'No matches.' : 'No drivers.'}</li>
+			<li class="text-gray-500 dark:text-gray-400">{driverSearch ? 'No matches.' : 'No drivers.'}</li>
 		{/if}
 	</ul>
 	<div class="mt-4 border-t pt-3">

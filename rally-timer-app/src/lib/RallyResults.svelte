@@ -71,7 +71,7 @@
 			{/each}
 		</div>
 	{:else}
-		<p class="text-sm opacity-70">No results yet.</p>
+		<p class="text-sm text-gray-500 dark:text-gray-400">No results yet.</p>
 	{/if}
 </Card>
 
@@ -88,7 +88,7 @@
 			</Button>
 		{/each}
 		{#if !stages.length}
-			<span class="text-sm opacity-70">No stages yet.</span>
+			<span class="text-sm text-gray-500 dark:text-gray-400">No stages yet.</span>
 		{/if}
 	</div>
 
@@ -140,7 +140,7 @@
 				{/each}
 			</div>
 		{:else}
-			<p class="text-sm opacity-70">No stage results yet.</p>
+			<p class="text-sm text-gray-500 dark:text-gray-400">No stage results yet.</p>
 		{/if}
 	{/if}
 </Card>
