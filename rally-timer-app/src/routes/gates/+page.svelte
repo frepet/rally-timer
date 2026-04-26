@@ -105,6 +105,24 @@
 		}, 2000);
 	}
 
+	let audioCtx: AudioContext | null = null;
+
+	function beep() {
+		if (!audioCtx) audioCtx = new AudioContext();
+		audioCtx.resume().then(() => {
+			const ctx = audioCtx!;
+			const osc = ctx.createOscillator();
+			const gain = ctx.createGain();
+			osc.connect(gain);
+			gain.connect(ctx.destination);
+			osc.frequency.value = 880;
+			gain.gain.setValueAtTime(0.3, ctx.currentTime);
+			gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+			osc.start(ctx.currentTime);
+			osc.stop(ctx.currentTime + 0.3);
+		});
+	}
+
 	let poller: number | null = null;
 	let eventSource: EventSource | null = null;
 
@@ -116,7 +134,10 @@
 		eventSource.onmessage = (e) => {
 			try {
 				const data = JSON.parse(e.data);
-				if (data.gate_id) triggerFlash(data.gate_id);
+				if (data.gate_id) {
+					triggerFlash(data.gate_id);
+					beep();
+				}
 			} catch {
 				/* ignore */
 			}
@@ -126,6 +147,7 @@
 	onDestroy(() => {
 		if (poller) clearInterval(poller);
 		if (eventSource) eventSource.close();
+		audioCtx?.close();
 	});
 
 	const menuItemClass =
