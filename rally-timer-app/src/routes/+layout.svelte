@@ -37,6 +37,7 @@
 		{#if $isAdmin}
 			<NavLi href="/rallies">Manage</NavLi>
 			<NavLi href="/drivers">Drivers</NavLi>
+			<NavLi href="/classes">Classes</NavLi>
 			<NavLi href="/gates">Gates</NavLi>
 		{/if}
 		{#if $isAuthenticated}
