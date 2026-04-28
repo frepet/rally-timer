@@ -223,6 +223,17 @@
 		</div>
 	</Card>
 
+	<!-- Queue preview -->
+	<Card class="p-3">
+		<div class="">
+			<P class="text-sm opacity-70">Next up</P>
+			<P class="text-xl">{drivers[idx + 1]?.name} — {drivers[idx + 1]?.class_name || ''}</P>
+			<P class="text-lg opacity-80">
+				{drivers[idx + 2]?.name} — {drivers[idx + 2]?.class_name || ''}
+			</P>
+		</div>
+	</Card>
+
 	<!-- Start order list -->
 	<Card class="p-3">
 		<P class="mb-2 text-sm font-semibold opacity-70">Start order</P>
@@ -248,17 +259,6 @@
 				{/each}
 			</TableBody>
 		</Table>
-	</Card>
-
-	<!-- Queue preview -->
-	<Card class="p-3">
-		<div class="">
-			<P class="text-sm opacity-70">Next up</P>
-			<P class="text-xl">{drivers[idx + 1]?.name} — {drivers[idx + 1]?.class_name || ''}</P>
-			<P class="text-lg opacity-80">
-				{drivers[idx + 2]?.name} — {drivers[idx + 2]?.class_name || ''}
-			</P>
-		</div>
 	</Card>
 
 	<!-- Queue controls -->
