@@ -1,6 +1,13 @@
 import { sql } from './db';
 
-type Listener = (data: { gate_id: string; tag: string }) => void;
+export type GateEventPayload = {
+	gate_id: string;
+	tag: string;
+	rssi: number | null;
+	timestamp_ms: number;
+};
+
+type Listener = (data: GateEventPayload) => void;
 
 const listeners = new Set<Listener>();
 let listening = false;
@@ -13,7 +20,7 @@ function ensureListening() {
 	sql
 		.listen('gate_events', (payload) => {
 			try {
-				const data = JSON.parse(payload) as { gate_id: string; tag: string };
+				const data = JSON.parse(payload) as GateEventPayload;
 				listeners.forEach((listener) => {
 					try {
 						listener(data);
@@ -31,7 +38,7 @@ function ensureListening() {
 		});
 }
 
-export async function emitGateEvent(data: { gate_id: string; tag: string }) {
+export async function emitGateEvent(data: GateEventPayload) {
 	await sql.notify('gate_events', JSON.stringify(data));
 }
 
