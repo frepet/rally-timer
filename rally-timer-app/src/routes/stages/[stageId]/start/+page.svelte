@@ -36,19 +36,24 @@
 	async function loadQueue() {
 		stageId = Number($page.params.stageId);
 
-		const res = await kcFetch('/api/bundle');
-		if (!res.ok) return;
+		const [bundleRes, orderRes] = await Promise.all([
+			kcFetch('/api/bundle'),
+			kcFetch(`/api/stage/${stageId}/start-order`)
+		]);
+		if (!bundleRes.ok || !orderRes.ok) return;
 
-		const bundle = (await res.json()) as BundleResponse;
+		const bundle = (await bundleRes.json()) as BundleResponse;
+		const ordered = (await orderRes.json()) as {
+			id: number;
+			name: string;
+			rfid_tag: string;
+			class_id: number;
+			class_name: string;
+		}[];
 
-		drivers = bundle.drivers.map((d) => ({
-			id: d.id,
-			name: d.name,
-			tag: d.rfid_tag,
-			class_name: d.class_name
-		}));
 		const stage = bundle.stages.find((s) => s.id === stageId);
 		stageName = stage?.name ?? `#${stageId}`;
+		drivers = ordered.map((d) => ({ id: d.id, name: d.name, tag: d.rfid_tag, class_name: d.class_name }));
 		idx = 0;
 	}
 
