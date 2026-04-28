@@ -27,7 +27,8 @@ export const classCreateSchema = z.object({
 		.string()
 		.min(1)
 		.max(100)
-		.transform((s) => s.trim())
+		.transform((s) => s.trim()),
+	start_priority: z.number().int().optional().default(0)
 });
 
 export const classUpdateSchema = z.object({
@@ -35,7 +36,8 @@ export const classUpdateSchema = z.object({
 		.string()
 		.min(1)
 		.max(100)
-		.transform((s) => s.trim())
+		.transform((s) => s.trim()),
+	start_priority: z.number().int().optional()
 });
 
 export const championshipCreateSchema = z.object({
