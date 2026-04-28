@@ -19,9 +19,12 @@ export async function PATCH(event: RequestEvent): Promise<Response> {
 
 	try {
 		const [row] = await sql`
-			UPDATE classes SET name = ${parsed.data.name}
+			UPDATE classes
+			SET
+				name = ${parsed.data.name},
+				start_priority = COALESCE(${parsed.data.start_priority ?? null}, start_priority)
 			WHERE id = ${id}
-			RETURNING id, name
+			RETURNING id, name, start_priority
 		`;
 		if (!row) throw error(404, 'Class not found');
 		return json(row);

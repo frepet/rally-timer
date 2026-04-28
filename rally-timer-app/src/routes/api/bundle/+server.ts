@@ -8,7 +8,7 @@ export async function GET(): Promise<Response> {
 			FROM drivers d
 			JOIN classes c ON c.id = d.class_id
 			WHERE d.active = true
-			ORDER BY d.name
+			ORDER BY c.start_priority DESC, d.name ASC
 		`,
 		sql`SELECT id, name FROM stages ORDER BY id`,
 		sql`SELECT id, stage_id, driver_id, ts_ms AS ts FROM start_events ORDER BY ts_ms`,
