@@ -1,6 +1,7 @@
 import { json, error, type RequestEvent } from '@sveltejs/kit';
 import { sql } from '../../../lib/server/db';
 import { gateSyncSchema } from '../../../lib/server/schemas';
+import { emitGateEvent } from '../../../lib/server/gateEvents';
 
 export async function POST(event: RequestEvent): Promise<Response> {
 	let body: unknown;
@@ -46,6 +47,13 @@ export async function POST(event: RequestEvent): Promise<Response> {
 			}
 
 			await sql`UPDATE gates SET last_seen = ${now} WHERE id = ${evt.gate_id}`;
+
+			await emitGateEvent({
+				gate_id: evt.gate_id,
+				tag: evt.tag,
+				rssi: evt.rssi ?? null,
+				timestamp_ms: evt.timestamp_ms
+			});
 		} catch (e) {
 			results.errors.push(`Error processing event: ${e}`);
 		}
