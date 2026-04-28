@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Card, Button, Input, P } from 'flowbite-svelte';
+	import { Card, Button, Input, P, Table, TableBody, TableBodyCell, TableBodyRow, TableHead, TableHeadCell } from 'flowbite-svelte';
 	import { page } from '$app/stores';
 	import { onMount, onDestroy } from 'svelte';
 	import { kcFetch } from '../../../../lib/kcFetch';
@@ -221,6 +221,33 @@
 				{/if}
 			</P>
 		</div>
+	</Card>
+
+	<!-- Start order list -->
+	<Card class="p-3">
+		<P class="mb-2 text-sm font-semibold opacity-70">Start order</P>
+		<Table striped={true}>
+			<TableHead>
+				<TableHeadCell class="w-12">#</TableHeadCell>
+				<TableHeadCell>Driver</TableHeadCell>
+				<TableHeadCell>Class</TableHeadCell>
+			</TableHead>
+			<TableBody>
+				{#each drivers as driver, i (driver.id)}
+					<TableBodyRow
+						class={i < idx
+							? 'opacity-40 line-through'
+							: i === idx
+								? 'bg-amber-50 font-bold dark:bg-amber-900/30'
+								: ''}
+					>
+						<TableBodyCell>{i + 1}</TableBodyCell>
+						<TableBodyCell>{driver.name}</TableBodyCell>
+						<TableBodyCell>{driver.class_name || ''}</TableBodyCell>
+					</TableBodyRow>
+				{/each}
+			</TableBody>
+		</Table>
 	</Card>
 
 	<!-- Queue preview -->
