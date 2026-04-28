@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
+	import { onMount, onDestroy, tick } from 'svelte';
 	import {
 		Card,
 		Table,
@@ -26,10 +26,22 @@
 		created_at: number;
 	};
 
+	type ConsoleEntry = {
+		id: number;
+		gate_id: string;
+		tag: string;
+		rssi: number | null;
+		timestamp_ms: number;
+	};
+
 	let gates = $state<Gate[]>([]);
 	let flashingGates = new SvelteSet<string>();
 	let openMenuId = $state<string | null>(null);
 	let menuPos = $state({ top: 0, right: 0 });
+	let consoleLog = $state<ConsoleEntry[]>([]);
+	let consoleEl: HTMLDivElement | null = null;
+	let nextEntryId = 0;
+	const MAX_LOG = 200;
 
 	function openMenu(e: MouseEvent, id: string) {
 		e.stopPropagation();
@@ -52,6 +64,27 @@
 		const min = Math.floor(sec / 60);
 		if (min < 60) return `${min}m ago`;
 		return `${Math.floor(min / 60)}h ago`;
+	}
+
+	function fmtTime(ts: number): string {
+		const dt = new Date(ts);
+		const pad = (n: number, len = 2) => String(n).padStart(len, '0');
+		return (
+			`${pad(dt.getHours())}:${pad(dt.getMinutes())}:${pad(dt.getSeconds())}.` +
+			`${pad(dt.getMilliseconds(), 3)}`
+		);
+	}
+
+	function gateLabel(gate_id: string): string {
+		const g = gates.find((x) => x.id === gate_id);
+		return g?.name ?? gate_id.slice(0, 8);
+	}
+
+	function rssiColor(rssi: number | null): 'green' | 'yellow' | 'red' | 'gray' {
+		if (rssi == null) return 'gray';
+		if (rssi >= -55) return 'green';
+		if (rssi >= -70) return 'yellow';
+		return 'red';
 	}
 
 	function isOnline(gate: Gate): boolean {
@@ -133,11 +166,30 @@
 		eventSource = new EventSource('/api/gate-events/stream');
 		eventSource.onmessage = (e) => {
 			try {
-				const data = JSON.parse(e.data);
-				if (data.gate_id) {
-					triggerFlash(data.gate_id);
-					beep();
-				}
+				const data = JSON.parse(e.data) as {
+					gate_id?: string;
+					tag?: string;
+					rssi?: number | null;
+					timestamp_ms?: number;
+				};
+				if (!data.gate_id) return;
+
+				triggerFlash(data.gate_id);
+				beep();
+
+				const entry: ConsoleEntry = {
+					id: nextEntryId++,
+					gate_id: data.gate_id,
+					tag: data.tag ?? '',
+					rssi: data.rssi ?? null,
+					timestamp_ms: data.timestamp_ms ?? Date.now()
+				};
+				const next = consoleLog.concat(entry);
+				consoleLog = next.length > MAX_LOG ? next.slice(next.length - MAX_LOG) : next;
+
+				tick().then(() => {
+					if (consoleEl) consoleEl.scrollTop = consoleEl.scrollHeight;
+				});
 			} catch {
 				/* ignore */
 			}
@@ -254,10 +306,35 @@
 	</Card>
 
 	<Card class="max-w-none p-4 sm:p-6 md:p-8">
-		<P class="mb-4 text-xl font-bold">Gate Identification</P>
-		<P class="text-sm opacity-70">
-			To identify a specific gate: wave an RFID tag in front of an unassigned gate. That gate will
-			flash in the list above for 2 seconds.
+		<div class="mb-2 flex items-center justify-between">
+			<P class="text-xl font-bold">Live Pass Console</P>
+			<P class="text-sm opacity-60">{consoleLog.length} / {MAX_LOG}</P>
+		</div>
+		<P class="mb-3 text-sm opacity-70">
+			Every gate pass appears here in real time. Wave an RFID tag at a gate to test scan — the gate
+			row above flashes and an entry is added below with its RSSI.
 		</P>
+		<div
+			bind:this={consoleEl}
+			class="h-96 overflow-y-auto rounded-md border border-gray-200 bg-gray-900 p-3 font-mono text-xs text-gray-100 dark:border-gray-700"
+		>
+			{#if !consoleLog.length}
+				<div class="opacity-50">Waiting for gate passes…</div>
+			{:else}
+				{#each consoleLog as entry (entry.id)}
+					<div class="flex items-center gap-2 py-0.5">
+						<span class="text-gray-400">{fmtTime(entry.timestamp_ms)}</span>
+						<span class="text-blue-300">{gateLabel(entry.gate_id)}</span>
+						<span class="text-gray-400">tag=</span>
+						<span class="text-yellow-200">{entry.tag}</span>
+						<span class="ml-auto">
+							<Badge color={rssiColor(entry.rssi)}>
+								{entry.rssi != null ? `${entry.rssi} dBm` : 'no RSSI'}
+							</Badge>
+						</span>
+					</div>
+				{/each}
+			{/if}
+		</div>
 	</Card>
 </div>
