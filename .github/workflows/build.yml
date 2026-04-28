@@ -3,6 +3,7 @@ name: Build and push
 on:
   push:
     branches: [dev]
+    tags: ['v*']
     paths:
       - 'rally-timer-app/**'
 
@@ -80,12 +81,18 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Set image tags
+        id: tags
+        run: |
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            echo "tags=ghcr.io/frepet/rally-timer:${{ github.ref_name }},ghcr.io/frepet/rally-timer:latest" >> $GITHUB_OUTPUT
+          else
+            echo "tags=ghcr.io/frepet/rally-timer:dev,ghcr.io/frepet/rally-timer:dev-${{ github.sha }}" >> $GITHUB_OUTPUT
+          fi
       - uses: docker/build-push-action@v6
         with:
           context: ./rally-timer-app
           push: true
-          tags: |
-            ghcr.io/frepet/rally-timer:dev
-            ghcr.io/frepet/rally-timer:dev-${{ github.sha }}
+          tags: ${{ steps.tags.outputs.tags }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
