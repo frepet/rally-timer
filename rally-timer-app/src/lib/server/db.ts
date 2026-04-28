@@ -12,9 +12,11 @@ if (!globalThis.__pgSql__) globalThis.__pgSql__ = sql;
 export { sql };
 
 import { runMigration as run000 } from './migrations/000_initial_schema';
+import { runMigration as run001 } from './migrations/001_class_crud';
 
 export async function runMigrations() {
 	await run000();
+	await run001();
 }
 
 export const migrationsReady = runMigrations().catch((e) => {

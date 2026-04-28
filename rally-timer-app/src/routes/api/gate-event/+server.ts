@@ -34,9 +34,9 @@ export async function POST(event: RequestEvent): Promise<Response> {
 			INSERT INTO finish_events (stage_id, timestamp, tag)
 			VALUES (${gate.stage_id}, ${timestamp_ms}, ${tag})
 		`;
-	} else {
-		await emitGateEvent({ gate_id, tag });
 	}
+
+	await emitGateEvent({ gate_id, tag, rssi: rssi ?? null, timestamp_ms });
 
 	return json({ stored: true, event_id: row }, { status: 201 });
 }

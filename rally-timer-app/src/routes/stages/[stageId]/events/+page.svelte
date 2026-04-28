@@ -24,6 +24,7 @@
 		timestamp: number;
 		driver_name?: string | null;
 		tag?: string | null;
+		rssi?: number | null;
 	};
 
 	type Gate = {
@@ -187,6 +188,7 @@
 				<TableHeadCell>Timestamp (local)</TableHeadCell>
 				<TableHeadCell>Epoch ms</TableHeadCell>
 				<TableHeadCell>Driver (Tag)</TableHeadCell>
+				<TableHeadCell>RSSI</TableHeadCell>
 				<TableHeadCell class="flex justify-end">Actions</TableHeadCell>
 			</TableHead>
 			<TableBody>
@@ -218,6 +220,10 @@
 							{/if}
 						</TableBodyCell>
 
+						<TableBodyCell class="font-mono">
+							{e.rssi != null ? `${e.rssi} dBm` : '—'}
+						</TableBodyCell>
+
 						<TableBodyCell class="flex justify-end gap-2">
 							{#if editingKey === keyOf(e)}
 								<Button size="xs" onclick={() => saveEdit(e)}>Save</Button>
@@ -234,7 +240,7 @@
 
 				{#if !events.length}
 					<TableBodyRow>
-						<TableBodyCell colspan={5} class="opacity-70">No events yet.</TableBodyCell>
+						<TableBodyCell colspan={6} class="opacity-70">No events yet.</TableBodyCell>
 					</TableBodyRow>
 				{/if}
 			</TableBody>
