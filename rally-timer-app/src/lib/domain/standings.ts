@@ -26,13 +26,20 @@ export type DriverStanding = {
 
 export function calculateStandings(
 	ranked: RankedDriverRally[],
-	getPoints: (position: number) => number
+	getPoints: (position: number, totalDrivers: number) => number
 ): DriverStanding[] {
+	const starterCounts = new Map<string, number>();
+	for (const row of ranked) {
+		const key = `${row.rally_id}:${row.class_id}`;
+		starterCounts.set(key, (starterCounts.get(key) ?? 0) + 1);
+	}
+
 	const map = new Map<string, DriverStanding>();
 
 	for (const row of ranked) {
 		const { driver_uuid, driver_name, class_id, class_name, rally_id, rally_name, position } = row;
-		const points = getPoints(position);
+		const totalDrivers = starterCounts.get(`${rally_id}:${class_id}`) ?? 0;
+		const points = getPoints(position, totalDrivers);
 
 		if (!map.has(driver_uuid)) {
 			map.set(driver_uuid, {

@@ -1,18 +1,6 @@
-/** Points awarded per finishing position. Positions not listed receive 0 points. */
-export const POINTS_TABLE: Record<number, number> = {
-	1: 25,
-	2: 18,
-	3: 15,
-	4: 12,
-	5: 10,
-	6: 8,
-	7: 6,
-	8: 4,
-	9: 2,
-	10: 1
-};
-
-/** Returns the championship points for a given finishing position (0 if outside top 10). */
-export function positionToPoints(position: number): number {
-	return POINTS_TABLE[position] ?? 0;
+/** Returns championship points for a finishing position using the inverse system:
+ *  1st = N, 2nd = N-1, ..., last = 1, where N is the number of starters in the class. */
+export function positionToPoints(position: number, totalDrivers: number): number {
+	if (position < 1 || totalDrivers < 1 || position > totalDrivers) return 0;
+	return totalDrivers - position + 1;
 }
