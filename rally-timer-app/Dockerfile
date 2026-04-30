@@ -1,5 +1,7 @@
 FROM node:24-alpine AS builder
 WORKDIR /app
+ARG BUILD_SHA=dev
+ENV PUBLIC_BUILD_SHA=$BUILD_SHA
 COPY package*.json ./
 RUN npm ci --no-audit --no-fund
 COPY . .

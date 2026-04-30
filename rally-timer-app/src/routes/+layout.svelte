@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import '../app.css';
+	import { PUBLIC_BUILD_SHA } from '$env/static/public';
 	import {
 		Button,
 		Heading,
@@ -111,3 +112,6 @@
 	</NavUl>
 </Navbar>
 {@render children?.()}
+<footer class="mt-8 pb-4 text-center text-xs text-gray-400 dark:text-gray-600">
+	{PUBLIC_BUILD_SHA.slice(0, 7)}
+</footer>
