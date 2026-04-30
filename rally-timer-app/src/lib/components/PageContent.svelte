@@ -44,7 +44,7 @@
 
 <div class="w-full px-4 py-8">
 	{#if editing}
-		<Textarea bind:value={draft} rows={24} class="mb-4 w-full font-mono text-sm" />
+		<Textarea bind:value={draft} class="mb-4 w-full font-mono text-sm" style="field-sizing: content; min-height: 8rem" />
 		{#if saveError}
 			<p class="mb-2 text-sm text-red-500">{saveError}</p>
 		{/if}
@@ -62,7 +62,7 @@
 				<EditOutline size="sm" />
 			</button>
 		{/if}
-		<div class="prose dark:prose-invert max-w-none">
+		<div class="prose dark:prose-invert max-w-none [&_li]:my-0 [&_ul]:my-2 [&_ol]:my-2">
 			{@html html}
 		</div>
 	{/if}
