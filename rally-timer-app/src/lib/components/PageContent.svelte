@@ -42,9 +42,9 @@
 	}
 </script>
 
-<div class="max-w-3xl px-4 py-8">
+<div class="w-full px-4 py-8">
 	{#if editing}
-		<Textarea bind:value={draft} rows={24} class="mb-4 font-mono text-sm" />
+		<Textarea bind:value={draft} rows={24} class="mb-4 w-full font-mono text-sm" />
 		{#if saveError}
 			<p class="mb-2 text-sm text-red-500">{saveError}</p>
 		{/if}
