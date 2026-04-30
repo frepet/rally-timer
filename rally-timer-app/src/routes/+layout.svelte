@@ -34,6 +34,8 @@
 	<NavUl>
 		<NavLi href="/">Results</NavLi>
 		<NavLi href="/championships">Championships</NavLi>
+		<NavLi href="/rules">Rules</NavLi>
+		<NavLi href="/about">About</NavLi>
 		{#if $isAdmin}
 			<NavLi href="/rallies">Manage</NavLi>
 			<NavLi href="/drivers">Drivers</NavLi>

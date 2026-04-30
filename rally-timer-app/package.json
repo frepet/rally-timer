@@ -49,6 +49,7 @@
 	"dependencies": {
 		"jose": "^6.1.0",
 		"keycloak-js": "^26.2.0",
+		"marked": "^18.0.2",
 		"postgres": "^3.4.5",
 		"zod": "^4.1.3"
 	}

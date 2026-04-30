@@ -109,4 +109,9 @@ export type ClassCreateInput = z.infer<typeof classCreateSchema>;
 export type ClassUpdateInput = z.infer<typeof classUpdateSchema>;
 export type ChampionshipCreateInput = z.infer<typeof championshipCreateSchema>;
 export type ChampionshipUpdateInput = z.infer<typeof championshipUpdateSchema>;
+export const pageUpdateSchema = z.object({
+	content: z.string().min(1).max(100000)
+});
+
 export type SubmitRallyInput = z.infer<typeof submitRallySchema>;
+export type PageUpdateInput = z.infer<typeof pageUpdateSchema>;
