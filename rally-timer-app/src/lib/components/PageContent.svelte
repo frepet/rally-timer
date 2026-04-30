@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Button, Textarea } from 'flowbite-svelte'
+	import { EditOutline } from 'flowbite-svelte-icons'
 	import { marked } from 'marked'
 	import { isAdmin } from '$lib/stores/auth'
 	import { kcFetch } from '$lib/kcFetch'
@@ -41,7 +42,7 @@
 	}
 </script>
 
-<div class="mx-auto max-w-3xl px-4 py-8">
+<div class="max-w-3xl px-4 py-8">
 	{#if editing}
 		<Textarea bind:value={draft} rows={24} class="mb-4 font-mono text-sm" />
 		{#if saveError}
@@ -53,9 +54,13 @@
 		</div>
 	{:else}
 		{#if $isAdmin}
-			<div class="mb-4 flex justify-end">
-				<Button color="alternative" size="sm" onclick={startEdit}>Edit</Button>
-			</div>
+			<button
+				class="mb-2 text-gray-500 hover:text-gray-800 dark:hover:text-gray-200"
+				onclick={startEdit}
+				aria-label="Edit"
+			>
+				<EditOutline size="sm" />
+			</button>
 		{/if}
 		<div class="prose dark:prose-invert max-w-none">
 			{@html html}

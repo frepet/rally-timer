@@ -4,20 +4,52 @@
 	import {
 		Button,
 		Heading,
+		Input,
 		Navbar,
 		NavBrand,
 		NavHamburger,
 		NavLi,
 		NavUl
 	} from 'flowbite-svelte';
+	import { EditOutline } from 'flowbite-svelte-icons';
 	import DarkModeToggle from '../lib/components/DarkModeToggle.svelte';
 	import { initKeycloak, isAdmin, isAuthenticated, login, logout } from '../lib/stores/auth';
+	import { kcFetch } from '../lib/kcFetch';
 
-	let { children } = $props();
+	let { children, data } = $props();
+
+	let editingTitle = $state(false);
+	let titleDraft = $state(data.title);
+	let title = $state(data.title);
+	let savingTitle = $state(false);
 
 	onMount(async () => {
 		initKeycloak();
 	});
+
+	async function saveTitle() {
+		savingTitle = true;
+		try {
+			const res = await kcFetch('/api/page/title', {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ content: titleDraft })
+			});
+			if (!res.ok) throw new Error(await res.text());
+			title = titleDraft;
+			editingTitle = false;
+		} finally {
+			savingTitle = false;
+		}
+	}
+
+	function onTitleKeydown(e: KeyboardEvent) {
+		if (e.key === 'Enter') saveTitle();
+		if (e.key === 'Escape') {
+			titleDraft = title;
+			editingTitle = false;
+		}
+	}
 </script>
 
 <svelte:head>
@@ -27,7 +59,34 @@
 	<NavBrand href="/">
 		<img src="/icon-black.png" alt="Rally Timer Logo" class="m-2 w-24 dark:hidden" />
 		<img src="/icon-white.png" alt="Rally Timer Logo" class="m-2 hidden w-24 dark:block" />
-		<Heading class="ml-2">AC/RC - Västerbotten RC Rally</Heading>
+		{#if editingTitle}
+			<Input
+				class="ml-2 w-80"
+				bind:value={titleDraft}
+				onkeydown={onTitleKeydown}
+				disabled={savingTitle}
+				autofocus
+			/>
+			<Button size="sm" class="ml-2" onclick={saveTitle} disabled={savingTitle}>Save</Button>
+			<Button
+				size="sm"
+				color="alternative"
+				class="ml-1"
+				onclick={() => { titleDraft = title; editingTitle = false; }}
+				disabled={savingTitle}
+			>Cancel</Button>
+		{:else}
+			<Heading class="ml-2">{title}</Heading>
+			{#if $isAdmin}
+				<button
+					class="ml-2 text-gray-500 hover:text-gray-800 dark:hover:text-gray-200"
+					onclick={() => { titleDraft = title; editingTitle = true; }}
+					aria-label="Edit title"
+				>
+					<EditOutline size="sm" />
+				</button>
+			{/if}
+		{/if}
 	</NavBrand>
 
 	<NavHamburger />
