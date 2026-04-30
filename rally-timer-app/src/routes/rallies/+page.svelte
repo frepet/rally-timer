@@ -379,9 +379,9 @@
 							<span
 								class="flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-sm dark:bg-blue-900"
 							>
-								<span class="font-medium">{g.name ?? g.id.slice(0, 8)}</span>
+								<span class="font-medium"><P>{g.name ?? g.id.slice(0, 8)}</P></span>
 								{#if isOnline(g)}
-									<Badge color="green" class="ml-1">Online</Badge>
+									<Badge color="green" class="white ml-1">Online</Badge>
 								{:else}
 									<Badge color="gray" class="ml-1">Offline</Badge>
 								{/if}
@@ -511,7 +511,9 @@
 			</li>
 		{/each}
 		{#if !filteredDrivers.length}
-			<li class="text-gray-500 dark:text-gray-400">{driverSearch ? 'No matches.' : 'No drivers.'}</li>
+			<li class="text-gray-500 dark:text-gray-400">
+				{driverSearch ? 'No matches.' : 'No drivers.'}
+			</li>
 		{/if}
 	</ul>
 	<div class="mt-4 border-t pt-3">

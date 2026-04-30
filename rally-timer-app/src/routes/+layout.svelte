@@ -27,7 +27,7 @@
 	<NavBrand href="/">
 		<img src="/icon-black.png" alt="Rally Timer Logo" class="m-2 w-24 dark:hidden" />
 		<img src="/icon-white.png" alt="Rally Timer Logo" class="m-2 hidden w-24 dark:block" />
-		<Heading class="ml-2">Rally Timer</Heading>
+		<Heading class="ml-2">AC/RC - Västerbotten RC Rally</Heading>
 	</NavBrand>
 
 	<NavHamburger />
