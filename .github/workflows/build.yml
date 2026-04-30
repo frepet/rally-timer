@@ -48,6 +48,8 @@ jobs:
         working-directory: rally-timer-app
       - run: npm run build
         working-directory: rally-timer-app
+        env:
+          PUBLIC_BUILD_SHA: dev
       - name: Start app
         working-directory: rally-timer-app
         env:
