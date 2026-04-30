@@ -113,5 +113,5 @@
 </Navbar>
 {@render children?.()}
 <footer class="mt-8 pb-4 text-center text-xs text-gray-400 dark:text-gray-600">
-	{PUBLIC_BUILD_SHA.slice(0, 7)}
+	{PUBLIC_BUILD_SHA.startsWith('v') ? PUBLIC_BUILD_SHA : PUBLIC_BUILD_SHA.slice(0, 7)}
 </footer>

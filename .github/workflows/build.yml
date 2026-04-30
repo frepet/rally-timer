@@ -88,14 +88,16 @@ jobs:
           BASE="ghcr.io/frepet/rally-timer:dev,ghcr.io/frepet/rally-timer:dev-${{ github.sha }}"
           if [[ "${{ github.ref_type }}" == "tag" ]]; then
             echo "tags=$BASE,ghcr.io/frepet/rally-timer:${{ github.ref_name }},ghcr.io/frepet/rally-timer:latest" >> $GITHUB_OUTPUT
+            echo "build_sha=${{ github.ref_name }}" >> $GITHUB_OUTPUT
           else
             echo "tags=$BASE" >> $GITHUB_OUTPUT
+            echo "build_sha=${{ github.sha }}" >> $GITHUB_OUTPUT
           fi
       - uses: docker/build-push-action@v6
         with:
           context: ./rally-timer-app
           push: true
           tags: ${{ steps.tags.outputs.tags }}
-          build-args: BUILD_SHA=${{ github.sha }}
+          build-args: BUILD_SHA=${{ steps.tags.outputs.build_sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
