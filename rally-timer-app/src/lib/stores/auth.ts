@@ -53,12 +53,9 @@ export async function initKeycloak() {
 				clearStorage();
 			}
 		} else {
-			// No stored tokens — check for an active Keycloak SSO session via iframe
-			await keycloak.init({
-				onLoad: 'check-sso',
-				pkceMethod: 'S256',
-				silentCheckSsoRedirectUri: window.location.origin + '/silent-check-sso.html'
-			});
+			// No stored tokens — initialise without redirect; user can click Login.
+			// init() still processes an auth code in the URL if returning from a login redirect.
+			await keycloak.init({ pkceMethod: 'S256' });
 			if (keycloak.authenticated) {
 				updateStores();
 			}

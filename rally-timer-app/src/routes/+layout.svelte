@@ -3,7 +3,6 @@
 	import '../app.css';
 	import {
 		Button,
-		DarkMode,
 		Heading,
 		Navbar,
 		NavBrand,
@@ -11,6 +10,7 @@
 		NavLi,
 		NavUl
 	} from 'flowbite-svelte';
+	import DarkModeToggle from '../lib/components/DarkModeToggle.svelte';
 	import { initKeycloak, isAdmin, isAuthenticated, login, logout } from '../lib/stores/auth';
 
 	let { children } = $props();
@@ -32,22 +32,23 @@
 
 	<NavHamburger />
 	<NavUl>
-		<NavLi href="/">Results</NavLi>
-		<NavLi href="/championships">Championships</NavLi>
-		<NavLi href="/rules">Rules</NavLi>
-		<NavLi href="/about">About</NavLi>
+		<NavLi href="/" class="text-gray-700 dark:text-gray-400">Results</NavLi>
+		<NavLi href="/championships" class="text-gray-700 dark:text-gray-400">Championships</NavLi>
+		<NavLi href="/rules" class="text-gray-700 dark:text-gray-400">Rules</NavLi>
+		<NavLi href="/about" class="text-gray-700 dark:text-gray-400">About</NavLi>
 		{#if $isAdmin}
-			<NavLi href="/rallies">Manage</NavLi>
-			<NavLi href="/drivers">Drivers</NavLi>
-			<NavLi href="/classes">Classes</NavLi>
-			<NavLi href="/gates">Gates</NavLi>
+			<NavLi>|</NavLi>
+			<NavLi href="/rallies" class="text-gray-700 dark:text-gray-400">Manage</NavLi>
+			<NavLi href="/drivers" class="text-gray-700 dark:text-gray-400">Drivers</NavLi>
+			<NavLi href="/classes" class="text-gray-700 dark:text-gray-400">Classes</NavLi>
+			<NavLi href="/gates" class="text-gray-700 dark:text-gray-400">Gates</NavLi>
 		{/if}
 		{#if $isAuthenticated}
 			<Button onclick={logout}>Logout</Button>
 		{:else}
 			<Button onclick={login}>Login</Button>
 		{/if}
-		<DarkMode class="flex-1" />
+		<DarkModeToggle />
 	</NavUl>
 </Navbar>
 {@render children?.()}
