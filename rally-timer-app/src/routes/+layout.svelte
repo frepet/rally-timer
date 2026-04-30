@@ -80,7 +80,7 @@
 			{#if $isAdmin}
 				<button
 					class="ml-2 text-gray-500 hover:text-gray-800 dark:hover:text-gray-200"
-					onclick={() => { titleDraft = title; editingTitle = true; }}
+					onclick={(e) => { e.preventDefault(); e.stopPropagation(); titleDraft = title; editingTitle = true; }}
 					aria-label="Edit title"
 				>
 					<EditOutline size="sm" />
@@ -97,7 +97,7 @@
 		<NavLi href="/about" class="text-gray-700 dark:text-gray-400">About</NavLi>
 		{#if $isAdmin}
 			<NavLi>|</NavLi>
-			<NavLi href="/rallies" class="text-gray-700 dark:text-gray-400">Manage</NavLi>
+			<NavLi href="/rallies" class="text-gray-700 dark:text-gray-400">Rally</NavLi>
 			<NavLi href="/drivers" class="text-gray-700 dark:text-gray-400">Drivers</NavLi>
 			<NavLi href="/classes" class="text-gray-700 dark:text-gray-400">Classes</NavLi>
 			<NavLi href="/gates" class="text-gray-700 dark:text-gray-400">Gates</NavLi>
