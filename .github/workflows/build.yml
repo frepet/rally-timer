@@ -93,11 +93,12 @@ jobs:
             echo "tags=$BASE" >> $GITHUB_OUTPUT
             echo "build_sha=${{ github.sha }}" >> $GITHUB_OUTPUT
           fi
+      - name: Write build SHA into .env
+        run: echo "PUBLIC_BUILD_SHA=${{ steps.tags.outputs.build_sha }}" > rally-timer-app/.env
       - uses: docker/build-push-action@v6
         with:
           context: ./rally-timer-app
           push: true
           tags: ${{ steps.tags.outputs.tags }}
-          build-args: BUILD_SHA=${{ steps.tags.outputs.build_sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
