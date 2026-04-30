@@ -85,12 +85,11 @@ jobs:
       - name: Set image tags
         id: tags
         run: |
-          BASE="ghcr.io/frepet/rally-timer:dev,ghcr.io/frepet/rally-timer:dev-${{ github.sha }}"
           if [[ "${{ github.ref_type }}" == "tag" ]]; then
-            echo "tags=$BASE,ghcr.io/frepet/rally-timer:${{ github.ref_name }},ghcr.io/frepet/rally-timer:latest" >> $GITHUB_OUTPUT
+            echo "tags=ghcr.io/frepet/rally-timer:${{ github.ref_name }},ghcr.io/frepet/rally-timer:latest" >> $GITHUB_OUTPUT
             echo "build_sha=${{ github.ref_name }}" >> $GITHUB_OUTPUT
           else
-            echo "tags=$BASE" >> $GITHUB_OUTPUT
+            echo "tags=ghcr.io/frepet/rally-timer:dev,ghcr.io/frepet/rally-timer:dev-${{ github.sha }}" >> $GITHUB_OUTPUT
             echo "build_sha=${{ github.sha }}" >> $GITHUB_OUTPUT
           fi
       - name: Write build SHA into .env
