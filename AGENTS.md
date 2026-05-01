@@ -18,7 +18,7 @@ rally-timing/
 
 ## Deploying app changes
 
-1. Push commits to the `main` branch — GitHub Actions builds and pushes a new image to `ghcr.io/frepet/rally-timer:main-<sha>`.
+1. Push commits to the `main` branch — GitHub Actions builds and pushes a new image to `ghcr.io/frepet/rally-timer:dev-<sha>`.
 2. ArgoCD Image Updater (running on fph-cluster) detects the new tag within ~2 minutes and commits the updated image tag to fph-cluster/main.
 3. ArgoCD syncs fph-cluster/main and rolls out the new pods.
 

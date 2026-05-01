@@ -71,8 +71,8 @@ python uhf_gate.py
 ### CI/CD Pipeline
 - Pushing to the `main` branch triggers `.github/workflows/build.yml`.
 - GitHub Actions builds `rally-timer-app/Dockerfile` (multi-stage, `node:24-alpine`) and pushes:
-  - `ghcr.io/frepet/rally-timer:main` (mutable latest)
-  - `ghcr.io/frepet/rally-timer:main-<sha>` (immutable per-commit)
+  - `ghcr.io/frepet/rally-timer:dev` (mutable latest dev build)
+  - `ghcr.io/frepet/rally-timer:dev-<sha>` (immutable per-commit dev build)
 - ArgoCD Image Updater on fph-cluster detects the new sha-tagged image and commits the updated tag to `fph-cluster/main`, which ArgoCD then deploys.
 
 ## Code Conventions

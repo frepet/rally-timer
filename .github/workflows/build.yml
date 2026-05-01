@@ -48,7 +48,7 @@ jobs:
       - run: npm run build
         working-directory: rally-timer-app
         env:
-          PUBLIC_BUILD_SHA: ci
+          PUBLIC_BUILD_SHA: dev
       - name: Start app
         working-directory: rally-timer-app
         env:
@@ -89,7 +89,7 @@ jobs:
             echo "tags=ghcr.io/frepet/rally-timer:${{ github.ref_name }},ghcr.io/frepet/rally-timer:latest" >> $GITHUB_OUTPUT
             echo "build_sha=${{ github.ref_name }}" >> $GITHUB_OUTPUT
           else
-            echo "tags=ghcr.io/frepet/rally-timer:main,ghcr.io/frepet/rally-timer:main-${{ github.sha }}" >> $GITHUB_OUTPUT
+            echo "tags=ghcr.io/frepet/rally-timer:dev,ghcr.io/frepet/rally-timer:dev-${{ github.sha }}" >> $GITHUB_OUTPUT
             echo "build_sha=${{ github.sha }}" >> $GITHUB_OUTPUT
           fi
       - name: Write build SHA into .env
