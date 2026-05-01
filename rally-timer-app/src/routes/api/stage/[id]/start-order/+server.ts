@@ -6,9 +6,9 @@ export async function GET(event: RequestEvent): Promise<Response> {
 	const id = Number(event.params.id);
 	if (!Number.isFinite(id) || id <= 0) throw error(400, 'Invalid id');
 
-	// Unranked drivers (no finished stage in rally) go first, sorted by class priority then name.
-	// Ranked drivers follow, slowest total time first (inverse leaderboard).
-	// When no one has a time yet (stage 1), everyone is unranked → class priority + alphabetical.
+	// Drivers are grouped by class; classes are ordered by start_priority (higher first).
+	// Within each class: unranked drivers go first (alphabetical), then ranked drivers
+	// slowest total time first (inverse leaderboard).
 	const drivers = await sql`
 		WITH ranked AS (
 			SELECT driver_id, total_ms
@@ -26,9 +26,10 @@ export async function GET(event: RequestEvent): Promise<Response> {
 		LEFT JOIN ranked r ON r.driver_id = d.id
 		WHERE d.active = true
 		ORDER BY
+			c.start_priority DESC,
+			c.name ASC,
 			CASE WHEN r.total_ms IS NULL THEN 0 ELSE 1 END ASC,
 			r.total_ms DESC,
-			c.start_priority DESC,
 			d.name ASC
 	`;
 

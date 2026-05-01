@@ -64,6 +64,12 @@
 	}
 
 	const hasGate = $derived(gates.some((g) => g.stage_id === stageId));
+	const activeClass = $derived(drivers[idx]?.class_name ?? '');
+	const remainingInClass = $derived(
+		activeClass
+			? drivers.slice(idx).filter((d) => d.class_name === activeClass).length
+			: 0
+	);
 
 	function setLED(step: number) {
 		if (step < 0 || step > 5) {
@@ -83,6 +89,7 @@
 
 	async function launchCurrentDriver() {
 		if (!drivers[idx]) return;
+		const launchedClass = drivers[idx].class_name;
 		speechSynthesis.cancel();
 		speechSynthesis.speak(utters.get('go')!);
 		await kcFetch(`/api/stage/${stageId}/start`, {
@@ -92,7 +99,14 @@
 		});
 		idx += 1;
 		if (idx < drivers.length) {
-			speechSynthesis.speak(createUtterance('Next driver:' + drivers[idx].name));
+			if (drivers[idx].class_name !== launchedClass) {
+				paused = true;
+				speechSynthesis.speak(
+					createUtterance(`Class ${launchedClass ?? ''} complete. Next class: ${drivers[idx].class_name ?? ''}`)
+				);
+			} else {
+				speechSynthesis.speak(createUtterance('Next driver:' + drivers[idx].name));
+			}
 		} else {
 			speechSynthesis.speak(createUtterance('No more drivers'));
 		}
@@ -183,8 +197,14 @@
 <div class="flex w-full flex-col gap-6 p-6">
 	<!-- Current + Next two -->
 	<Card class="flex w-full flex-col p-5">
-		<div>
+		<div class="flex flex-wrap items-baseline justify-between gap-2">
 			<P class="text-xl font-semibold">{stageName}</P>
+			{#if activeClass}
+				<P class="text-xl font-semibold">
+					Active class: <span class="text-blue-600 dark:text-blue-400">{activeClass}</span>
+					<span class="text-sm font-normal opacity-70">({remainingInClass} left)</span>
+				</P>
+			{/if}
 		</div>
 		<div class="flex flex-wrap items-center">
 			<!-- LEDs -->
