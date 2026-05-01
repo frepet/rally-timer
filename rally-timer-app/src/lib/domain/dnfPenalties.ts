@@ -8,6 +8,10 @@ export type StageTimeResultWithDnf = Omit<StageTimeResult, 'elapsed_ms'> & {
 	dnf: boolean;
 };
 
+export function dnfPenaltyMs(slowestInClassMs: number | undefined): number {
+	return slowestInClassMs !== undefined ? slowestInClassMs + DNF_PENALTY_MS : DNF_FALLBACK_MS;
+}
+
 export function applyDnfPenalties(results: StageTimeResult[]): StageTimeResultWithDnf[] {
 	// Find slowest finisher elapsed_ms per (stage_name, class_id)
 	const slowest = new Map<string, number>();
@@ -25,9 +29,6 @@ export function applyDnfPenalties(results: StageTimeResult[]): StageTimeResultWi
 			return { ...r, elapsed_ms: r.elapsed_ms, dnf: false };
 		}
 		const key = `${r.stage_name}:${r.class_id}`;
-		const slowestTime = slowest.get(key);
-		const elapsed_ms =
-			slowestTime !== undefined ? slowestTime + DNF_PENALTY_MS : DNF_FALLBACK_MS;
-		return { ...r, elapsed_ms, dnf: true };
+		return { ...r, elapsed_ms: dnfPenaltyMs(slowest.get(key)), dnf: true };
 	});
 }

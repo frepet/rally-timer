@@ -1,9 +1,7 @@
 import { json, error, type RequestEvent } from '@sveltejs/kit';
 import { sql } from '../../../../../lib/server/db';
 import { throwIfNotAdmin } from '../../../../../lib/server/keycloak';
-
-const DNF_PENALTY_MS = 30_000;
-const DNF_FALLBACK_MS = 600_000;
+import { dnfPenaltyMs } from '../../../../../lib/domain/dnfPenalties';
 
 export async function POST(event: RequestEvent): Promise<Response> {
 	await throwIfNotAdmin(event);
@@ -84,9 +82,7 @@ export async function POST(event: RequestEvent): Promise<Response> {
 		`;
 		if (existing) continue;
 
-		const slowest = classSlowests.get(driverInfo.classId);
-		const penalty = slowest !== undefined ? slowest + DNF_PENALTY_MS : DNF_FALLBACK_MS;
-		const finishTs = driverInfo.latestStart + penalty;
+		const finishTs = driverInfo.latestStart + dnfPenaltyMs(classSlowests.get(driverInfo.classId));
 
 		await sql`
 			INSERT INTO finish_events (stage_id, timestamp, tag, dnf)

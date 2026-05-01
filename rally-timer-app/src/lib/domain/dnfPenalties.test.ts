@@ -1,6 +1,20 @@
 import { describe, it, expect } from 'vitest';
-import { applyDnfPenalties, DNF_PENALTY_MS, DNF_FALLBACK_MS } from './dnfPenalties';
+import { applyDnfPenalties, dnfPenaltyMs, DNF_PENALTY_MS, DNF_FALLBACK_MS } from './dnfPenalties';
 import type { StageTimeResult } from './rallySubmission';
+
+describe('dnfPenaltyMs', () => {
+	it('returns slowest + 30 s when at least one driver in the class finished', () => {
+		expect(dnfPenaltyMs(8000)).toBe(8000 + DNF_PENALTY_MS);
+	});
+
+	it('returns the fallback when nobody in the class finished', () => {
+		expect(dnfPenaltyMs(undefined)).toBe(DNF_FALLBACK_MS);
+	});
+
+	it('treats slowest = 0 ms as a valid finish (does not fall back)', () => {
+		expect(dnfPenaltyMs(0)).toBe(DNF_PENALTY_MS);
+	});
+});
 
 const result = (
 	driver_name: string,
