@@ -45,7 +45,7 @@ npm run format    # Auto-format
 
 ## Production
 
-Docker image is built from `Dockerfile` (multi-stage, `node:24-alpine`). GitHub Actions builds and pushes to `ghcr.io/frepet/rally-timer` on every push to the `dev` branch. Deployed to fph-cluster by ArgoCD Image Updater.
+Docker image is built from `Dockerfile` (multi-stage, `node:24-alpine`). GitHub Actions builds and pushes to `ghcr.io/frepet/rally-timer` on every push to the `main` branch. Deployed to fph-cluster by ArgoCD Image Updater.
 
 ## Key source files
 
