@@ -163,38 +163,6 @@ export async function runMigration() {
 			FROM stage_times st
 			WHERE st.elapsed_ms IS NOT NULL
 			GROUP BY st.driver_id, st.driver_name, st.driver_tag, st.class_id, st.class_name;
-
-			CREATE OR REPLACE VIEW rally_leaderboard AS
-			SELECT
-				rt.driver_id,
-				rt.driver_name,
-				rt.driver_tag,
-				rt.class_id,
-				rt.class_name,
-				rt.total_ms,
-				rt.finished_stages,
-				ROW_NUMBER() OVER (ORDER BY rt.total_ms ASC)                         AS position,
-				ROW_NUMBER() OVER (PARTITION BY rt.class_id ORDER BY rt.total_ms ASC) AS class_position,
-				rt.total_ms - MIN(rt.total_ms) OVER ()                                AS delta_p1,
-				rt.total_ms - LAG(rt.total_ms) OVER (ORDER BY rt.total_ms ASC)        AS delta_prev
-			FROM rally_times rt
-			WHERE rt.total_ms IS NOT NULL;
-
-			CREATE OR REPLACE VIEW stage_leaderboard AS
-			SELECT
-				st.stage_id,
-				st.stage_name,
-				st.driver_id,
-				st.driver_name,
-				st.driver_tag,
-				st.class_id,
-				st.class_name,
-				st.elapsed_ms                AS stage_ms,
-				ROW_NUMBER() OVER (PARTITION BY st.stage_id ORDER BY st.elapsed_ms ASC)                       AS position,
-				st.elapsed_ms - MIN(st.elapsed_ms) OVER (PARTITION BY st.stage_id)                            AS delta_p1,
-				st.elapsed_ms - LAG(st.elapsed_ms) OVER (PARTITION BY st.stage_id ORDER BY st.elapsed_ms ASC) AS delta_prev
-			FROM stage_times st
-			WHERE st.elapsed_ms IS NOT NULL;
 		`);
 	});
 }

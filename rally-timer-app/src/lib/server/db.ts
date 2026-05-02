@@ -15,12 +15,14 @@ import { runMigration as run000 } from './migrations/000_initial_schema';
 import { runMigration as run001 } from './migrations/001_class_crud';
 import { runMigration as run002 } from './migrations/002_class_start_priority';
 import { runMigration as run003 } from './migrations/003_pages';
+import { runMigration as run004 } from './migrations/004_drop_leaderboard_views';
 
 export async function runMigrations() {
 	await run000();
 	await run001();
 	await run002();
 	await run003();
+	await run004();
 }
 
 export const migrationsReady = runMigrations().catch((e) => {
