@@ -4,10 +4,12 @@ import { throwIfNotAdmin } from '../../../lib/server/keycloak';
 
 export async function GET(): Promise<Response> {
 	const rows = await sql`
-		SELECT s.id, s.name, COUNT(fe.id)::int AS event_count
+		SELECT
+			s.id,
+			s.name,
+			(SELECT COUNT(*)::int FROM finish_events WHERE stage_id = s.id) +
+			(SELECT COUNT(*)::int FROM start_events  WHERE stage_id = s.id) AS event_count
 		FROM stages s
-		LEFT JOIN finish_events fe ON fe.stage_id = s.id
-		GROUP BY s.id
 		ORDER BY s.id
 	`;
 	return json(rows);
