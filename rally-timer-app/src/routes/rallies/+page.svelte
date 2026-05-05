@@ -485,11 +485,7 @@
 				</div>
 			{/each}
 			{#if !stages.length}
-				<div
-					class="rounded-lg border-2 border-dashed border-gray-200 py-8 text-center text-sm text-gray-400 dark:border-gray-700 dark:text-gray-500"
-				>
-					No stages yet.
-				</div>
+				<p class="rounded-lg border-2 border-dashed border-gray-200 py-8 text-center text-sm text-gray-400 dark:border-gray-700 dark:text-gray-500">No stages yet.</p>
 			{/if}
 		</div>
 
