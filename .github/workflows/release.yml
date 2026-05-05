@@ -19,6 +19,8 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Write build SHA into .env
+        run: echo "PUBLIC_BUILD_SHA=${{ github.ref_name }}" > rally-timer-app/.env
       - uses: docker/build-push-action@v6
         with:
           context: ./rally-timer-app
