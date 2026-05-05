@@ -12,7 +12,7 @@
 	import { kcFetch } from '../../lib/kcFetch';
 	import { isAdmin } from '../../lib/stores/auth';
 
-	type Stage = { id: number; name: string };
+	type Stage = { id: number; name: string; event_count: number };
 	type Gate = { id: string; name: string | null; last_seen: number; stage_id: number | null };
 	type Driver = {
 		id: number;
@@ -354,7 +354,7 @@
 				<div
 					class="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800/50"
 				>
-					<!-- Header: name + pen icon (admin) -->
+					<!-- Header: name + gate chips + pen icon (admin) -->
 					<div class="mb-3 flex flex-wrap items-center gap-2">
 						{#if editingId === s.id}
 							<Input
@@ -369,68 +369,70 @@
 							<Button size="xs" onclick={() => saveEdit(s.id)}>Save</Button>
 							<Button size="xs" color="light" onclick={cancelEdit}>Cancel</Button>
 						{:else}
-							<h3 class="flex-1 font-mono text-base font-semibold text-gray-900 dark:text-gray-100">
-							{s.name}
-						</h3>
-							{#if $isAdmin}
-								<button
-									type="button"
-									class="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300"
-									onclick={() => startEdit(s)}
-									title="Rename stage"
-								>
-									<EditOutline size="sm" />
-								</button>
-							{/if}
-						{/if}
-					</div>
-
-					<!-- Gate area -->
-					<div class="mb-3 flex flex-wrap items-center gap-2">
-						{#each assignedGatesForStage(s.id) as g (g.id)}
-							<span
-								class="flex items-center gap-1.5 rounded border border-gray-200 bg-white px-2 py-0.5 text-sm dark:border-gray-600 dark:bg-gray-700"
-							>
+							<h3 class="font-mono text-base font-semibold text-gray-900 dark:text-gray-100">
+								{s.name}
+							</h3>
+							{#each assignedGatesForStage(s.id) as g (g.id)}
 								<span
-									class="status-dot {isOnline(g) ? 'status-dot--ok' : 'status-dot--off'}"
-								></span>
-								<span class="font-mono text-xs text-gray-700 dark:text-gray-200"
-									>{g.name ?? g.id.slice(0, 8)}</span
+									class="flex items-center gap-1.5 rounded border border-gray-200 bg-white px-2 py-0.5 text-sm dark:border-gray-600 dark:bg-gray-700"
 								>
-								<span class="text-xs text-gray-500 dark:text-gray-400"
-									>{isOnline(g) ? 'Online' : 'Offline'}</span
-								>
-								{#if $isAdmin}
-									<button
-										class="ml-0.5 text-gray-400 hover:text-red-500"
-										onclick={() => unassignGate(g)}
-										title="Unassign gate">×</button
+									<span class="status-dot {isOnline(g) ? 'status-dot--ok' : 'status-dot--off'}"></span>
+									<span class="font-mono text-xs text-gray-700 dark:text-gray-200"
+										>{g.name ?? g.id.slice(0, 8)}</span
 									>
-								{/if}
-							</span>
-						{/each}
-						{#if $isAdmin && availableGatesForAssign().length}
-							<div class="flex items-center gap-1">
-								<Select
-									placeholder=""
-									size="sm"
-									class="w-36"
-									value={stageGateSelect[s.id] || availableGatesForAssign()[0]?.id || ''}
-									onchange={(e) => {
-										stageGateSelect = {
-											...stageGateSelect,
-											[s.id]: (e.currentTarget as HTMLSelectElement).value
-										};
-									}}
-								>
-									{#each availableGatesForAssign() as g (g.id)}
-										<option value={g.id}>{g.name ?? g.id.slice(0, 8)}</option>
-									{/each}
-								</Select>
-								<Button size="xs" onclick={() => assignGateToStage(s.id)}>Assign</Button>
-							</div>
-						{:else if !assignedGatesForStage(s.id).length}
-							<span class="text-sm text-gray-400 dark:text-gray-500">No gate assigned</span>
+									<span class="text-xs text-gray-500 dark:text-gray-400"
+										>{isOnline(g) ? 'Online' : 'Offline'}</span
+									>
+									{#if $isAdmin}
+										<button
+											class="ml-0.5 text-gray-400 hover:text-red-500"
+											onclick={() => unassignGate(g)}
+											title="Unassign gate">×</button
+										>
+									{/if}
+								</span>
+							{/each}
+							{#if !assignedGatesForStage(s.id).length}
+								<span class="text-xs text-gray-400 dark:text-gray-500">No gate assigned</span>
+							{/if}
+							{#if $isAdmin}
+								<div class="ml-auto flex items-center gap-1">
+									{#if availableGatesForAssign().length}
+										<Select
+											placeholder=""
+											size="sm"
+											class="w-36"
+											value={stageGateSelect[s.id] || availableGatesForAssign()[0]?.id || ''}
+											onchange={(e) => {
+												stageGateSelect = {
+													...stageGateSelect,
+													[s.id]: (e.currentTarget as HTMLSelectElement).value
+												};
+											}}
+										>
+											{#each availableGatesForAssign() as g (g.id)}
+												<option value={g.id}>{g.name ?? g.id.slice(0, 8)}</option>
+											{/each}
+										</Select>
+										<Button size="xs" onclick={() => assignGateToStage(s.id)}>Assign</Button>
+									{/if}
+									<button
+										type="button"
+										class="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300"
+										onclick={() => startEdit(s)}
+										title="Rename stage"
+									>
+										<EditOutline size="sm" />
+									</button>
+									<button
+										type="button"
+										onclick={(e) => openStageMenu(e, s.id)}
+										class="rounded p-1 hover:bg-gray-100 dark:hover:bg-gray-700"
+									>
+										<DotsVerticalOutline class="text-gray-500 dark:text-gray-400" size="sm" />
+									</button>
+								</div>
+							{/if}
 						{/if}
 					</div>
 
@@ -457,23 +459,9 @@
 						{/if}
 
 						<!-- Events: always visible -->
-						<a
-							href={`/stages/${s.id}/events`}
-							class="inline-flex items-center rounded px-2 py-1 text-sm font-medium text-blue-600 hover:bg-gray-100 dark:text-blue-400 dark:hover:bg-gray-700"
-						>
-							Events
-						</a>
-
-						<!-- Hamburger: admin only -->
-						{#if $isAdmin}
-							<button
-								type="button"
-								onclick={(e) => openStageMenu(e, s.id)}
-								class="ml-auto rounded p-1 hover:bg-gray-100 dark:hover:bg-gray-700"
-							>
-								<DotsVerticalOutline class="text-gray-500 dark:text-gray-400" size="sm" />
-							</button>
-						{/if}
+						<Button size="xs" color="alternative" href={`/stages/${s.id}/events`}>
+							Events ({s.event_count})
+						</Button>
 					</div>
 
 					<!-- Close stage status -->

@@ -3,7 +3,13 @@ import { sql } from '../../../lib/server/db';
 import { throwIfNotAdmin } from '../../../lib/server/keycloak';
 
 export async function GET(): Promise<Response> {
-	const rows = await sql`SELECT id, name FROM stages ORDER BY id`;
+	const rows = await sql`
+		SELECT s.id, s.name, COUNT(fe.id)::int AS event_count
+		FROM stages s
+		LEFT JOIN finish_events fe ON fe.stage_id = s.id
+		GROUP BY s.id
+		ORDER BY s.id
+	`;
 	return json(rows);
 }
 
