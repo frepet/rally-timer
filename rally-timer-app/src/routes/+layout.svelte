@@ -92,19 +92,19 @@
 
 	<NavHamburger />
 	<NavUl>
-		<NavLi href="/" class="text-gray-700 dark:text-gray-400">Results</NavLi>
-		<NavLi href="/championships" class="text-gray-700 dark:text-gray-400">Championships</NavLi>
-		<NavLi href="/rules" class="text-gray-700 dark:text-gray-400">Rules</NavLi>
-		<NavLi href="/about" class="text-gray-700 dark:text-gray-400">About</NavLi>
+		<NavLi href="/" class="text-gray-700 dark:text-gray-300">Results</NavLi>
+		<NavLi href="/championships" class="text-gray-700 dark:text-gray-300">Championships</NavLi>
+		<NavLi href="/rules" class="text-gray-700 dark:text-gray-300">Rules</NavLi>
+		<NavLi href="/about" class="text-gray-700 dark:text-gray-300">About</NavLi>
 		{#if $isAdmin}
 			<NavLi>|</NavLi>
-			<NavLi href="/rallies" class="text-gray-700 dark:text-gray-400">Rally</NavLi>
-			<NavLi href="/drivers" class="text-gray-700 dark:text-gray-400">Drivers</NavLi>
-			<NavLi href="/classes" class="text-gray-700 dark:text-gray-400">Classes</NavLi>
-			<NavLi href="/gates" class="text-gray-700 dark:text-gray-400">Gates</NavLi>
+			<NavLi href="/rallies" class="text-gray-700 dark:text-gray-300">Rally</NavLi>
+			<NavLi href="/drivers" class="text-gray-700 dark:text-gray-300">Drivers</NavLi>
+			<NavLi href="/classes" class="text-gray-700 dark:text-gray-300">Classes</NavLi>
+			<NavLi href="/gates" class="text-gray-700 dark:text-gray-300">Gates</NavLi>
 		{/if}
 		{#if $isAuthenticated}
-			<Button onclick={logout}>Logout</Button>
+			<Button color="alternative" onclick={logout}>Logout</Button>
 		{:else}
 			<Button onclick={login}>Login</Button>
 		{/if}

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Card, Button, Input, Select, Badge, P, Modal, Toggle } from 'flowbite-svelte';
+	import { Card, Button, Input, Select, Badge, Modal, Toggle } from 'flowbite-svelte';
 	import {
 		TrashBinOutline,
 		DotsVerticalOutline,
@@ -315,21 +315,29 @@
 	</div>
 {/if}
 
-<div class="w-full space-y-6 p-5">
+<div class="mx-auto w-full max-w-5xl space-y-6 p-5">
 	<!-- Rally actions -->
 	<Card class="max-w-none p-4">
-		<div class="mb-2">
-			<P class="text-2xl font-bold">Current Rally</P>
+		<div class="mb-3">
+			<p class="text-xs font-semibold uppercase tracking-widest text-gray-500 dark:text-gray-400">
+				Current Rally
+			</p>
 		</div>
 		<div class="flex flex-wrap gap-2">
-			<Button size="sm" onclick={() => (driversModalOpen = true)}>Active Drivers</Button>
+			<Button size="sm" color="alternative" onclick={() => (driversModalOpen = true)}>
+				Active Drivers
+			</Button>
 			{#if $isAdmin}
-				<Button size="sm" color="purple" onclick={openSubmitModal}>
+				<Button size="sm" color="alternative" onclick={openSubmitModal}>
 					<AwardOutline size="sm" class="mr-1" /> Submit to Championship
 				</Button>
-				<Button size="sm" color="red" onclick={() => (clearModalOpen = true)}>
-					<RefreshOutline size="sm" class="mr-1" /> Clear Rally
-				</Button>
+				<button
+					type="button"
+					class="inline-flex items-center gap-1 rounded px-2 py-1 text-sm font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
+					onclick={() => (clearModalOpen = true)}
+				>
+					<RefreshOutline size="sm" /> Clear Rally
+				</button>
 			{/if}
 		</div>
 	</Card>
@@ -337,13 +345,15 @@
 	<!-- Stages -->
 	<Card class="max-w-none p-4">
 		<div class="mb-4">
-			<P class="text-2xl font-bold">Stages</P>
+			<h2 class="text-xl font-bold tracking-tight text-gray-900 dark:text-gray-100">Stages</h2>
 		</div>
 
 		<!-- Stages Cards -->
-		<div class="flex flex-col gap-4">
+		<div class="flex flex-col gap-3">
 			{#each stages as s (s.id)}
-				<Card class="max-w-none p-4">
+				<div
+					class="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800/50"
+				>
 					<!-- Header: name + pen icon (admin) -->
 					<div class="mb-3 flex flex-wrap items-center gap-2">
 						{#if editingId === s.id}
@@ -359,7 +369,9 @@
 							<Button size="xs" onclick={() => saveEdit(s.id)}>Save</Button>
 							<Button size="xs" color="light" onclick={cancelEdit}>Cancel</Button>
 						{:else}
-							<P class="flex-1 text-lg font-semibold">{s.name}</P>
+							<h3 class="flex-1 font-mono text-base font-semibold text-gray-900 dark:text-gray-100">
+							{s.name}
+						</h3>
 							{#if $isAdmin}
 								<button
 									type="button"
@@ -377,17 +389,20 @@
 					<div class="mb-3 flex flex-wrap items-center gap-2">
 						{#each assignedGatesForStage(s.id) as g (g.id)}
 							<span
-								class="flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-sm dark:bg-blue-900"
+								class="flex items-center gap-1.5 rounded border border-gray-200 bg-white px-2 py-0.5 text-sm dark:border-gray-600 dark:bg-gray-700"
 							>
-								<span class="font-medium"><P>{g.name ?? g.id.slice(0, 8)}</P></span>
-								{#if isOnline(g)}
-									<Badge color="green" class="white ml-1">Online</Badge>
-								{:else}
-									<Badge color="gray" class="ml-1">Offline</Badge>
-								{/if}
+								<span
+									class="status-dot {isOnline(g) ? 'status-dot--ok' : 'status-dot--off'}"
+								></span>
+								<span class="font-mono text-xs text-gray-700 dark:text-gray-200"
+									>{g.name ?? g.id.slice(0, 8)}</span
+								>
+								<span class="text-xs text-gray-500 dark:text-gray-400"
+									>{isOnline(g) ? 'Online' : 'Offline'}</span
+								>
 								{#if $isAdmin}
 									<button
-										class="ml-1 text-red-500 hover:text-red-700"
+										class="ml-0.5 text-gray-400 hover:text-red-500"
 										onclick={() => unassignGate(g)}
 										title="Unassign gate">×</button
 									>
@@ -415,7 +430,7 @@
 								<Button size="xs" onclick={() => assignGateToStage(s.id)}>Assign</Button>
 							</div>
 						{:else if !assignedGatesForStage(s.id).length}
-							<span class="text-sm text-gray-400 dark:text-gray-500">No gate</span>
+							<span class="text-sm text-gray-400 dark:text-gray-500">No gate assigned</span>
 						{/if}
 					</div>
 
@@ -438,7 +453,7 @@
 
 						<!-- Close Stage: admin only -->
 						{#if $isAdmin}
-							<Button size="xs" color="red" onclick={() => closeStage(s.id)}>Close Stage</Button>
+							<Button size="xs" onclick={() => closeStage(s.id)}>Close Stage</Button>
 						{/if}
 
 						<!-- Events: always visible -->
@@ -467,27 +482,36 @@
 							{closeStageStatus[s.id]}
 						</p>
 					{/if}
-				</Card>
+				</div>
 			{/each}
 			{#if !stages.length}
-				<p class="text-gray-500 dark:text-gray-400">No stages yet.</p>
+				<div
+					class="rounded-lg border-2 border-dashed border-gray-200 py-8 text-center text-sm text-gray-400 dark:border-gray-700 dark:text-gray-500"
+				>
+					No stages yet.
+				</div>
 			{/if}
 		</div>
 
 		{#if $isAdmin}
 			<!-- Add Stage -->
-			<div class="mb-4 grid grid-cols-1 gap-3 md:grid-cols-2">
-				<div>
-					<P><label for="stageName" class="mb-2 block text-sm font-medium">Stage name</label></P>
-					<Input
-						id="stageName"
-						bind:value={newStageName}
-						placeholder="SS1"
-						onkeydown={(e) => e.key === 'Enter' && createStage()}
-					/>
-				</div>
-				<div class="flex items-end">
-					<Button class="w-full md:w-32" onclick={createStage}>Add Stage</Button>
+			<div class="mt-4 border-t border-gray-200 pt-4 dark:border-gray-700">
+				<p class="mb-3 text-xs font-semibold uppercase tracking-widest text-gray-500 dark:text-gray-400">
+					Add Stage
+				</p>
+				<div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+					<div>
+						<label for="stageName" class="mb-1 block text-sm font-medium">Stage name</label>
+						<Input
+							id="stageName"
+							bind:value={newStageName}
+							placeholder="SS1"
+							onkeydown={(e) => e.key === 'Enter' && createStage()}
+						/>
+					</div>
+					<div class="flex items-end">
+						<Button class="w-full md:w-32" onclick={createStage}>Add Stage</Button>
+					</div>
 				</div>
 			</div>
 		{/if}
@@ -532,7 +556,7 @@
 		</p>
 		<p class="font-semibold text-red-600 dark:text-red-400">This cannot be undone.</p>
 		<div class="flex justify-end gap-2 border-t pt-3">
-			<Button color="light" onclick={() => (clearModalOpen = false)}>Cancel</Button>
+			<Button color="alternative" onclick={() => (clearModalOpen = false)}>Cancel</Button>
 			<Button color="red" onclick={clearRally} disabled={clearing}>
 				{clearing ? 'Clearing…' : 'Clear Rally'}
 			</Button>
@@ -549,7 +573,7 @@
 				<a href="/championships" class="text-sm text-blue-600 hover:underline dark:text-blue-400">
 					View Championships →
 				</a>
-				<Button color="light" onclick={() => (submitModalOpen = false)}>Close</Button>
+				<Button color="alternative" onclick={() => (submitModalOpen = false)}>Close</Button>
 			</div>
 		</div>
 	{:else}
@@ -588,7 +612,7 @@
 				{/if}
 			</div>
 			<div class="flex justify-end gap-2 border-t pt-3">
-				<Button color="light" onclick={() => (submitModalOpen = false)}>Cancel</Button>
+				<Button color="alternative" onclick={() => (submitModalOpen = false)}>Cancel</Button>
 				<Button
 					onclick={submitRally}
 					disabled={submitting || !submitRallyName.trim() || selectedChampIds.size === 0}
