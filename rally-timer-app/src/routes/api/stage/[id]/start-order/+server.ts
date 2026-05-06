@@ -20,6 +20,10 @@ export async function GET(event: RequestEvent): Promise<Response> {
 		JOIN classes c ON c.id = d.class_id
 		LEFT JOIN rally_times r ON r.driver_id = d.id
 		WHERE d.active = true
+		  AND NOT EXISTS (
+			SELECT 1 FROM start_events se
+			WHERE se.driver_id = d.id AND se.stage_id = ${id}
+		  )
 	`;
 
 	const drivers: StartOrderDriver[] = rows.map((r) => ({

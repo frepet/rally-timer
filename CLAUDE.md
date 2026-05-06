@@ -23,7 +23,17 @@ npm run lint      # Prettier + ESLint check
 npm run format    # Auto-format (tabs, single quotes, width 100, no trailing commas)
 ```
 
-No JS test framework is configured; add `vitest` if needed.
+Unit tests (vitest): `npm test` — test files live alongside domain modules in `src/lib/domain/`.
+
+### E2E Tests (repo root)
+```bash
+# Requires the dev server running with SKIP_AUTH=true and a clean database.
+npm run dev:noauth          # in rally-timer-app/
+./seed.sh                   # seeds drivers, stages, events, championships
+./verify.sh                 # asserts API responses; exits non-zero on failure
+```
+`seed.sh` creates a deterministic dataset (2 championships, 3 drivers, multiple submitted rallies + one live rally).
+`verify.sh` checks leaderboard calculations, stage results, championship standings, etc.
 
 ### Python UHF Gate (`uhf-gate/`)
 ```bash
@@ -47,7 +57,7 @@ python uhf_gate.py
 - Connection via `DATABASE_URL` environment variable (postgres.js connection string).
 - Migrations run automatically on startup via `src/lib/server/db.ts` → `runMigrations()`.
 - All requests are held until migrations complete (enforced by `src/hooks.server.ts`).
-- Migration files: `src/lib/server/migrations/000_initial_schema.ts`, `001_gates.ts`.
+- Migration files in `src/lib/server/migrations/` — numbered sequentially (`000_initial_schema.ts` … `005_stage_is_closed.ts`); add new ones with the next number.
 - All timestamp columns are `BIGINT` (milliseconds since epoch) — never INTEGER (32-bit overflow).
 
 ### SvelteKit App Structure

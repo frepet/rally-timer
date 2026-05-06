@@ -191,6 +191,26 @@ fi
 
 # ---------------------------------------------------------------------------
 echo ""
+echo "── Manual Penalty ──────────────────────────────────────────────────────"
+
+penalty_champ_id=$(get /api/championship | jq -r '.[] | select(.name == "Penalty Cup") | .id')
+
+if [[ -z "$penalty_champ_id" ]]; then
+  echo "  ERROR: Penalty Cup not found. Did you run seed.sh first?"
+  ((fail++)) || true
+else
+  penalty_champ_detail=$(get /api/championship/"$penalty_champ_id")
+  penalty_rally_id=$(echo "$penalty_champ_detail" | jq -r '.rallies[] | select(.name == "Rally Penalty Test") | .id')
+  penalty_rally=$(get /api/submitted-rally/"$penalty_rally_id")
+
+  check "Alice: raw 5:00 + 15s penalty = 315000ms" \
+    "315000" "$(get_elapsed "$penalty_rally" "Alice Andersson" "SS1 - Penalty Test")"
+  check "Bob: raw 5:10 = 310000ms (no penalty, P1)" \
+    "310000" "$(get_elapsed "$penalty_rally" "Bob Bergström" "SS1 - Penalty Test")"
+fi
+
+# ---------------------------------------------------------------------------
+echo ""
 echo "── Stage Status (is_closed) ────────────────────────────────────────────"
 
 bundle=$(get /api/bundle)

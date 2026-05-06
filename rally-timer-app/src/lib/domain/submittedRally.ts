@@ -17,6 +17,7 @@ export function buildStageData(results: SubmittedRallyResult[]): StageData[] {
 				driver_name: r.driver_name,
 				class_name: r.class_name,
 				stage_ms: r.elapsed_ms as number,
+				penalty_ms: 0,
 				delta_p1: null,
 				delta_prev: null,
 				position: 0,

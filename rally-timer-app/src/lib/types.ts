@@ -46,6 +46,7 @@ export type BundleResponse = {
 		stage_id: number;
 		ts: number;
 		tag: string;
+		penalty_ms: number;
 	}[];
 };
 

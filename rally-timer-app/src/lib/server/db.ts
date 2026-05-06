@@ -17,6 +17,7 @@ import { runMigration as run002 } from './migrations/002_class_start_priority';
 import { runMigration as run003 } from './migrations/003_pages';
 import { runMigration as run004 } from './migrations/004_drop_leaderboard_views';
 import { runMigration as run005 } from './migrations/005_stage_is_closed';
+import { runMigration as run006 } from './migrations/006_finish_events_penalty';
 
 export async function runMigrations() {
 	await run000();
@@ -25,6 +26,7 @@ export async function runMigrations() {
 	await run003();
 	await run004();
 	await run005();
+	await run006();
 }
 
 export const migrationsReady = runMigrations().catch((e) => {

@@ -25,11 +25,12 @@ const startRow = (
 	stage_name: opts.stage_name ?? `SS${stage_id}`
 });
 
-const finishRow = (stage_id: number, tag: string, timestamp: number, dnf = false) => ({
+const finishRow = (stage_id: number, tag: string, timestamp: number, dnf = false, penalty_ms = 0) => ({
 	stage_id,
 	tag,
 	timestamp,
-	dnf
+	dnf,
+	penalty_ms
 });
 
 describe('buildStageTimes', () => {
@@ -145,6 +146,22 @@ describe('buildStageTimes', () => {
 		const result = buildStageTimes([startRow(1, 1, 1000, { driver_tag: 'tagA' })], []);
 		expect(result[0].elapsed_ms).toBeNull();
 		expect(result[0].dnf).toBe(false);
+	});
+
+	it('adds penalty_ms to elapsed_ms', () => {
+		const result = buildStageTimes(
+			[startRow(1, 1, 1000, { driver_tag: 'tagA' })],
+			[finishRow(1, 'tagA', 5000, false, 10000)] // raw 4000ms + 10s penalty
+		);
+		expect(result[0].elapsed_ms).toBe(14000);
+	});
+
+	it('elapsed_ms is unaffected when penalty_ms is 0', () => {
+		const result = buildStageTimes(
+			[startRow(1, 1, 1000, { driver_tag: 'tagA' })],
+			[finishRow(1, 'tagA', 5000, false, 0)]
+		);
+		expect(result[0].elapsed_ms).toBe(4000);
 	});
 
 	it('real finish takes precedence — dnf is false even if a dnf finish also exists', () => {

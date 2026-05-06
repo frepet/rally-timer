@@ -31,6 +31,7 @@ export type SummaryFinishEvent = {
 	tag: string | number;
 	ts: number | string;
 	dnf?: boolean;
+	penalty_ms?: number;
 };
 
 export function buildStageData(
@@ -51,16 +52,22 @@ export function buildStageData(
 				(fe) => fe.stage_id === stage.id && String(fe.tag) === String(driver.rfid_tag)
 			);
 
+			const penalty_ms = driverFinishes.reduce(
+				(sum, fe) => sum + Number(fe.penalty_ms ?? 0),
+				0
+			);
+			const effectiveTs = (fe: SummaryFinishEvent) => Number(fe.ts) + Number(fe.penalty_ms ?? 0);
+
 			const elapsed = calculateStageTime(
 				driverStarts,
-				driverFinishes.map((fe) => Number(fe.ts))
+				driverFinishes.map(effectiveTs)
 			);
 			if (elapsed === null) return [];
 
 			// DNF: all valid finishes (after latest start) are synthetic
 			const latestStart =
 				driverStarts.length > 0 ? driverStarts.reduce((max, s) => (s > max ? s : max)) : 0;
-			const validFinishes = driverFinishes.filter((fe) => Number(fe.ts) >= latestStart);
+			const validFinishes = driverFinishes.filter((fe) => effectiveTs(fe) >= latestStart);
 			const dnf = !validFinishes.some((fe) => !fe.dnf);
 
 			return [
@@ -68,6 +75,7 @@ export function buildStageData(
 					driver_name: driver.name,
 					class_name: driver.class_name,
 					stage_ms: elapsed,
+					penalty_ms,
 					delta_p1: null,
 					delta_prev: null,
 					position: 0,
@@ -89,7 +97,7 @@ export function buildStageData(
 export function buildRallyRows(stageData: StageData[]): DisplayRallyRow[] {
 	const totals = new Map<
 		string,
-		{ class_name: string; total: number; finished: number; dnf: boolean }
+		{ class_name: string; total: number; penalty: number; finished: number; dnf: boolean }
 	>();
 
 	for (const stage of stageData) {
@@ -97,10 +105,12 @@ export function buildRallyRows(stageData: StageData[]): DisplayRallyRow[] {
 			const existing = totals.get(row.driver_name) ?? {
 				class_name: row.class_name,
 				total: 0,
+				penalty: 0,
 				finished: 0,
 				dnf: false
 			};
 			existing.total += row.stage_ms;
+			existing.penalty += row.penalty_ms;
 			if (!row.dnf) existing.finished++;
 			if (row.dnf) existing.dnf = true;
 			totals.set(row.driver_name, existing);
@@ -111,6 +121,7 @@ export function buildRallyRows(stageData: StageData[]): DisplayRallyRow[] {
 		driver_name: name,
 		class_name: v.class_name,
 		total_ms: v.total,
+		penalty_ms: v.penalty,
 		finished_stages: v.finished,
 		delta_p1: null,
 		delta_prev: null,

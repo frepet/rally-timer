@@ -280,6 +280,36 @@ open_stage_id=$(post /api/stage '{"name":"SS1 - Status Check (open)"}' "${auth[@
 echo "    Open stage id=$open_stage_id (not closed, no starts)"
 
 # ---------------------------------------------------------------------------
+# Penalty Test — apply a manual penalty to Alice and verify it shifts elapsed_ms
+# Alice raw: 5:00 = 300000ms, Bob raw: 5:10 = 310000ms
+# Penalty: Alice +15s → effective 5:15 = 315000ms → Bob wins
+# ---------------------------------------------------------------------------
+echo ""
+echo "==> Penalty Test..."
+penalty_champ_id=$(post /api/championship '{"name":"Penalty Cup"}' "${auth[@]}" | jq -r '.id')
+echo "    Penalty Cup id=$penalty_champ_id"
+
+penalty_stage_id=$(post /api/stage '{"name":"SS1 - Penalty Test"}' "${auth[@]}" | jq -r '.id')
+patch /api/gate/"$gate_id" "{\"stage_id\":$penalty_stage_id}" "${anon[@]}" > /dev/null
+echo "    Penalty stage id=$penalty_stage_id, gate reassigned"
+
+t5=$((now - 1800000))  # 30 min ago
+start_at "$penalty_stage_id" "$id_a" "$t5"               > /dev/null  # Alice
+start_at "$penalty_stage_id" "$id_b" "$((t5 + 30000))"  > /dev/null  # Bob
+
+finish_at "$gate_id" "$tag_a" "$((t5 + 300000))"  -70   # Alice raw 5:00
+finish_at "$gate_id" "$tag_b" "$((t5 + 340000))"  -72   # Bob raw 5:10 (30s offset + 310000)
+
+alice_penalty_finish_id=$(curl -sf "$BASE/api/stage/$penalty_stage_id/finishers" \
+  | jq -r '.[] | select(.driver_name == "Alice Andersson") | .finish_event_id')
+patch /api/finish/"$alice_penalty_finish_id" '{"penalty_ms":15000}' "${auth[@]}" > /dev/null
+echo "    Applied 15s penalty to Alice (finish_event_id=$alice_penalty_finish_id)"
+echo "    Alice effective: 315000ms  Bob: 310000ms → Bob P1"
+
+penalty_rally_id=$(submit_rally "Rally Penalty Test" "$penalty_champ_id")
+echo "    Submitted id=$penalty_rally_id"
+
+# ---------------------------------------------------------------------------
 echo ""
 echo "Done."
 echo ""

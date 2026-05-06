@@ -2,6 +2,7 @@ export type DisplayRallyRow = {
 	driver_name: string;
 	class_name: string;
 	total_ms: number;
+	penalty_ms: number;
 	finished_stages: number;
 	delta_p1: number | null;
 	delta_prev: number | null;
@@ -13,6 +14,7 @@ export type DisplayStageRow = {
 	driver_name: string;
 	class_name: string;
 	stage_ms: number;
+	penalty_ms: number;
 	delta_p1: number | null;
 	delta_prev: number | null;
 	position: number;

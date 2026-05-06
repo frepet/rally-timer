@@ -16,6 +16,7 @@ export type FinishRow = {
 	stage_id: number;
 	tag: string;
 	timestamp: number;
+	penalty_ms: number;
 	dnf: boolean;
 };
 
@@ -71,11 +72,12 @@ export function buildStageTimes(startRows: StartRow[], finishRows: FinishRow[]):
 
 	return [...groups.values()].map((g) => {
 		const finishes = finishMap.get(`${g.stage_id}:${g.driver_tag}`) ?? [];
+		const effectiveTs = (fe: FinishRow) => fe.timestamp + fe.penalty_ms;
 		const latestStart = g.starts.reduce((max, s) => (s > max ? s : max));
-		const validFinishes = finishes.filter((fe) => fe.timestamp >= latestStart);
+		const validFinishes = finishes.filter((fe) => effectiveTs(fe) >= latestStart);
 		const elapsed_ms = calculateStageTime(
 			g.starts,
-			finishes.map((fe) => fe.timestamp)
+			finishes.map(effectiveTs)
 		);
 		// A result is dnf only when the winning finish is a synthetic DNF finish,
 		// i.e. there is no real (dnf=false) valid finish.

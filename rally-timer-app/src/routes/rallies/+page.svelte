@@ -199,6 +199,57 @@
 		await loadGates();
 	}
 
+	// --- Penalty
+	type Finisher = { finish_event_id: number; timestamp: number; penalty_ms: number; driver_id: number; driver_name: string };
+	let penaltyModalOpen = $state(false);
+	let penaltyStageId = $state<number | null>(null);
+	let penaltyFinishers = $state<Finisher[]>([]);
+	let penaltyDriverFinishEventId = $state<number | null>(null);
+	let penaltySeconds = $state(10);
+	let penaltySubmitting = $state(false);
+
+	const selectedFinisher = $derived(
+		penaltyFinishers.find((f) => f.finish_event_id === penaltyDriverFinishEventId) ?? null
+	);
+
+	async function openPenaltyModal() {
+		penaltyStageId = stages[0]?.id ?? null;
+		penaltyFinishers = [];
+		penaltyDriverFinishEventId = null;
+		penaltySeconds = 0;
+		penaltyModalOpen = true;
+		if (penaltyStageId) await loadFinishers(penaltyStageId);
+	}
+
+	async function loadFinishers(stageId: number) {
+		penaltyFinishers = await fetchJSON<Finisher[]>(`/api/stage/${stageId}/finishers`);
+		penaltyDriverFinishEventId = penaltyFinishers[0]?.finish_event_id ?? null;
+		penaltySeconds = Math.round((penaltyFinishers[0]?.penalty_ms ?? 0) / 1000);
+	}
+
+	function selectPenaltyDriver(finishEventId: number) {
+		penaltyDriverFinishEventId = finishEventId;
+		const f = penaltyFinishers.find((f) => f.finish_event_id === finishEventId);
+		penaltySeconds = Math.round((f?.penalty_ms ?? 0) / 1000);
+	}
+
+	async function applyPenalty() {
+		if (!penaltyDriverFinishEventId || penaltySeconds == null) return;
+		penaltySubmitting = true;
+		try {
+			await kcFetchJSON(`/api/finish/${penaltyDriverFinishEventId}`, {
+				method: 'PATCH',
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify({ penalty_ms: penaltySeconds * 1000 })
+			});
+			penaltyModalOpen = false;
+		} catch (e) {
+			alert('Failed: ' + (e as Error).message);
+		} finally {
+			penaltySubmitting = false;
+		}
+	}
+
 	// --- Clear rally
 	let clearModalOpen = $state(false);
 	let clearing = $state(false);
@@ -328,6 +379,9 @@
 				Active Drivers
 			</Button>
 			{#if $isAdmin}
+				<Button size="sm" color="alternative" onclick={openPenaltyModal}>
+					Penalties
+				</Button>
 				<Button size="sm" color="alternative" onclick={openSubmitModal}>
 					<AwardOutline size="sm" class="mr-1" /> Submit to Championship
 				</Button>
@@ -502,6 +556,65 @@
 		{/if}
 	</Card>
 </div>
+
+<!-- Penalty Modal -->
+<Modal title="Penalty" bind:open={penaltyModalOpen} size="sm" autoclose={false}>
+	<div class="space-y-4">
+		<div>
+			<label for="penaltyStage" class="mb-1 block text-sm font-medium">Stage</label>
+			<Select
+				id="penaltyStage"
+				value={penaltyStageId ?? ''}
+				onchange={async (e) => {
+					penaltyStageId = Number((e.currentTarget as HTMLSelectElement).value);
+					await loadFinishers(penaltyStageId);
+				}}
+			>
+				{#each stages as s (s.id)}
+					<option value={s.id}>{s.name}</option>
+				{/each}
+			</Select>
+		</div>
+		<div>
+			<label for="penaltyDriver" class="mb-1 block text-sm font-medium">Driver</label>
+			{#if penaltyFinishers.length}
+				<Select
+					id="penaltyDriver"
+					value={penaltyDriverFinishEventId ?? ''}
+					onchange={(e) => selectPenaltyDriver(Number((e.currentTarget as HTMLSelectElement).value))}
+				>
+					{#each penaltyFinishers as f (f.finish_event_id)}
+						<option value={f.finish_event_id}>{f.driver_name}</option>
+					{/each}
+				</Select>
+			{:else}
+				<p class="text-sm text-gray-500 dark:text-gray-400">No finishers on this stage.</p>
+			{/if}
+		</div>
+		<div>
+			<label for="penaltySecs" class="mb-1 block text-sm font-medium">
+				Penalty (seconds){#if selectedFinisher && selectedFinisher.penalty_ms > 0}
+					<span class="ml-2 font-normal text-amber-600 dark:text-amber-400">
+						current: +{selectedFinisher.penalty_ms / 1000}s
+					</span>
+				{/if}
+			</label>
+			<Input id="penaltySecs" type="number" min="0" bind:value={penaltySeconds} />
+			{#if penaltySeconds === 0}
+				<p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Set to 0 to remove the penalty.</p>
+			{/if}
+		</div>
+		<div class="flex justify-end gap-2 border-t pt-3">
+			<Button color="alternative" onclick={() => (penaltyModalOpen = false)}>Cancel</Button>
+			<Button
+				onclick={applyPenalty}
+				disabled={penaltySubmitting || !penaltyDriverFinishEventId || penaltySeconds == null}
+			>
+				{penaltySubmitting ? 'Applying…' : penaltySeconds === 0 ? 'Remove Penalty' : 'Apply Penalty'}
+			</Button>
+		</div>
+	</div>
+</Modal>
 
 <!-- Active Drivers Modal -->
 <Modal title="Active Drivers" bind:open={driversModalOpen} size="md" autoclose={false}>

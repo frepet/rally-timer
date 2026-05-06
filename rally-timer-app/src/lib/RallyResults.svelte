@@ -80,6 +80,11 @@
 						<span class="whitespace-nowrap"
 							><span class="mr-1 opacity-50">Stages</span>{r.finished_stages}</span
 						>
+						{#if r.penalty_ms > 0}
+							<span class="whitespace-nowrap text-amber-600 dark:text-amber-400"
+								><span class="mr-1 opacity-70">Penalty</span>+{formatMs(r.penalty_ms)}</span
+							>
+						{/if}
 					</div>
 				</div>
 			{/each}
@@ -168,6 +173,11 @@
 											: '—'}</span
 									>
 								{/if}
+							{/if}
+							{#if r.penalty_ms > 0}
+								<span class="whitespace-nowrap text-amber-600 dark:text-amber-400"
+									><span class="mr-1 opacity-70">Penalty</span>+{formatMs(r.penalty_ms)}</span
+								>
 							{/if}
 						</div>
 					</div>

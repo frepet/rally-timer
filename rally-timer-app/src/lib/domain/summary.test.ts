@@ -11,11 +11,12 @@ const driver = (
 
 const stage = (id: number, name = `SS${id}`) => ({ id, name, is_closed: false });
 const start = (driver_id: number, stage_id: number, ts: number) => ({ driver_id, stage_id, ts });
-const finish = (stage_id: number, tag: string, ts: number, dnf = false) => ({
+const finish = (stage_id: number, tag: string, ts: number, dnf = false, penalty_ms = 0) => ({
 	stage_id,
 	tag,
 	ts,
-	dnf
+	dnf,
+	penalty_ms
 });
 
 describe('buildStageData', () => {
@@ -119,6 +120,7 @@ describe('buildRallyRows', () => {
 						driver_name: 'Alice',
 						class_name: 'A',
 						stage_ms: 4000,
+						penalty_ms: 0,
 						position: 1,
 						delta_p1: 0,
 						delta_prev: null,
@@ -144,6 +146,7 @@ describe('buildRallyRows', () => {
 						driver_name: 'Alice',
 						class_name: 'A',
 						stage_ms: 4000,
+						penalty_ms: 0,
 						position: 1,
 						delta_p1: 0,
 						delta_prev: null,
@@ -159,6 +162,7 @@ describe('buildRallyRows', () => {
 						driver_name: 'Alice',
 						class_name: 'A',
 						stage_ms: 7000,
+						penalty_ms: 0,
 						position: 1,
 						delta_p1: 0,
 						delta_prev: null,
@@ -183,6 +187,7 @@ describe('buildRallyRows', () => {
 						driver_name: 'Alice',
 						class_name: 'A',
 						stage_ms: 4000,
+						penalty_ms: 0,
 						position: 1,
 						delta_p1: 0,
 						delta_prev: null,
@@ -192,6 +197,7 @@ describe('buildRallyRows', () => {
 						driver_name: 'Bob',
 						class_name: 'A',
 						stage_ms: 5000,
+						penalty_ms: 0,
 						position: 2,
 						delta_p1: 1000,
 						delta_prev: 1000,
@@ -219,6 +225,7 @@ describe('buildRallyRows', () => {
 						driver_name: 'Diana',
 						class_name: 'A',
 						stage_ms: 4000,
+						penalty_ms: 0,
 						position: 1,
 						delta_p1: 0,
 						delta_prev: null,
@@ -228,6 +235,7 @@ describe('buildRallyRows', () => {
 						driver_name: 'Bob',
 						class_name: 'A',
 						stage_ms: 8000,
+						penalty_ms: 0,
 						position: 2,
 						delta_p1: 4000,
 						delta_prev: 4000,
@@ -243,6 +251,7 @@ describe('buildRallyRows', () => {
 						driver_name: 'Diana',
 						class_name: 'A',
 						stage_ms: 3000,
+						penalty_ms: 0,
 						position: 1,
 						delta_p1: 0,
 						delta_prev: null,
@@ -293,6 +302,73 @@ describe('buildStageData — status', () => {
 	it('stage with no starts and is_closed=true is closed', () => {
 		const result = buildStageData([], [{ id: 1, name: 'SS1', is_closed: true }], [], []);
 		expect(result[0].status).toBe('closed');
+	});
+});
+
+describe('buildStageData — penalties', () => {
+	it('adds penalty_ms to stage elapsed time', () => {
+		const result = buildStageData(
+			[driver(1, 'Alice', 'A', 'tagA')],
+			[stage(1)],
+			[start(1, 1, 1000)],
+			[finish(1, 'tagA', 5000, false, 10000)] // raw 4000ms + 10s penalty
+		);
+		expect(result[0].rows[0].stage_ms).toBe(14000);
+		expect(result[0].rows[0].penalty_ms).toBe(10000);
+	});
+
+	it('has penalty_ms 0 when no penalty is set', () => {
+		const result = buildStageData(
+			[driver(1, 'Alice', 'A', 'tagA')],
+			[stage(1)],
+			[start(1, 1, 1000)],
+			[finish(1, 'tagA', 5000)]
+		);
+		expect(result[0].rows[0].penalty_ms).toBe(0);
+	});
+
+	it('penalty affects ordering when it makes a driver slower than another', () => {
+		// Alice raw 4000ms + 5000ms penalty = 9000ms effective
+		// Bob raw 7000ms, no penalty → Bob wins
+		const result = buildStageData(
+			[driver(1, 'Alice', 'A', 'tagA'), driver(2, 'Bob', 'A', 'tagB')],
+			[stage(1)],
+			[start(1, 1, 1000), start(2, 1, 1000)],
+			[finish(1, 'tagA', 5000, false, 5000), finish(1, 'tagB', 8000)]
+		);
+		const rows = result[0].rows;
+		expect(rows[0].driver_name).toBe('Bob');
+		expect(rows[0].position).toBe(1);
+		expect(rows[1].driver_name).toBe('Alice');
+		expect(rows[1].position).toBe(2);
+		expect(rows[1].penalty_ms).toBe(5000);
+	});
+});
+
+describe('buildRallyRows — penalties', () => {
+	it('sums penalty_ms across stages', () => {
+		const stageData = buildStageData(
+			[driver(1, 'Alice', 'A', 'tagA')],
+			[stage(1), stage(2)],
+			[start(1, 1, 0), start(1, 2, 100000)],
+			[
+				finish(1, 'tagA', 60000, false, 5000), // SS1: 60s raw + 5s penalty
+				finish(2, 'tagA', 160000, false, 10000) // SS2: 60s raw + 10s penalty
+			]
+		);
+		const rows = buildRallyRows(stageData);
+		expect(rows[0].penalty_ms).toBe(15000);
+	});
+
+	it('penalty_ms is 0 when no penalties exist', () => {
+		const stageData = buildStageData(
+			[driver(1, 'Alice', 'A', 'tagA')],
+			[stage(1)],
+			[start(1, 1, 0)],
+			[finish(1, 'tagA', 60000)]
+		);
+		const rows = buildRallyRows(stageData);
+		expect(rows[0].penalty_ms).toBe(0);
 	});
 });
 
