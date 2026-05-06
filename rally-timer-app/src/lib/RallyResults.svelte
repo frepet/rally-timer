@@ -19,11 +19,6 @@
 
 	const activeRows = $derived(stages.find((s) => s.name === activeStage)?.rows ?? []);
 
-	let classAbbreviations: Record<string, string> = {
-		'Group A': 'A',
-		'Group B': 'B',
-		'Group S': 'S'
-	};
 </script>
 
 <!-- Rally leaderboard -->
@@ -32,26 +27,34 @@
 	{#if rallyRows.length}
 		<div>
 			{#each rallyRows as r, i (r.driver_name)}
-				<div class="rounded px-2 py-1 {i % 2 === 0 ? 'bg-gray-50 dark:bg-gray-700/40' : ''}">
-					<div class="flex items-center font-mono text-sm">
-						<span class=" w-6 text-right text-xl font-semibold text-gray-900 dark:text-white"
-							>{r.position}</span
-						>
-						<span class=" text-l ml-3 flex-1 font-sans font-medium text-gray-900 dark:text-white">
-							{r.driver_name}<span class=" text-l ml-1 font-normal opacity-60"
-								>({classAbbreviations[r.class_name]})</span
-							>
-						</span>
-						<span class="text-right text-xl text-gray-900 dark:text-white">
-							{#if r.position === 1}
-								{formatMs(r.total_ms)}
-							{:else}
-								{r.delta_prev != null ? '+' + formatMs(r.delta_prev) : '—'}
-							{/if}
-						</span>
+				<div
+					class="grid grid-cols-[1.5rem_1fr_auto] items-start gap-x-3 rounded px-2 py-1 {i % 2 === 0
+						? 'bg-gray-50 dark:bg-gray-700/40'
+						: ''}"
+				>
+					<!-- Position — spans both rows -->
+					<span
+						class="row-span-2 self-center text-right text-xl font-semibold text-gray-900 dark:text-white"
+						>{r.position}</span
+					>
+					<!-- Driver name -->
+					<div class="flex flex-wrap items-baseline gap-x-1.5 font-sans">
+						<span class="font-medium text-gray-900 dark:text-white">{r.driver_name}</span>
+						<span class="text-sm font-normal opacity-60">{r.class_name}</span>
 					</div>
+					<!-- Result — spans both rows -->
+					<span
+						class="row-span-2 self-center text-right font-mono text-xl text-gray-900 dark:text-white"
+					>
+						{#if r.position === 1}
+							{formatMs(r.total_ms)}
+						{:else}
+							{r.delta_prev != null ? '+' + formatMs(r.delta_prev) : '—'}
+						{/if}
+					</span>
+					<!-- Stats row -->
 					<div
-						class="ml-9 flex flex-wrap gap-x-6 gap-y-0.5 font-mono text-xs text-gray-500 dark:text-gray-400"
+						class="flex flex-wrap gap-x-6 gap-y-0.5 font-mono text-xs text-gray-500 dark:text-gray-400"
 					>
 						{#if r.position !== 1}
 							<span class="whitespace-nowrap"
@@ -96,32 +99,40 @@
 		{#if activeRows.length}
 			<div>
 				{#each activeRows as r, i (r.driver_name)}
-					<div class="rounded px-2 py-1 {i % 2 === 0 ? 'bg-gray-50 dark:bg-gray-700/40' : ''}">
-						<div class="flex items-center font-mono text-sm">
+					<div
+						class="grid grid-cols-[2.25rem_1fr_auto] items-start gap-x-3 rounded px-2 py-1 {i % 2 ===
+						0
+							? 'bg-gray-50 dark:bg-gray-700/40'
+							: ''}"
+					>
+						<!-- Position or DNF badge — spans both rows -->
+						<div class="row-span-2 self-center">
 							{#if r.dnf}
-								<Badge color="red" class="w-9 justify-center text-xs">DNF</Badge>
+								<Badge color="red" class="justify-center text-xs">DNF</Badge>
 							{:else}
-								<span class="w-6 text-right font-semibold text-gray-900 dark:text-white"
+								<span class="block text-right text-xl font-semibold text-gray-900 dark:text-white"
 									>{r.position}</span
 								>
 							{/if}
-							<span class="ml-3 flex-1 font-sans font-medium text-gray-900 dark:text-white">
-								{r.driver_name}<span class="ml-1 text-xs font-normal opacity-60"
-									>({classAbbreviations[r.class_name]})</span
-								>
-							</span>
-							<span class="text-right text-gray-900 dark:text-white">
-								{#if r.dnf}
-									{formatMs(r.stage_ms)}
-								{:else if r.position === 1}
-									{formatMs(r.stage_ms)}
-								{:else}
-									{r.delta_prev != null ? '+' + formatMs(r.delta_prev) : '—'}
-								{/if}
-							</span>
 						</div>
+						<!-- Driver name -->
+						<div class="flex flex-wrap items-baseline gap-x-1.5 font-sans">
+							<span class="font-medium text-gray-900 dark:text-white">{r.driver_name}</span>
+							<span class="text-sm font-normal opacity-60">{r.class_name}</span>
+						</div>
+						<!-- Result — spans both rows -->
+						<span
+							class="row-span-2 self-center text-right font-mono text-xl text-gray-900 dark:text-white"
+						>
+							{#if r.dnf || r.position === 1}
+								{formatMs(r.stage_ms)}
+							{:else}
+								{r.delta_prev != null ? '+' + formatMs(r.delta_prev) : '—'}
+							{/if}
+						</span>
+						<!-- Stats row -->
 						<div
-							class="ml-9 flex flex-wrap gap-x-6 gap-y-0.5 font-mono text-xs text-gray-500 dark:text-gray-400"
+							class="flex flex-wrap gap-x-6 gap-y-0.5 font-mono text-xs text-gray-500 dark:text-gray-400"
 						>
 							{#if r.position !== 1}
 								<span class="whitespace-nowrap"
