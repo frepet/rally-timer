@@ -57,9 +57,7 @@
 
 	function navClass(href: string, exact = false): string {
 		const active = exact ? pathname === href : pathname.startsWith(href);
-		return active
-			? 'text-primary-600 dark:!text-primary-500'
-			: 'text-gray-700 dark:!text-gray-300';
+		return active ? 'text-primary-600 dark:!text-primary-500' : 'text-gray-700 dark:!text-gray-300';
 	}
 </script>
 
@@ -90,7 +88,7 @@
 				disabled={savingTitle}>Cancel</Button
 			>
 		{:else}
-			<Heading class="ml-2">{title}</Heading>
+			<Heading class="small-caps ml-2">{title}</Heading>
 			{#if $isAdmin}
 				<button
 					class="ml-2 text-gray-500 hover:text-gray-800 dark:hover:text-gray-200"
