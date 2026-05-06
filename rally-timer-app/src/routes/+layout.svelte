@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import '../app.css';
 	import { PUBLIC_BUILD_SHA } from '$env/static/public';
+	import { page } from '$app/state';
 	import {
 		Button,
 		Heading,
@@ -50,6 +51,15 @@
 			titleDraft = title;
 			editingTitle = false;
 		}
+	}
+
+	const pathname = $derived(page.url.pathname);
+
+	function navClass(href: string, exact = false): string {
+		const active = exact ? pathname === href : pathname.startsWith(href);
+		return active
+			? 'text-primary-600 dark:!text-primary-500'
+			: 'text-gray-700 dark:!text-gray-300';
 	}
 </script>
 
@@ -100,16 +110,16 @@
 
 	<NavHamburger />
 	<NavUl>
-		<NavLi href="/" class="text-gray-700 dark:text-gray-300">Results</NavLi>
-		<NavLi href="/championships" class="text-gray-700 dark:text-gray-300">Championships</NavLi>
-		<NavLi href="/rules" class="text-gray-700 dark:text-gray-300">Rules</NavLi>
-		<NavLi href="/about" class="text-gray-700 dark:text-gray-300">About</NavLi>
+		<NavLi href="/" class={navClass('/', true)}>Results</NavLi>
+		<NavLi href="/championships" class={navClass('/championships')}>Championships</NavLi>
+		<NavLi href="/rules" class={navClass('/rules')}>Rules</NavLi>
+		<NavLi href="/about" class={navClass('/about')}>About</NavLi>
 		{#if $isAdmin}
 			<NavLi>|</NavLi>
-			<NavLi href="/rallies" class="text-gray-700 dark:text-gray-300">Rally</NavLi>
-			<NavLi href="/drivers" class="text-gray-700 dark:text-gray-300">Drivers</NavLi>
-			<NavLi href="/classes" class="text-gray-700 dark:text-gray-300">Classes</NavLi>
-			<NavLi href="/gates" class="text-gray-700 dark:text-gray-300">Gates</NavLi>
+			<NavLi href="/rallies" class={navClass('/rallies')}>Rally</NavLi>
+			<NavLi href="/drivers" class={navClass('/drivers')}>Drivers</NavLi>
+			<NavLi href="/classes" class={navClass('/classes')}>Classes</NavLi>
+			<NavLi href="/gates" class={navClass('/gates')}>Gates</NavLi>
 		{/if}
 		{#if $isAuthenticated}
 			<Button color="alternative" onclick={logout} class="p-1">Logout</Button>
