@@ -153,7 +153,7 @@
 <div class="w-full space-y-6 p-5">
 	<Card class="max-w-none p-4 sm:p-6 md:p-8">
 		<div class="mb-4">
-			<P class="text-xl font-semibold tracking-widest text-black uppercase dark:text-white">{stageName} events</P>
+			<P class="text-xl font-semibold tracking-widest text-black small-caps dark:text-white">{stageName} events</P>
 		</div>
 
 		{#if assignedGates.length}

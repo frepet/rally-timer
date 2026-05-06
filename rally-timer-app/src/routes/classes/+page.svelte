@@ -129,7 +129,7 @@
 	{/if}
 
 	<Card class="max-w-none p-4 sm:p-6 md:p-8">
-		<p class="mb-4 text-xl font-semibold tracking-widest text-black uppercase dark:text-white">
+		<p class="mb-4 text-xl font-semibold tracking-widest text-black small-caps dark:text-white">
 			Add Class
 		</p>
 		<div class="flex gap-3">
@@ -153,7 +153,7 @@
 	</Card>
 
 	<Card class="max-w-none p-4 sm:p-6 md:p-8">
-		<p class="mb-2 text-xl font-semibold tracking-widest text-black uppercase dark:text-white">
+		<p class="mb-2 text-xl font-semibold tracking-widest text-black small-caps dark:text-white">
 			Classes
 		</p>
 

@@ -319,7 +319,7 @@
 	<!-- Rally actions -->
 	<Card class="max-w-none p-4">
 		<div class="mb-3">
-			<p class="text-xl font-semibold tracking-widest text-black uppercase dark:text-white">
+			<p class="text-xl font-semibold tracking-widest text-black small-caps dark:text-white">
 				Current Rally
 			</p>
 		</div>
@@ -345,7 +345,7 @@
 	<!-- Stages -->
 	<Card class="max-w-none p-4">
 		<div class="mb-4">
-			<h2 class="text-xl font-semibold tracking-widest text-black uppercase dark:text-white">
+			<h2 class="text-xl font-semibold tracking-widest text-black small-caps dark:text-white">
 				Stages
 			</h2>
 		</div>

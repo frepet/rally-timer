@@ -244,7 +244,7 @@
 
 <div class="w-full space-y-6 p-5">
 	<Card class="max-w-none p-4 sm:p-6 md:p-8">
-		<p class="mb-4 text-xl font-semibold tracking-widest text-black uppercase dark:text-white">Add Driver</p>
+		<p class="mb-4 text-xl font-semibold tracking-widest text-black small-caps dark:text-white">Add Driver</p>
 
 		<div class="grid grid-cols-1 gap-3 md:grid-cols-4">
 			<div>
@@ -346,7 +346,7 @@
 
 	<Card class="max-w-none p-4 sm:p-6 md:p-8">
 		<div class="mb-2 flex items-center gap-2">
-			<p class="flex-1 text-xl font-semibold tracking-widest text-black uppercase dark:text-white">Drivers</p>
+			<p class="flex-1 text-xl font-semibold tracking-widest text-black small-caps dark:text-white">Drivers</p>
 			<Button color="red" class="w-32" onclick={clearAll}>Clear All</Button>
 		</div>
 

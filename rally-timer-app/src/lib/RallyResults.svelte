@@ -22,7 +22,7 @@
 
 <!-- Rally leaderboard -->
 <Card class="max-w-none p-4 sm:p-6 md:p-8 dark:bg-surface-850">
-	<p class="mb-4 text-xl font-semibold tracking-widest text-black uppercase dark:text-white">
+	<p class="mb-4 text-xl font-semibold tracking-widest text-black small-caps dark:text-white">
 		Rally Leaderboard
 	</p>
 	{#if rallyRows.length}
@@ -81,7 +81,7 @@
 
 <!-- Stage tabs + leaderboard -->
 <Card class="max-w-none p-4 sm:p-6 md:p-8 dark:bg-surface-850">
-	<p class="mb-4 text-xl font-semibold tracking-widest text-black uppercase dark:text-white">
+	<p class="mb-4 text-xl font-semibold tracking-widest text-black small-caps dark:text-white">
 		Stage Leaderboard
 	</p>
 	<div class="mb-4 flex flex-wrap gap-2">
