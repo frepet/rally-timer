@@ -39,7 +39,7 @@
 	--color-surface-600: #475569;
 	--color-surface-700: #334155;
 	--color-surface-750: #293548;
-	--color-surface-800: #202020;
+	--color-surface-800: #303030;
 	--color-surface-850: #202020;
 	--color-surface-900: #101010;
 
@@ -56,10 +56,6 @@
 	/* disable chrome cancel button */
 	input[type='search']::-webkit-search-cancel-button {
 		display: none;
-	}
-
-	.dark body {
-		background-color: #101010;
 	}
 }
 

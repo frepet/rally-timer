@@ -27,22 +27,22 @@
 </script>
 
 <!-- Rally leaderboard -->
-<Card class="max-w-none p-4 sm:p-6 md:p-8">
+<Card class="max-w-none p-4 sm:p-6 md:p-8 dark:bg-surface-850">
 	<Heading class="mb-4 text-2xl font-bold">Rally Leaderboard</Heading>
 	{#if rallyRows.length}
 		<div>
 			{#each rallyRows as r, i (r.driver_name)}
 				<div class="rounded px-2 py-1 {i % 2 === 0 ? 'bg-gray-50 dark:bg-gray-700/40' : ''}">
 					<div class="flex items-center font-mono text-sm">
-						<span class="w-6 text-right font-semibold text-gray-900 dark:text-white"
+						<span class=" w-6 text-right text-xl font-semibold text-gray-900 dark:text-white"
 							>{r.position}</span
 						>
-						<span class="ml-3 flex-1 font-sans font-medium text-gray-900 dark:text-white">
-							{r.driver_name}<span class="ml-1 text-xs font-normal opacity-60"
+						<span class=" text-l ml-3 flex-1 font-sans font-medium text-gray-900 dark:text-white">
+							{r.driver_name}<span class=" text-l ml-1 font-normal opacity-60"
 								>({classAbbreviations[r.class_name]})</span
 							>
 						</span>
-						<span class="text-right text-gray-900 dark:text-white">
+						<span class="text-right text-xl text-gray-900 dark:text-white">
 							{#if r.position === 1}
 								{formatMs(r.total_ms)}
 							{:else}
@@ -76,12 +76,12 @@
 </Card>
 
 <!-- Stage tabs + leaderboard -->
-<Card class="max-w-none p-4 sm:p-6 md:p-8">
+<Card class="max-w-none p-4 sm:p-6 md:p-8 dark:bg-surface-850">
 	<div class="mb-4 flex flex-wrap gap-2">
 		{#each stages as s (s.name)}
 			<Button
 				size="sm"
-				color={activeStage === s.name ? 'blue' : 'light'}
+				color={activeStage === s.name ? 'blue' : 'alternative'}
 				onclick={() => (activeStage = s.name)}
 			>
 				{s.name}
