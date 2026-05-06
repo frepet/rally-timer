@@ -70,6 +70,11 @@
 	input[type='search']::-webkit-search-cancel-button {
 		display: none;
 	}
+
+	/* Small caps headings in rendered markdown */
+	.prose :is(h1, h2, h3, h4, h5, h6) {
+		font-variant-caps: small-caps;
+	}
 }
 
 /* Status dot — drop-in replacement for heavy <Badge> in gate/driver status */
