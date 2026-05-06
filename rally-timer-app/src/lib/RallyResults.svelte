@@ -94,7 +94,7 @@
 			>
 				{s.name}
 				{#if s.status === 'live'}
-					<span class="status-dot status-dot--ok"></span>
+					<span class="status-dot status-dot--live"></span>
 				{:else if s.status === 'closed'}
 					<span class="status-dot status-dot--off"></span>
 				{/if}

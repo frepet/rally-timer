@@ -98,8 +98,16 @@
 	background-color: var(--color-surface-400);
 }
 .status-dot--live {
-	background-color: var(--color-warn);
-	box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-warn) 25%, transparent);
+	background-color: var(--color-ok);
+	box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-ok) 22%, transparent);
+	animation: status-pulse 1.6s ease-in-out infinite;
+}
+@keyframes status-pulse {
+	0%, 100% { opacity: 1; transform: scale(1); }
+	50%      { opacity: 0.45; transform: scale(0.8); }
+}
+@media (prefers-reduced-motion: reduce) {
+	.status-dot--live { animation: none; }
 }
 
 /* Unlayered — beats all Tailwind/Flowbite layered utility classes (py-4, py-3, etc.).
