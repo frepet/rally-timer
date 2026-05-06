@@ -97,6 +97,10 @@
 .status-dot--off {
 	background-color: var(--color-surface-400);
 }
+.status-dot--upcoming {
+	background-color: #eab308;
+	box-shadow: 0 0 0 2px color-mix(in srgb, #eab308 25%, transparent);
+}
 .status-dot--live {
 	background-color: var(--color-ok);
 	box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-ok) 22%, transparent);
