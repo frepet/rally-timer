@@ -11,10 +11,20 @@
 		stages: StageData[];
 	} = $props();
 
-	let activeStage = $state(stages[0]?.name ?? null);
+	function defaultStage(stages: StageData[]): string | null {
+		return (
+			stages.find((s) => s.status === 'live')?.name ??
+			stages.findLast((s) => s.status === 'closed')?.name ??
+			stages.find((s) => s.status === 'upcoming')?.name ??
+			stages[0]?.name ??
+			null
+		);
+	}
+
+	let activeStage = $state(defaultStage(stages));
 
 	$effect(() => {
-		if (activeStage == null && stages.length) activeStage = stages[0].name;
+		if (activeStage == null && stages.length) activeStage = defaultStage(stages);
 	});
 
 	const activeRows = $derived(stages.find((s) => s.name === activeStage)?.rows ?? []);
