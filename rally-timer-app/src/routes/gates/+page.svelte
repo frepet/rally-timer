@@ -239,7 +239,7 @@
 <div class="w-full space-y-6 p-5">
 	<Card class="max-w-none p-4 sm:p-6 md:p-8">
 		<div class="mb-4 flex items-center justify-between">
-			<P class="text-2xl font-bold">Registered Gates</P>
+			<P class="text-xl font-semibold tracking-widest text-black uppercase dark:text-white">Registered Gates</P>
 			<P class="text-sm opacity-60">Auto-refreshes every 5s</P>
 		</div>
 
@@ -307,7 +307,7 @@
 
 	<Card class="max-w-none p-4 sm:p-6 md:p-8">
 		<div class="mb-2 flex items-center justify-between">
-			<P class="text-xl font-bold">Live Pass Console</P>
+			<P class="text-xl font-semibold tracking-widest text-black uppercase dark:text-white">Live Pass Console</P>
 			<P class="text-sm opacity-60">{consoleLog.length} / {MAX_LOG}</P>
 		</div>
 		<P class="mb-3 text-sm opacity-70">

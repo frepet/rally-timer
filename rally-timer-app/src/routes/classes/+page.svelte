@@ -122,8 +122,6 @@
 </script>
 
 <div class="w-full space-y-6 p-5">
-	<P class="text-3xl font-bold">Classes</P>
-
 	{#if error}
 		<Card class="max-w-none border-red-300 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/30">
 			<P class="text-red-700 dark:text-red-300">{error}</P>
@@ -131,7 +129,9 @@
 	{/if}
 
 	<Card class="max-w-none p-4 sm:p-6 md:p-8">
-		<h5 class="mb-4 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Add Class</h5>
+		<p class="mb-4 text-xl font-semibold tracking-widest text-black uppercase dark:text-white">
+			Add Class
+		</p>
 		<div class="flex gap-3">
 			<Input
 				bind:value={newName}
@@ -153,12 +153,16 @@
 	</Card>
 
 	<Card class="max-w-none p-4 sm:p-6 md:p-8">
-		<h5 class="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Classes</h5>
+		<p class="mb-2 text-xl font-semibold tracking-widest text-black uppercase dark:text-white">
+			Classes
+		</p>
 
 		<Table hoverable={true}>
 			<TableHead>
 				<TableHeadCell>Name</TableHeadCell>
-				<TableHeadCell class="w-32 text-right" title="Higher number = starts first">Priority</TableHeadCell>
+				<TableHeadCell class="w-32 text-right" title="Higher number = starts first"
+					>Priority</TableHeadCell
+				>
 				<TableHeadCell class="text-right">Drivers</TableHeadCell>
 				<TableHeadCell class="flex justify-end">Actions</TableHeadCell>
 			</TableHead>

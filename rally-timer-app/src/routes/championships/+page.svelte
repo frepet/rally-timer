@@ -159,14 +159,7 @@
 </script>
 
 <div class="w-full space-y-6 p-5">
-	<div class="flex flex-wrap items-center justify-between gap-2">
-		<P class="text-3xl font-bold">Championships</P>
-		{#if $isAdmin}
-			<Button size="sm" class="whitespace-nowrap" onclick={() => (createModalOpen = true)}>
-				<PlusOutline size="sm" class="mr-1" /> New Championship
-			</Button>
-		{/if}
-	</div>
+	<div class="flex flex-wrap items-center justify-between gap-2"></div>
 
 	{#if championships.length === 0}
 		<Card class="max-w-none p-8 text-center">
@@ -204,6 +197,11 @@
 				>
 					<TrashBinOutline size="sm" />
 				</button>
+			{/if}
+			{#if $isAdmin}
+				<Button size="sm" class="whitespace-nowrap" onclick={() => (createModalOpen = true)}>
+					<PlusOutline size="sm" class="mr-1" /> New Championship
+				</Button>
 			{/if}
 		</div>
 
@@ -260,9 +258,13 @@
 														? 'bg-gray-50 dark:bg-gray-700/40'
 														: 'bg-white dark:bg-gray-800'}"
 												>
-													<TableBodyCell class="w-8 px-2 text-right font-semibold">{i + 1}</TableBodyCell>
+													<TableBodyCell class="w-8 px-2 text-right font-semibold"
+														>{i + 1}</TableBodyCell
+													>
 													<TableBodyCell>{row.driver_name}</TableBodyCell>
-													<TableBodyCell class="text-right font-bold">{row.total_points}</TableBodyCell>
+													<TableBodyCell class="text-right font-bold"
+														>{row.total_points}</TableBodyCell
+													>
 													{#each rallies as r (r.id)}
 														{@const rp = row.rally_points.find((x) => x.rally_id === r.id)}
 														<TableBodyCell class="text-right font-mono">

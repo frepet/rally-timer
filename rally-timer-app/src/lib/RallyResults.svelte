@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Card, Button, Heading, Badge } from 'flowbite-svelte';
+	import { Card, Button, Badge } from 'flowbite-svelte';
 
 	import { formatMs, type DisplayRallyRow, type StageData } from './results';
 
@@ -18,12 +18,13 @@
 	});
 
 	const activeRows = $derived(stages.find((s) => s.name === activeStage)?.rows ?? []);
-
 </script>
 
 <!-- Rally leaderboard -->
 <Card class="max-w-none p-4 sm:p-6 md:p-8 dark:bg-surface-850">
-	<Heading class="mb-4 text-2xl font-bold">Rally Leaderboard</Heading>
+	<p class="mb-4 text-xl font-semibold tracking-widest text-black uppercase dark:text-white">
+		Rally Leaderboard
+	</p>
 	{#if rallyRows.length}
 		<div>
 			{#each rallyRows as r, i (r.driver_name)}
@@ -80,6 +81,9 @@
 
 <!-- Stage tabs + leaderboard -->
 <Card class="max-w-none p-4 sm:p-6 md:p-8 dark:bg-surface-850">
+	<p class="mb-4 text-xl font-semibold tracking-widest text-black uppercase dark:text-white">
+		Stage Leaderboard
+	</p>
 	<div class="mb-4 flex flex-wrap gap-2">
 		{#each stages as s (s.name)}
 			<Button
@@ -100,7 +104,8 @@
 			<div>
 				{#each activeRows as r, i (r.driver_name)}
 					<div
-						class="grid grid-cols-[2.25rem_1fr_auto] items-start gap-x-3 rounded px-2 py-1 {i % 2 ===
+						class="grid grid-cols-[2.25rem_1fr_auto] items-start gap-x-3 rounded px-2 py-1 {i %
+							2 ===
 						0
 							? 'bg-gray-50 dark:bg-gray-700/40'
 							: ''}"

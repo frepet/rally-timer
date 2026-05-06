@@ -319,7 +319,7 @@
 	<!-- Rally actions -->
 	<Card class="max-w-none p-4">
 		<div class="mb-3">
-			<p class="text-xs font-semibold uppercase tracking-widest text-gray-500 dark:text-gray-400">
+			<p class="text-xl font-semibold tracking-widest text-black uppercase dark:text-white">
 				Current Rally
 			</p>
 		</div>
@@ -345,14 +345,16 @@
 	<!-- Stages -->
 	<Card class="max-w-none p-4">
 		<div class="mb-4">
-			<h2 class="text-xl font-bold tracking-tight text-gray-900 dark:text-gray-100">Stages</h2>
+			<h2 class="text-xl font-semibold tracking-widest text-black uppercase dark:text-white">
+				Stages
+			</h2>
 		</div>
 
 		<!-- Stages Cards -->
 		<div class="flex flex-col gap-3">
 			{#each stages as s (s.id)}
 				<div
-					class="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800/50"
+					class="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900/50"
 				>
 					<!-- Header: name + gate chips + pen icon (admin) -->
 					<div class="mb-3 flex flex-wrap items-center gap-2">
@@ -376,7 +378,8 @@
 								<span
 									class="flex items-center gap-1.5 rounded border border-gray-200 bg-white px-2 py-0.5 text-sm dark:border-gray-600 dark:bg-gray-700"
 								>
-									<span class="status-dot {isOnline(g) ? 'status-dot--ok' : 'status-dot--off'}"></span>
+									<span class="status-dot {isOnline(g) ? 'status-dot--ok' : 'status-dot--off'}"
+									></span>
 									<span class="font-mono text-xs text-gray-700 dark:text-gray-200"
 										>{g.name ?? g.id.slice(0, 8)}</span
 									>
@@ -392,6 +395,16 @@
 									{/if}
 								</span>
 							{/each}
+							{#if $isAdmin}
+								<button
+									type="button"
+									class="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300"
+									onclick={() => startEdit(s)}
+									title="Rename stage"
+								>
+									<EditOutline size="sm" />
+								</button>
+							{/if}
 							{#if !assignedGatesForStage(s.id).length}
 								<span class="text-xs text-gray-400 dark:text-gray-500">No gate assigned</span>
 							{/if}
@@ -416,14 +429,6 @@
 										</Select>
 										<Button size="xs" onclick={() => assignGateToStage(s.id)}>Assign</Button>
 									{/if}
-									<button
-										type="button"
-										class="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300"
-										onclick={() => startEdit(s)}
-										title="Rename stage"
-									>
-										<EditOutline size="sm" />
-									</button>
 									<button
 										type="button"
 										onclick={(e) => openStageMenu(e, s.id)}
@@ -473,19 +478,19 @@
 				</div>
 			{/each}
 			{#if !stages.length}
-				<p class="rounded-lg border-2 border-dashed border-gray-200 py-8 text-center text-sm text-gray-400 dark:border-gray-700 dark:text-gray-500">No stages yet.</p>
+				<p
+					class="rounded-lg border-2 border-dashed border-gray-200 py-8 text-center text-sm text-gray-400 dark:border-gray-700 dark:text-gray-500"
+				>
+					No stages yet.
+				</p>
 			{/if}
 		</div>
 
 		{#if $isAdmin}
 			<!-- Add Stage -->
 			<div class="mt-4 border-t border-gray-200 pt-4 dark:border-gray-700">
-				<p class="mb-3 text-xs font-semibold uppercase tracking-widest text-gray-500 dark:text-gray-400">
-					Add Stage
-				</p>
 				<div class="grid grid-cols-1 gap-3 md:grid-cols-2">
 					<div>
-						<label for="stageName" class="mb-1 block text-sm font-medium">Stage name</label>
 						<Input
 							id="stageName"
 							bind:value={newStageName}
