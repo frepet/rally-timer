@@ -84,7 +84,7 @@
 		{#each stages as s (s.name)}
 			<Button
 				size="sm"
-				color={activeStage === s.name ? 'blue' : 'alternative'}
+				color={activeStage === s.name ? 'primary' : 'alternative'}
 				onclick={() => (activeStage = s.name)}
 			>
 				{s.name}

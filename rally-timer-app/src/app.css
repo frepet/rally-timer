@@ -29,16 +29,29 @@
 	--color-secondary-800: #075985;
 	--color-secondary-900: #0c4a6e;
 
-	/* Surface ramp — slate-based neutrals for page/card backgrounds */
-	--color-surface-50: #f8fafc;
-	--color-surface-100: #f1f5f9;
-	--color-surface-200: #e2e8f0;
-	--color-surface-300: #cbd5e1;
-	--color-surface-400: #94a3b8;
-	--color-surface-500: #64748b;
-	--color-surface-600: #475569;
-	--color-surface-700: #334155;
-	--color-surface-750: #293548;
+	/* Override Tailwind's cool/blue-tinted gray with pure neutral grays */
+	--color-gray-50: #f8f8f8;
+	--color-gray-100: #f0f0f0;
+	--color-gray-200: #e0e0e0;
+	--color-gray-300: #cccccc;
+	--color-gray-400: #a0a0a0;
+	--color-gray-500: #707070;
+	--color-gray-600: #505050;
+	--color-gray-700: #404040;
+	--color-gray-800: #282828;
+	--color-gray-900: #181818;
+	--color-gray-950: #080808;
+
+	/* Surface ramp — pure grayscale, #101010 at the dark end */
+	--color-surface-50: #f5f5f5;
+	--color-surface-100: #e8e8e8;
+	--color-surface-200: #d4d4d4;
+	--color-surface-300: #bdbdbd;
+	--color-surface-400: #a0a0a0;
+	--color-surface-500: #858585;
+	--color-surface-600: #686868;
+	--color-surface-700: #505050;
+	--color-surface-750: #404040;
 	--color-surface-800: #303030;
 	--color-surface-850: #202020;
 	--color-surface-900: #101010;
