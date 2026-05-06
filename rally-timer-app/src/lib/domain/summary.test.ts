@@ -9,7 +9,7 @@ const driver = (
 	rfid_tag: string | null = `tag${id}`
 ) => ({ id, name, class_name, rfid_tag });
 
-const stage = (id: number, name = `SS${id}`) => ({ id, name });
+const stage = (id: number, name = `SS${id}`) => ({ id, name, is_closed: false });
 const start = (driver_id: number, stage_id: number, ts: number) => ({ driver_id, stage_id, ts });
 const finish = (stage_id: number, tag: string, ts: number, dnf = false) => ({
 	stage_id,
@@ -113,6 +113,7 @@ describe('buildRallyRows', () => {
 		const stageData = [
 			{
 				name: 'SS1',
+				status: 'closed' as const,
 				rows: [
 					{
 						driver_name: 'Alice',
@@ -137,6 +138,7 @@ describe('buildRallyRows', () => {
 		const stageData = [
 			{
 				name: 'SS1',
+				status: 'closed' as const,
 				rows: [
 					{
 						driver_name: 'Alice',
@@ -151,6 +153,7 @@ describe('buildRallyRows', () => {
 			},
 			{
 				name: 'SS2',
+				status: 'closed' as const,
 				rows: [
 					{
 						driver_name: 'Alice',
@@ -174,6 +177,7 @@ describe('buildRallyRows', () => {
 		const stageData = [
 			{
 				name: 'SS1',
+				status: 'closed' as const,
 				rows: [
 					{
 						driver_name: 'Alice',
@@ -209,6 +213,7 @@ describe('buildRallyRows', () => {
 		const stageData = [
 			{
 				name: 'SS1',
+				status: 'closed' as const,
 				rows: [
 					{
 						driver_name: 'Diana',
@@ -232,6 +237,7 @@ describe('buildRallyRows', () => {
 			},
 			{
 				name: 'SS2',
+				status: 'closed' as const,
 				rows: [
 					{
 						driver_name: 'Diana',
@@ -250,6 +256,43 @@ describe('buildRallyRows', () => {
 		expect(rows[0].total_ms).toBe(7000);
 		expect(rows[1].driver_name).toBe('Bob');
 		expect(rows[1].total_ms).toBe(8000);
+	});
+});
+
+describe('buildStageData — status', () => {
+	it('stage with no starts is upcoming', () => {
+		const result = buildStageData(
+			[driver(1, 'Alice', 'A', 'tagA')],
+			[stage(1)],
+			[],
+			[]
+		);
+		expect(result[0].status).toBe('upcoming');
+	});
+
+	it('stage with a start event but not closed is live', () => {
+		const result = buildStageData(
+			[driver(1, 'Alice', 'A', 'tagA')],
+			[stage(1)],
+			[start(1, 1, 1000)],
+			[]
+		);
+		expect(result[0].status).toBe('live');
+	});
+
+	it('stage with is_closed=true is closed regardless of starts', () => {
+		const result = buildStageData(
+			[driver(1, 'Alice', 'A', 'tagA')],
+			[{ id: 1, name: 'SS1', is_closed: true }],
+			[start(1, 1, 1000)],
+			[finish(1, 'tagA', 5000)]
+		);
+		expect(result[0].status).toBe('closed');
+	});
+
+	it('stage with no starts and is_closed=true is closed', () => {
+		const result = buildStageData([], [{ id: 1, name: 'SS1', is_closed: true }], [], []);
+		expect(result[0].status).toBe('closed');
 	});
 });
 

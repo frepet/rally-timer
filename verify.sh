@@ -191,6 +191,18 @@ fi
 
 # ---------------------------------------------------------------------------
 echo ""
+echo "── Stage Status (is_closed) ────────────────────────────────────────────"
+
+bundle=$(get /api/bundle)
+
+dnf_stage_closed=$(echo "$bundle" | jq -r '.stages[] | select(.name == "SS1 - DNF Test") | .is_closed')
+check "SS1 - DNF Test is_closed=true after close API call" "true" "$dnf_stage_closed"
+
+open_stage_closed=$(echo "$bundle" | jq -r '.stages[] | select(.name == "SS1 - Status Check (open)") | .is_closed')
+check "SS1 - Status Check (open) is_closed=false (never closed)" "false" "$open_stage_closed"
+
+# ---------------------------------------------------------------------------
+echo ""
 echo "────────────────────────────────────────────────────────────────────────"
 echo "  $pass passed / $((pass + fail)) total"
 if [[ $fail -gt 0 ]]; then

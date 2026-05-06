@@ -19,8 +19,11 @@ export type DisplayStageRow = {
 	dnf: boolean;
 };
 
+export type StageStatus = 'upcoming' | 'live' | 'closed';
+
 export type StageData = {
 	name: string;
+	status: StageStatus;
 	rows: DisplayStageRow[];
 };
 

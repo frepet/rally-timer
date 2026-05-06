@@ -33,6 +33,7 @@ export type BundleResponse = {
 	stages: {
 		id: number;
 		name: string;
+		is_closed: boolean;
 	}[];
 	start_events: {
 		id: number;

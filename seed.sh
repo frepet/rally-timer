@@ -273,6 +273,13 @@ echo "    Group S: Charlie 3:50 (230000ms)"
 echo "    Group B: Bob 4:15 (255000ms)"
 
 # ---------------------------------------------------------------------------
+# Create one more open stage so verify.sh can assert is_closed=false on it.
+echo ""
+echo "==> Creating open stage for status verification..."
+open_stage_id=$(post /api/stage '{"name":"SS1 - Status Check (open)"}' "${auth[@]}" | jq -r '.id')
+echo "    Open stage id=$open_stage_id (not closed, no starts)"
+
+# ---------------------------------------------------------------------------
 echo ""
 echo "Done."
 echo ""

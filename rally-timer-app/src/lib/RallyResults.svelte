@@ -90,8 +90,14 @@
 				size="sm"
 				color={activeStage === s.name ? 'primary' : 'alternative'}
 				onclick={() => (activeStage = s.name)}
+				class="flex items-center gap-2"
 			>
 				{s.name}
+				{#if s.status === 'live'}
+					<span class="status-dot status-dot--ok"></span>
+				{:else if s.status === 'closed'}
+					<span class="status-dot status-dot--off"></span>
+				{/if}
 			</Button>
 		{/each}
 		{#if !stages.length}

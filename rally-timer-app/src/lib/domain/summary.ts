@@ -3,7 +3,8 @@ import {
 	assignPositionsAndDeltas,
 	type DisplayRallyRow,
 	type DisplayStageRow,
-	type StageData
+	type StageData,
+	type StageStatus
 } from '../results';
 
 export type SummaryDriver = {
@@ -16,6 +17,7 @@ export type SummaryDriver = {
 export type SummaryStage = {
 	id: number;
 	name: string;
+	is_closed: boolean;
 };
 
 export type SummaryStartEvent = {
@@ -76,7 +78,11 @@ export function buildStageData(
 
 		rows.sort((a, b) => a.stage_ms - b.stage_ms);
 		assignPositionsAndDeltas(rows, (r) => r.stage_ms);
-		return { name: stage.name, rows };
+
+		const hasStarts = starts.some((se) => se.stage_id === stage.id);
+		const status: StageStatus = stage.is_closed ? 'closed' : hasStarts ? 'live' : 'upcoming';
+
+		return { name: stage.name, status, rows };
 	});
 }
 

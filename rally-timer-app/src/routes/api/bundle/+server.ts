@@ -10,7 +10,7 @@ export async function GET(): Promise<Response> {
 			WHERE d.active = true
 			ORDER BY c.start_priority DESC, d.name ASC
 		`,
-		sql`SELECT id, name FROM stages ORDER BY id`,
+		sql`SELECT id, name, is_closed FROM stages ORDER BY id`,
 		sql`SELECT id, stage_id, driver_id, ts_ms AS ts FROM start_events ORDER BY ts_ms`,
 		sql`SELECT id, stage_id, timestamp AS ts, tag, dnf FROM finish_events ORDER BY timestamp`
 	]);

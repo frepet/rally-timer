@@ -9,9 +9,10 @@ export async function POST(event: RequestEvent): Promise<Response> {
 	const stageId = Number(event.params.id);
 	if (!stageId) throw error(400, 'Invalid stage id');
 
-	// Verify stage exists
+	// Verify stage exists and mark it closed
 	const [stage] = await sql`SELECT id FROM stages WHERE id = ${stageId}`;
 	if (!stage) throw error(404, 'Stage not found');
+	await sql`UPDATE stages SET is_closed = true WHERE id = ${stageId}`;
 
 	// Load all starts for this stage with driver info
 	const starts = await sql`
