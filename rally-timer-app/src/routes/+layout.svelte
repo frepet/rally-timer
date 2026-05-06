@@ -73,15 +73,23 @@
 				size="sm"
 				color="alternative"
 				class="ml-1"
-				onclick={() => { titleDraft = title; editingTitle = false; }}
-				disabled={savingTitle}
-			>Cancel</Button>
+				onclick={() => {
+					titleDraft = title;
+					editingTitle = false;
+				}}
+				disabled={savingTitle}>Cancel</Button
+			>
 		{:else}
 			<Heading class="ml-2">{title}</Heading>
 			{#if $isAdmin}
 				<button
 					class="ml-2 text-gray-500 hover:text-gray-800 dark:hover:text-gray-200"
-					onclick={(e) => { e.preventDefault(); e.stopPropagation(); titleDraft = title; editingTitle = true; }}
+					onclick={(e) => {
+						e.preventDefault();
+						e.stopPropagation();
+						titleDraft = title;
+						editingTitle = true;
+					}}
 					aria-label="Edit title"
 				>
 					<EditOutline size="sm" />
@@ -104,9 +112,9 @@
 			<NavLi href="/gates" class="text-gray-700 dark:text-gray-300">Gates</NavLi>
 		{/if}
 		{#if $isAuthenticated}
-			<Button color="alternative" onclick={logout}>Logout</Button>
+			<Button color="alternative" onclick={logout} class="p-1">Logout</Button>
 		{:else}
-			<Button onclick={login}>Login</Button>
+			<Button color="alternative" onclick={login} class="p-1">Login</Button>
 		{/if}
 		<DarkModeToggle />
 	</NavUl>
