@@ -212,7 +212,8 @@
 					<div class="flex flex-wrap gap-2">
 						{#each rallies as r (r.id)}
 							<a href="/rallies/{r.id}">
-								<Badge color="blue" class="cursor-pointer hover:brightness-90"
+								<Badge
+									class="cursor-pointer bg-primary-700 text-white hover:brightness-90 dark:bg-primary-700 dark:text-white"
 									>{r.name} ({fmtDate(r.submitted_at)})</Badge
 								>
 							</a>
