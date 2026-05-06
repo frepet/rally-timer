@@ -93,7 +93,11 @@
 			<span>{fmtDate(Number(data.submitted_at))}</span>
 			{#each data.championships as c (c.id)}
 				<a href="/championships?id={c.id}">
-					<Badge color="blue" class="cursor-pointer hover:brightness-90">{c.name}</Badge>
+					<Badge
+						color="primary"
+						class="cursor-pointer bg-primary-700 text-white hover:brightness-90 dark:bg-primary-700 dark:text-white"
+						>{c.name}</Badge
+					>
 				</a>
 			{/each}
 		</div>
