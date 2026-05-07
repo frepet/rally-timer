@@ -11,37 +11,37 @@ function readTemplate(relativePath: string) {
 // Each empty-state element must carry an explicit dark:text-* class so it
 // stays readable when the page is rendered in dark mode.
 describe('dark mode: empty-state elements must have explicit dark text color', () => {
-	it('"No stages yet." in rallies page', () => {
+	it('"Inga sträckor än." in rallies page', () => {
 		const content = readTemplate('src/routes/rallies/+page.svelte');
-		const match = content.match(/class="([^"]*)"[^>]*>No stages yet\.<\/\w+>/);
+		const match = content.match(/class="([^"]*)"[^>]*>\s*Inga sträckor än\.\s*<\/\w+>/);
 		expect(match).not.toBeNull();
 		expect(match![1]).toMatch(/dark:text-/);
 	});
 
-	it('"No drivers/No matches" li in rallies page', () => {
+	it('"Inga förare/Inga träffar" li in rallies page', () => {
 		const content = readTemplate('src/routes/rallies/+page.svelte');
-		const match = content.match(/<li class="([^"]*)">[^<]*No drivers[^<]*<\/li>/);
+		const match = content.match(/<li class="([^"]*)">[^<]*Inga förare[^<]*<\/li>/);
 		expect(match).not.toBeNull();
 		expect(match![1]).toMatch(/dark:text-/);
 	});
 
-	it('"No results yet." in RallyResults', () => {
+	it('"Inga resultat än." in RallyResults', () => {
 		const content = readTemplate('src/lib/RallyResults.svelte');
-		const match = content.match(/class="([^"]*)"[^>]*>No results yet\.<\/\w+>/);
+		const match = content.match(/class="([^"]*)"[^>]*>Inga resultat än\.<\/\w+>/);
 		expect(match).not.toBeNull();
 		expect(match![1]).toMatch(/dark:text-/);
 	});
 
-	it('"No stages yet." in RallyResults', () => {
+	it('"Inga sträckor än." in RallyResults', () => {
 		const content = readTemplate('src/lib/RallyResults.svelte');
-		const match = content.match(/class="([^"]*)"[^>]*>No stages yet\.<\/\w+>/);
+		const match = content.match(/class="([^"]*)"[^>]*>Inga sträckor än\.<\/\w+>/);
 		expect(match).not.toBeNull();
 		expect(match![1]).toMatch(/dark:text-/);
 	});
 
-	it('"No stage results yet." in RallyResults', () => {
+	it('"Inga sträckaresultat än." in RallyResults', () => {
 		const content = readTemplate('src/lib/RallyResults.svelte');
-		const match = content.match(/class="([^"]*)"[^>]*>No stage results yet\.<\/\w+>/);
+		const match = content.match(/class="([^"]*)"[^>]*>Inga sträckaresultat än\.<\/\w+>/);
 		expect(match).not.toBeNull();
 		expect(match![1]).toMatch(/dark:text-/);
 	});
