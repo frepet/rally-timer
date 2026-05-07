@@ -115,7 +115,7 @@
 		await loadStages();
 	}
 	async function deleteStage(id: number) {
-		if (!confirm('Delete this stage? This also removes all its events.')) return;
+		if (!confirm('Ta bort denna sträcka? Detta tar även bort alla dess händelser.')) return;
 		await kcFetch(`/api/stage/${id}`, { method: 'DELETE' });
 		await loadStages();
 	}
@@ -123,9 +123,9 @@
 	async function closeStage(stageId: number) {
 		if (
 			!confirm(
-				'Close this stage?\n\n' +
-					'• DNF penalty times will be applied to drivers without a finish.\n' +
-					'• The gate will be unassigned and moved to the next stage.'
+				'Stäng denna sträcka?\n\n' +
+					'• DNF-tilläggstider tilldelas förare utan målgång.\n' +
+					'• Grinden kopplas bort och flyttas till nästa sträcka.'
 			)
 		)
 			return;
@@ -135,14 +135,14 @@
 				{ method: 'POST' }
 			);
 			const moved = result.gateMovedToStageId
-				? ` Gate moved to stage #${result.gateMovedToStageId}.`
+				? ` Grinden flyttades till sträcka #${result.gateMovedToStageId}.`
 				: '';
 			closeStageStatus = {
 				...closeStageStatus,
-				[stageId]: `Stage closed — ${result.dnfCount} DNF penalt${result.dnfCount !== 1 ? 'ies' : 'y'} applied.${moved}`
+				[stageId]: `Sträcka stängd — ${result.dnfCount} DNF-tillägg tilldelat.${moved}`
 			};
 		} catch (e) {
-			closeStageStatus = { ...closeStageStatus, [stageId]: `Error: ${(e as Error).message}` };
+			closeStageStatus = { ...closeStageStatus, [stageId]: `Fel: ${(e as Error).message}` };
 		}
 		await loadGates();
 	}
@@ -190,7 +190,7 @@
 	}
 
 	async function unassignGate(gate: Gate) {
-		if (!confirm(`Unassign gate "${gate.name ?? gate.id}" from this stage?`)) return;
+		if (!confirm(`Koppla bort grinden "${gate.name ?? gate.id}" från denna sträcka?`)) return;
 		await kcFetchJSON(`/api/gate/${gate.id}`, {
 			method: 'PATCH',
 			headers: { 'content-type': 'application/json' },
@@ -200,7 +200,13 @@
 	}
 
 	// --- Penalty
-	type Finisher = { finish_event_id: number; timestamp: number; penalty_ms: number; driver_id: number; driver_name: string };
+	type Finisher = {
+		finish_event_id: number;
+		timestamp: number;
+		penalty_ms: number;
+		driver_id: number;
+		driver_name: string;
+	};
 	let penaltyModalOpen = $state(false);
 	let penaltyStageId = $state<number | null>(null);
 	let penaltyFinishers = $state<Finisher[]>([]);
@@ -244,7 +250,7 @@
 			});
 			penaltyModalOpen = false;
 		} catch (e) {
-			alert('Failed: ' + (e as Error).message);
+			alert('Misslyckades: ' + (e as Error).message);
 		} finally {
 			penaltySubmitting = false;
 		}
@@ -263,7 +269,7 @@
 			await loadStages();
 			await loadGates();
 		} catch (e) {
-			alert('Clear failed: ' + (e as Error).message);
+			alert('Rensning misslyckades: ' + (e as Error).message);
 		} finally {
 			clearing = false;
 		}
@@ -306,7 +312,7 @@
 			const { id } = (await res.json()) as { id: string };
 			submitSuccess = id;
 		} catch (e) {
-			alert('Submit failed: ' + (e as Error).message);
+			alert('Inskickning misslyckades: ' + (e as Error).message);
 		} finally {
 			submitting = false;
 		}
@@ -361,7 +367,7 @@
 				deleteStage(id);
 			}}
 		>
-			<TrashBinOutline size="xs" /> Delete
+			<TrashBinOutline size="xs" /> Ta bort
 		</button>
 	</div>
 {/if}
@@ -370,27 +376,25 @@
 	<!-- Rally actions -->
 	<Card class="max-w-none p-4">
 		<div class="mb-3">
-			<p class="text-xl font-semibold tracking-widest text-black small-caps dark:text-white">
-				Current Rally
+			<p class="small-caps text-xl font-semibold tracking-widest text-black dark:text-white">
+				Aktuellt rally
 			</p>
 		</div>
 		<div class="flex flex-wrap gap-2">
 			<Button size="sm" color="alternative" onclick={() => (driversModalOpen = true)}>
-				Active Drivers
+				Aktiva förare
 			</Button>
 			{#if $isAdmin}
-				<Button size="sm" color="alternative" onclick={openPenaltyModal}>
-					Penalties
-				</Button>
+				<Button size="sm" color="alternative" onclick={openPenaltyModal}>Tillägg</Button>
 				<Button size="sm" color="alternative" onclick={openSubmitModal}>
-					<AwardOutline size="sm" class="mr-1" /> Submit to Championship
+					<AwardOutline size="sm" class="mr-1" /> Skicka till mästerskap
 				</Button>
 				<button
 					type="button"
 					class="inline-flex items-center gap-1 rounded px-2 py-1 text-sm font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
 					onclick={() => (clearModalOpen = true)}
 				>
-					<RefreshOutline size="sm" /> Clear Rally
+					<RefreshOutline size="sm" /> Rensa rally
 				</button>
 			{/if}
 		</div>
@@ -399,8 +403,8 @@
 	<!-- Stages -->
 	<Card class="max-w-none p-4">
 		<div class="mb-4">
-			<h2 class="text-xl font-semibold tracking-widest text-black small-caps dark:text-white">
-				Stages
+			<h2 class="small-caps text-xl font-semibold tracking-widest text-black dark:text-white">
+				Sträckor
 			</h2>
 		</div>
 
@@ -414,7 +418,7 @@
 					<div class="mb-3 flex flex-wrap items-center gap-2">
 						{#if editingId === s.id}
 							<Input
-								aria-label="Stage name"
+								aria-label="Sträckanamn"
 								bind:value={editName}
 								class="flex-1"
 								onkeydown={(e) => {
@@ -422,8 +426,8 @@
 									if (e.key === 'Escape') cancelEdit();
 								}}
 							/>
-							<Button size="xs" onclick={() => saveEdit(s.id)}>Save</Button>
-							<Button size="xs" color="light" onclick={cancelEdit}>Cancel</Button>
+							<Button size="xs" onclick={() => saveEdit(s.id)}>Spara</Button>
+							<Button size="xs" color="light" onclick={cancelEdit}>Avbryt</Button>
 						{:else}
 							<h3 class="font-mono text-base font-semibold text-gray-900 dark:text-gray-100">
 								{s.name}
@@ -444,7 +448,7 @@
 										<button
 											class="ml-0.5 text-gray-400 hover:text-red-500"
 											onclick={() => unassignGate(g)}
-											title="Unassign gate">×</button
+											title="Koppla bort grind">×</button
 										>
 									{/if}
 								</span>
@@ -454,13 +458,13 @@
 									type="button"
 									class="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300"
 									onclick={() => startEdit(s)}
-									title="Rename stage"
+									title="Byt namn på sträcka"
 								>
 									<EditOutline size="sm" />
 								</button>
 							{/if}
 							{#if !assignedGatesForStage(s.id).length}
-								<span class="text-xs text-gray-400 dark:text-gray-500">No gate assigned</span>
+								<span class="text-xs text-gray-400 dark:text-gray-500">Ingen grind tilldelad</span>
 							{/if}
 							{#if $isAdmin}
 								<div class="ml-auto flex items-center gap-1">
@@ -481,7 +485,7 @@
 												<option value={g.id}>{g.name ?? g.id.slice(0, 8)}</option>
 											{/each}
 										</Select>
-										<Button size="xs" onclick={() => assignGateToStage(s.id)}>Assign</Button>
+										<Button size="xs" onclick={() => assignGateToStage(s.id)}>Tilldela</Button>
 									{/if}
 									<button
 										type="button"
@@ -502,24 +506,24 @@
 							<a
 								href={`/stages/${s.id}/start`}
 								class="hidden items-center gap-1 rounded px-2 py-1 text-sm font-medium text-green-600 hover:bg-gray-100 sm:inline-flex dark:text-green-400 dark:hover:bg-gray-700"
-								title="Open Start"
+								title="Öppna start"
 							>
 								<PlayOutline size="sm" /> Start
 							</a>
 						{:else}
 							<span class="hidden text-xs text-gray-400 sm:inline dark:text-gray-500"
-								>Select gate first</span
+								>Välj grind först</span
 							>
 						{/if}
 
 						<!-- Close Stage: admin only -->
 						{#if $isAdmin}
-							<Button size="xs" onclick={() => closeStage(s.id)}>Close Stage</Button>
+							<Button size="xs" onclick={() => closeStage(s.id)}>Stäng sträcka</Button>
 						{/if}
 
 						<!-- Events: always visible -->
 						<Button size="xs" color="alternative" href={`/stages/${s.id}/events`}>
-							Events ({s.event_count})
+							Händelser ({s.event_count})
 						</Button>
 					</div>
 
@@ -532,7 +536,11 @@
 				</div>
 			{/each}
 			{#if !stages.length}
-				<p class="rounded-lg border-2 border-dashed border-gray-200 py-8 text-center text-sm text-gray-400 dark:border-gray-700 dark:text-gray-500">No stages yet.</p>
+				<p
+					class="rounded-lg border-2 border-dashed border-gray-200 py-8 text-center text-sm text-gray-400 dark:border-gray-700 dark:text-gray-500"
+				>
+					Inga sträckor än.
+				</p>
 			{/if}
 		</div>
 
@@ -549,7 +557,7 @@
 						/>
 					</div>
 					<div class="flex items-end">
-						<Button class="w-full md:w-32" onclick={createStage}>Add Stage</Button>
+						<Button class="w-full md:w-32" onclick={createStage}>Lägg till sträcka</Button>
 					</div>
 				</div>
 			</div>
@@ -558,10 +566,10 @@
 </div>
 
 <!-- Penalty Modal -->
-<Modal title="Penalty" bind:open={penaltyModalOpen} size="sm" autoclose={false}>
+<Modal title="Tillägg" bind:open={penaltyModalOpen} size="sm" autoclose={false}>
 	<div class="space-y-4">
 		<div>
-			<label for="penaltyStage" class="mb-1 block text-sm font-medium">Stage</label>
+			<label for="penaltyStage" class="mb-1 block text-sm font-medium">Sträcka</label>
 			<Select
 				id="penaltyStage"
 				value={penaltyStageId ?? ''}
@@ -576,50 +584,57 @@
 			</Select>
 		</div>
 		<div>
-			<label for="penaltyDriver" class="mb-1 block text-sm font-medium">Driver</label>
+			<label for="penaltyDriver" class="mb-1 block text-sm font-medium">Förare</label>
 			{#if penaltyFinishers.length}
 				<Select
 					id="penaltyDriver"
 					value={penaltyDriverFinishEventId ?? ''}
-					onchange={(e) => selectPenaltyDriver(Number((e.currentTarget as HTMLSelectElement).value))}
+					onchange={(e) =>
+						selectPenaltyDriver(Number((e.currentTarget as HTMLSelectElement).value))}
 				>
 					{#each penaltyFinishers as f (f.finish_event_id)}
 						<option value={f.finish_event_id}>{f.driver_name}</option>
 					{/each}
 				</Select>
 			{:else}
-				<p class="text-sm text-gray-500 dark:text-gray-400">No finishers on this stage.</p>
+				<p class="text-sm text-gray-500 dark:text-gray-400">Inga målgångare på denna sträcka.</p>
 			{/if}
 		</div>
 		<div>
 			<label for="penaltySecs" class="mb-1 block text-sm font-medium">
-				Penalty (seconds){#if selectedFinisher && selectedFinisher.penalty_ms > 0}
+				Tillägg (sekunder){#if selectedFinisher && selectedFinisher.penalty_ms > 0}
 					<span class="ml-2 font-normal text-amber-600 dark:text-amber-400">
-						current: +{selectedFinisher.penalty_ms / 1000}s
+						nuvarande: +{selectedFinisher.penalty_ms / 1000}s
 					</span>
 				{/if}
 			</label>
 			<Input id="penaltySecs" type="number" min="0" bind:value={penaltySeconds} />
 			{#if penaltySeconds === 0}
-				<p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Set to 0 to remove the penalty.</p>
+				<p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+					Sätt till 0 för att ta bort tillägget.
+				</p>
 			{/if}
 		</div>
 		<div class="flex justify-end gap-2 border-t pt-3">
-			<Button color="alternative" onclick={() => (penaltyModalOpen = false)}>Cancel</Button>
+			<Button color="alternative" onclick={() => (penaltyModalOpen = false)}>Avbryt</Button>
 			<Button
 				onclick={applyPenalty}
 				disabled={penaltySubmitting || !penaltyDriverFinishEventId || penaltySeconds == null}
 			>
-				{penaltySubmitting ? 'Applying…' : penaltySeconds === 0 ? 'Remove Penalty' : 'Apply Penalty'}
+				{penaltySubmitting
+					? 'Tillämpar…'
+					: penaltySeconds === 0
+						? 'Ta bort tillägg'
+						: 'Tillämpa tillägg'}
 			</Button>
 		</div>
 	</div>
 </Modal>
 
 <!-- Active Drivers Modal -->
-<Modal title="Active Drivers" bind:open={driversModalOpen} size="md" autoclose={false}>
+<Modal title="Aktiva förare" bind:open={driversModalOpen} size="md" autoclose={false}>
 	<div class="mb-3">
-		<Input size="sm" placeholder="Search drivers..." bind:value={driverSearch} />
+		<Input size="sm" placeholder="Sök förare..." bind:value={driverSearch} />
 	</div>
 	<ul class="max-h-96 space-y-2 overflow-y-auto">
 		{#each filteredDrivers as d (d.id)}
@@ -628,60 +643,60 @@
 				{#if $isAdmin}
 					<Toggle checked={d.active} onchange={() => toggleDriver(d.id, !d.active)} size="small" />
 				{:else}
-					<Badge color={d.active ? 'green' : 'gray'}>{d.active ? 'Active' : 'Inactive'}</Badge>
+					<Badge color={d.active ? 'green' : 'gray'}>{d.active ? 'Aktiv' : 'Inaktiv'}</Badge>
 				{/if}
 			</li>
 		{/each}
 		{#if !filteredDrivers.length}
 			<li class="text-gray-500 dark:text-gray-400">
-				{driverSearch ? 'No matches.' : 'No drivers.'}
+				{driverSearch ? 'Inga träffar.' : 'Inga förare.'}
 			</li>
 		{/if}
 	</ul>
 	<div class="mt-4 border-t pt-3">
 		<a href="/drivers" class="text-sm text-blue-600 hover:underline dark:text-blue-400"
-			>Manage / add drivers →</a
+			>Hantera / lägg till förare →</a
 		>
 	</div>
 </Modal>
 
 <!-- Clear Rally Modal -->
-<Modal title="Clear Rally" bind:open={clearModalOpen} size="sm" autoclose={false}>
+<Modal title="Rensa rally" bind:open={clearModalOpen} size="sm" autoclose={false}>
 	<div class="space-y-4">
 		<p class="text-gray-700 dark:text-gray-300">
-			This will delete all stages and their events. Drivers and gates will be kept. Submitted
-			rallies are not affected.
+			Detta tar bort alla sträckor och deras händelser. Förare och grindar behålls. Inskickade
+			rallyn påverkas inte.
 		</p>
-		<p class="font-semibold text-red-600 dark:text-red-400">This cannot be undone.</p>
+		<p class="font-semibold text-red-600 dark:text-red-400">Detta går inte att ångra.</p>
 		<div class="flex justify-end gap-2 border-t pt-3">
-			<Button color="alternative" onclick={() => (clearModalOpen = false)}>Cancel</Button>
+			<Button color="alternative" onclick={() => (clearModalOpen = false)}>Avbryt</Button>
 			<Button color="red" onclick={clearRally} disabled={clearing}>
-				{clearing ? 'Clearing…' : 'Clear Rally'}
+				{clearing ? 'Rensar…' : 'Rensa rally'}
 			</Button>
 		</div>
 	</div>
 </Modal>
 
 <!-- Submit to Championship Modal -->
-<Modal title="Submit Rally to Championship" bind:open={submitModalOpen} size="md" autoclose={false}>
+<Modal title="Skicka rally till mästerskap" bind:open={submitModalOpen} size="md" autoclose={false}>
 	{#if submitSuccess}
 		<div class="space-y-4">
-			<p class="font-medium text-green-600 dark:text-green-400">Rally submitted successfully!</p>
+			<p class="font-medium text-green-600 dark:text-green-400">Rally inskickat!</p>
 			<div class="flex justify-end gap-2">
 				<a href="/championships" class="text-sm text-blue-600 hover:underline dark:text-blue-400">
-					View Championships →
+					Visa mästerskap →
 				</a>
-				<Button color="alternative" onclick={() => (submitModalOpen = false)}>Close</Button>
+				<Button color="alternative" onclick={() => (submitModalOpen = false)}>Stäng</Button>
 			</div>
 		</div>
 	{:else}
 		<div class="space-y-4">
 			<div>
-				<label for="rallyName" class="mb-1 block text-sm font-medium">Rally name</label>
-				<Input id="rallyName" bind:value={submitRallyName} placeholder="e.g. Rally Finland 2026" />
+				<label for="rallyName" class="mb-1 block text-sm font-medium">Rallynamn</label>
+				<Input id="rallyName" bind:value={submitRallyName} placeholder="t.ex. Rally Finland 2026" />
 			</div>
 			<div>
-				<p class="mb-2 text-sm font-medium">Submit to championship(s)</p>
+				<p class="mb-2 text-sm font-medium">Skicka till mästerskap</p>
 				{#if championships.length}
 					<ul class="max-h-48 space-y-1 overflow-y-auto">
 						{#each championships as c (c.id)}
@@ -702,20 +717,20 @@
 					</ul>
 				{:else}
 					<p class="text-sm text-gray-500 dark:text-gray-400">
-						No championships yet. <a
+						Inga mästerskap än. <a
 							href="/championships"
-							class="text-blue-600 hover:underline dark:text-blue-400">Create one →</a
+							class="text-blue-600 hover:underline dark:text-blue-400">Skapa ett →</a
 						>
 					</p>
 				{/if}
 			</div>
 			<div class="flex justify-end gap-2 border-t pt-3">
-				<Button color="alternative" onclick={() => (submitModalOpen = false)}>Cancel</Button>
+				<Button color="alternative" onclick={() => (submitModalOpen = false)}>Avbryt</Button>
 				<Button
 					onclick={submitRally}
 					disabled={submitting || !submitRallyName.trim() || selectedChampIds.size === 0}
 				>
-					{submitting ? 'Submitting…' : 'Submit'}
+					{submitting ? 'Skickar…' : 'Skicka'}
 				</Button>
 			</div>
 		</div>

@@ -163,10 +163,10 @@
 
 	{#if championships.length === 0}
 		<Card class="max-w-none p-8 text-center">
-			<P class="text-gray-500 dark:text-gray-400">No championships yet.</P>
+			<P class="text-gray-500 dark:text-gray-400">Inga mästerskap än.</P>
 			{#if $isAdmin}
 				<Button class="mt-4" onclick={() => (createModalOpen = true)}
-					>Create your first championship</Button
+					>Skapa ditt första mästerskap</Button
 				>
 			{/if}
 		</Card>
@@ -185,14 +185,14 @@
 			{#if $isAdmin && selectedId}
 				<button
 					class="rounded p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
-					title="Rename championship"
+					title="Byt namn på mästerskap"
 					onclick={openRenameModal}
 				>
 					<PenOutline size="sm" />
 				</button>
 				<button
 					class="rounded p-2 text-red-500 hover:bg-gray-100 dark:hover:bg-gray-700"
-					title="Delete championship"
+					title="Ta bort mästerskap"
 					onclick={() => deleteChampionship(selectedId!)}
 				>
 					<TrashBinOutline size="sm" />
@@ -200,7 +200,7 @@
 			{/if}
 			{#if $isAdmin}
 				<Button size="sm" class="whitespace-nowrap" onclick={() => (createModalOpen = true)}>
-					<PlusOutline size="sm" class="mr-1" /> New Championship
+					<PlusOutline size="sm" class="mr-1" /> Nytt mästerskap
 				</Button>
 			{/if}
 		</div>
@@ -223,18 +223,18 @@
 
 				<!-- Standings per class -->
 				{#if loading}
-					<P class="text-gray-400">Loading standings…</P>
+					<P class="text-gray-400">Laddar tabell…</P>
 				{:else if standings.length === 0}
 					<Card class="max-w-none p-6 text-center">
 						<P class="text-gray-500 dark:text-gray-400"
-							>No results yet. Submit a rally to see standings.</P
+							>Inga resultat än. Skicka in ett rally för att se tabellen.</P
 						>
 						{#if $isAdmin}
 							<a
 								href="/rallies"
 								class="mt-2 block text-sm text-blue-600 hover:underline dark:text-blue-400"
 							>
-								Go to Manage →
+								Gå till Hantera →
 							</a>
 						{/if}
 					</Card>
@@ -246,8 +246,8 @@
 									<Table class="[&_tr]:border-0">
 										<TableHead class="bg-transparent dark:bg-transparent">
 											<TableHeadCell class="w-8 px-2 text-right">#</TableHeadCell>
-											<TableHeadCell>Driver</TableHeadCell>
-											<TableHeadCell class="text-right">Points</TableHeadCell>
+											<TableHeadCell>Förare</TableHeadCell>
+											<TableHeadCell class="text-right">Poäng</TableHeadCell>
 											{#each rallies as r (r.id)}
 												<TableHeadCell class="text-right text-xs">{r.name}</TableHeadCell>
 											{/each}
@@ -291,34 +291,34 @@
 </div>
 
 <!-- Rename Championship Modal -->
-<Modal title="Rename Championship" bind:open={renameModalOpen} size="sm" autoclose={false}>
+<Modal title="Byt namn på mästerskap" bind:open={renameModalOpen} size="sm" autoclose={false}>
 	<div class="flex flex-col gap-4">
 		<Input
 			bind:value={renameName}
-			placeholder="Championship name"
+			placeholder="Mästerskapsnamn"
 			onkeydown={(e) => e.key === 'Enter' && renameChampionship()}
 		/>
 		<div class="flex justify-end gap-2">
-			<Button color="light" onclick={() => (renameModalOpen = false)}>Cancel</Button>
+			<Button color="light" onclick={() => (renameModalOpen = false)}>Avbryt</Button>
 			<Button onclick={renameChampionship} disabled={renaming || !renameName.trim()}>
-				{renaming ? 'Saving…' : 'Save'}
+				{renaming ? 'Sparar…' : 'Spara'}
 			</Button>
 		</div>
 	</div>
 </Modal>
 
 <!-- Create Championship Modal -->
-<Modal title="New Championship" bind:open={createModalOpen} size="sm" autoclose={false}>
+<Modal title="Nytt mästerskap" bind:open={createModalOpen} size="sm" autoclose={false}>
 	<div class="flex flex-col gap-4">
 		<Input
 			bind:value={newChampName}
-			placeholder="Championship name"
+			placeholder="Mästerskapsnamn"
 			onkeydown={(e) => e.key === 'Enter' && createChampionship()}
 		/>
 		<div class="flex justify-end gap-2">
-			<Button color="light" onclick={() => (createModalOpen = false)}>Cancel</Button>
+			<Button color="light" onclick={() => (createModalOpen = false)}>Avbryt</Button>
 			<Button onclick={createChampionship} disabled={creating || !newChampName.trim()}>
-				{creating ? 'Creating…' : 'Create'}
+				{creating ? 'Skapar…' : 'Skapa'}
 			</Button>
 		</div>
 	</div>

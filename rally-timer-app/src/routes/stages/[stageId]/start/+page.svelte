@@ -1,5 +1,16 @@
 <script lang="ts">
-	import { Card, Button, Input, P, Table, TableBody, TableBodyCell, TableBodyRow, TableHead, TableHeadCell } from 'flowbite-svelte';
+	import {
+		Card,
+		Button,
+		Input,
+		P,
+		Table,
+		TableBody,
+		TableBodyCell,
+		TableBodyRow,
+		TableHead,
+		TableHeadCell
+	} from 'flowbite-svelte';
 	import { page } from '$app/stores';
 	import { onMount, onDestroy } from 'svelte';
 	import { kcFetch } from '../../../../lib/kcFetch';
@@ -26,8 +37,8 @@
 
 	function createUtterance(text: string) {
 		let utter = new SpeechSynthesisUtterance(text);
-		let enGbVoice = speechSynthesis.getVoices().find((voice) => voice.lang === 'en-GB');
-		if (enGbVoice) utter.voice = enGbVoice;
+		let svVoice = speechSynthesis.getVoices().find((voice) => voice.lang === 'sv-SE');
+		if (svVoice) utter.voice = svVoice;
 		utter.rate = 1;
 		utter.pitch = 1.0;
 		return utter;
@@ -53,7 +64,12 @@
 
 		const stage = bundle.stages.find((s) => s.id === stageId);
 		stageName = stage?.name ?? `#${stageId}`;
-		drivers = ordered.map((d) => ({ id: d.id, name: d.name, tag: d.rfid_tag, class_name: d.class_name }));
+		drivers = ordered.map((d) => ({
+			id: d.id,
+			name: d.name,
+			tag: d.rfid_tag,
+			class_name: d.class_name
+		}));
 		idx = 0;
 	}
 
@@ -66,9 +82,7 @@
 	const hasGate = $derived(gates.some((g) => g.stage_id === stageId));
 	const activeClass = $derived(drivers[idx]?.class_name ?? '');
 	const remainingInClass = $derived(
-		activeClass
-			? drivers.slice(idx).filter((d) => d.class_name === activeClass).length
-			: 0
+		activeClass ? drivers.slice(idx).filter((d) => d.class_name === activeClass).length : 0
 	);
 
 	function setLED(step: number) {
@@ -102,13 +116,15 @@
 			if (drivers[idx].class_name !== launchedClass) {
 				paused = true;
 				speechSynthesis.speak(
-					createUtterance(`Class ${launchedClass ?? ''} complete. Next class: ${drivers[idx].class_name ?? ''}`)
+					createUtterance(
+						`Klass ${launchedClass ?? ''} klar. Nästa klass: ${drivers[idx].class_name ?? ''}`
+					)
 				);
 			} else {
-				speechSynthesis.speak(createUtterance('Next driver:' + drivers[idx].name));
+				speechSynthesis.speak(createUtterance('Nästa förare: ' + drivers[idx].name));
 			}
 		} else {
-			speechSynthesis.speak(createUtterance('No more drivers'));
+			speechSynthesis.speak(createUtterance('Inga fler förare'));
 		}
 	}
 
@@ -149,7 +165,7 @@
 		setLED(6);
 		if (timer) clearInterval(timer);
 		timer = setInterval(tick, 100);
-		speechSynthesis.speak(createUtterance('Next driver:' + drivers[idx].name));
+		speechSynthesis.speak(createUtterance('Nästa förare: ' + drivers[idx].name));
 	}
 
 	function pause() {
@@ -182,7 +198,7 @@
 			['3', createUtterance('3')],
 			['4', createUtterance('4')],
 			['5', createUtterance('5')],
-			['go', createUtterance('go')]
+			['go', createUtterance('kör')]
 		]);
 		loadQueue();
 		loadGates();
@@ -201,8 +217,8 @@
 			<P class="text-xl font-semibold">{stageName}</P>
 			{#if activeClass}
 				<P class="text-xl font-semibold">
-					Active class: <span class="text-blue-600 dark:text-blue-400">{activeClass}</span>
-					<span class="text-sm font-normal opacity-70">({remainingInClass} left)</span>
+					Aktiv klass: <span class="text-blue-600 dark:text-blue-400">{activeClass}</span>
+					<span class="text-sm font-normal opacity-70">({remainingInClass} kvar)</span>
 				</P>
 			{/if}
 		</div>
@@ -237,7 +253,7 @@
 				{#if drivers[idx]}
 					{drivers[idx].name} <br />
 				{:else}
-					No more drivers
+					Inga fler förare
 				{/if}
 			</P>
 			<P class="text-2xl tracking-wide italic">
@@ -251,7 +267,7 @@
 	<!-- Queue preview -->
 	<Card class="p-3">
 		<div class="">
-			<P class="text-sm opacity-70">Next up</P>
+			<P class="text-sm opacity-70">Näst på tur</P>
 			<P class="text-xl">{drivers[idx + 1]?.name} — {drivers[idx + 1]?.class_name || ''}</P>
 			<P class="text-lg opacity-80">
 				{drivers[idx + 2]?.name} — {drivers[idx + 2]?.class_name || ''}
@@ -261,18 +277,18 @@
 
 	<!-- Start order list -->
 	<Card class="p-3">
-		<P class="mb-2 text-sm font-semibold opacity-70">Start order</P>
+		<P class="mb-2 text-sm font-semibold opacity-70">Startordning</P>
 		<Table striped={true}>
 			<TableHead>
 				<TableHeadCell class="w-12">#</TableHeadCell>
-				<TableHeadCell>Driver</TableHeadCell>
-				<TableHeadCell>Class</TableHeadCell>
+				<TableHeadCell>Förare</TableHeadCell>
+				<TableHeadCell>Klass</TableHeadCell>
 			</TableHead>
 			<TableBody>
 				{#each drivers as driver, i (driver.id)}
 					<TableBodyRow
 						class={i < idx
-							? 'opacity-40 line-through'
+							? 'line-through opacity-40'
 							: i === idx
 								? 'bg-amber-50 font-bold dark:bg-amber-900/30'
 								: ''}
@@ -290,19 +306,19 @@
 	<Card class="p-3">
 		<div class="flex flex-col items-center justify-between">
 			<div class="flex w-full flex-row items-center gap-2 p-2">
-				<label for="gap" class="text-sm opacity-70"><P>Gap (s)</P></label>
+				<label for="gap" class="text-sm opacity-70"><P>Mellanrum (s)</P></label>
 				<Input id="gap" type="number" min="1" class="w-20 rounded p-2" bind:value={gapSeconds} />
 			</div>
 			{#if !hasGate}
 				<P class="px-2 text-sm text-yellow-600 dark:text-yellow-400"
-					>No gate assigned to this stage.</P
+					>Ingen grind tilldelad till denna sträcka.</P
 				>
 			{/if}
 			<div class="flex w-full flex-wrap gap-2 p-2">
 				<Button size="sm" onclick={start} disabled={running || !hasGate}>Start</Button>
-				<Button size="sm" onclick={pause} disabled={!running || paused}>Pause</Button>
-				<Button size="sm" onclick={resume} disabled={!running || !paused}>Resume</Button>
-				<Button size="sm" color="red" onclick={restart}>Restart</Button>
+				<Button size="sm" onclick={pause} disabled={!running || paused}>Pausa</Button>
+				<Button size="sm" onclick={resume} disabled={!running || !paused}>Återuppta</Button>
+				<Button size="sm" color="red" onclick={restart}>Starta om</Button>
 			</div>
 		</div>
 	</Card>

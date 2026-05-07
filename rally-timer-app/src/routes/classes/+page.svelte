@@ -105,14 +105,14 @@
 	async function deleteClass(c: ClassItem) {
 		const driverWarning =
 			c.driver_count > 0
-				? `\n\nThis will also delete ${c.driver_count} driver(s) and any in-progress start times for them.`
+				? `\n\nDetta tar även bort ${c.driver_count} förare och deras pågående starttider.`
 				: '';
-		const msg = `Delete class "${c.name}"?${driverWarning}\n\nSubmitted rally results are preserved.`;
+		const msg = `Ta bort klassen "${c.name}"?${driverWarning}\n\nInskickade rallyresultat bevaras.`;
 		if (!confirm(msg)) return;
 
 		const res = await kcFetch(`/api/class/${c.id}`, { method: 'DELETE' });
 		if (!res.ok) {
-			error = (await res.text()) || `Failed (${res.status})`;
+			error = (await res.text()) || `Misslyckades (${res.status})`;
 			return;
 		}
 		await refresh();
@@ -129,42 +129,42 @@
 	{/if}
 
 	<Card class="max-w-none p-4 sm:p-6 md:p-8">
-		<p class="mb-4 text-xl font-semibold tracking-widest text-black small-caps dark:text-white">
-			Add Class
+		<p class="small-caps mb-4 text-xl font-semibold tracking-widest text-black dark:text-white">
+			Lägg till klass
 		</p>
 		<div class="flex gap-3">
 			<Input
 				bind:value={newName}
-				placeholder="Class name"
+				placeholder="Klassnamn"
 				class="flex-1"
 				onkeydown={(e) => e.key === 'Enter' && createClass()}
 			/>
 			<Input
 				bind:value={newPriority}
 				type="number"
-				placeholder="Priority"
+				placeholder="Prioritet"
 				class="w-28"
-				title="Start priority — higher numbers start first"
+				title="Startprioritet — högre nummer startar först"
 			/>
 			<Button class="w-32" onclick={createClass} disabled={creating || !newName.trim()}>
-				{creating ? 'Adding…' : 'Add'}
+				{creating ? 'Lägger till…' : 'Lägg till'}
 			</Button>
 		</div>
 	</Card>
 
 	<Card class="max-w-none p-4 sm:p-6 md:p-8">
-		<p class="mb-2 text-xl font-semibold tracking-widest text-black small-caps dark:text-white">
-			Classes
+		<p class="small-caps mb-2 text-xl font-semibold tracking-widest text-black dark:text-white">
+			Klasser
 		</p>
 
 		<Table hoverable={true}>
 			<TableHead>
-				<TableHeadCell>Name</TableHeadCell>
-				<TableHeadCell class="w-32 text-right" title="Higher number = starts first"
-					>Priority</TableHeadCell
+				<TableHeadCell>Namn</TableHeadCell>
+				<TableHeadCell class="w-32 text-right" title="Högre nummer = startar först"
+					>Prioritet</TableHeadCell
 				>
-				<TableHeadCell class="text-right">Drivers</TableHeadCell>
-				<TableHeadCell class="flex justify-end">Actions</TableHeadCell>
+				<TableHeadCell class="text-right">Förare</TableHeadCell>
+				<TableHeadCell class="flex justify-end">Åtgärder</TableHeadCell>
 			</TableHead>
 			<TableBody>
 				{#each classes as c (c.id)}
@@ -172,7 +172,7 @@
 						<TableBodyCell>
 							{#if editingId === c.id}
 								<Input
-									aria-label="Class name"
+									aria-label="Klassnamn"
 									bind:value={editName}
 									onkeydown={(e) => {
 										if (e.key === 'Enter') saveEdit(c.id);
@@ -186,7 +186,7 @@
 						<TableBodyCell class="text-right">
 							{#if editingId === c.id}
 								<Input
-									aria-label="Start priority"
+									aria-label="Startprioritet"
 									type="number"
 									bind:value={editPriority}
 									class="w-24 text-right"
@@ -202,10 +202,10 @@
 						<TableBodyCell class="text-right">{c.driver_count}</TableBodyCell>
 						<TableBodyCell class="flex justify-end gap-2">
 							{#if editingId === c.id}
-								<Button size="xs" onclick={() => saveEdit(c.id)}>Save</Button>
-								<Button size="xs" color="light" onclick={cancelEdit}>Cancel</Button>
+								<Button size="xs" onclick={() => saveEdit(c.id)}>Spara</Button>
+								<Button size="xs" color="light" onclick={cancelEdit}>Avbryt</Button>
 							{:else}
-								<Button size="xs" onclick={() => startEdit(c)}>Edit</Button>
+								<Button size="xs" onclick={() => startEdit(c)}>Redigera</Button>
 								<Button size="xs" color="red" onclick={() => deleteClass(c)}>
 									<TrashBinOutline size="xs" />
 								</Button>
@@ -217,7 +217,7 @@
 		</Table>
 
 		{#if classes.length === 0}
-			<P class="mt-4 text-gray-500 dark:text-gray-400">No classes yet.</P>
+			<P class="mt-4 text-gray-500 dark:text-gray-400">Inga klasser än.</P>
 		{/if}
 	</Card>
 </div>

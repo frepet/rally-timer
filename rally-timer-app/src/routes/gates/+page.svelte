@@ -59,11 +59,11 @@
 
 	function fmtAge(ts: number): string {
 		const sec = Math.floor((Date.now() - ts) / 1000);
-		if (sec < 10) return 'just now';
-		if (sec < 60) return `${sec}s ago`;
+		if (sec < 10) return 'just nu';
+		if (sec < 60) return `${sec}s sedan`;
 		const min = Math.floor(sec / 60);
-		if (min < 60) return `${min}m ago`;
-		return `${Math.floor(min / 60)}h ago`;
+		if (min < 60) return `${min}m sedan`;
+		return `${Math.floor(min / 60)}h sedan`;
 	}
 
 	function fmtTime(ts: number): string {
@@ -103,7 +103,7 @@
 
 	async function updateName(gate: Gate) {
 		openMenuId = null;
-		const newName = prompt('Enter new name for gate:', gate.name ?? '');
+		const newName = prompt('Ange nytt namn på grinden:', gate.name ?? '');
 		if (newName === null) return;
 		await kcFetchJSON(`/api/gate/${gate.id}`, {
 			method: 'PATCH',
@@ -115,7 +115,7 @@
 
 	async function unassignGate(gate: Gate) {
 		openMenuId = null;
-		if (!confirm(`Unassign gate "${gate.name ?? gate.id}" from stage?`)) return;
+		if (!confirm(`Koppla bort grinden "${gate.name ?? gate.id}" från sträckan?`)) return;
 		await kcFetchJSON(`/api/gate/${gate.id}`, {
 			method: 'PATCH',
 			headers: { 'content-type': 'application/json' },
@@ -126,7 +126,7 @@
 
 	async function deleteGate(gate: Gate) {
 		openMenuId = null;
-		if (!confirm(`Delete gate "${gate.name ?? gate.id}"? This cannot be undone.`)) return;
+		if (!confirm(`Ta bort grinden "${gate.name ?? gate.id}"? Detta går inte att ångra.`)) return;
 		await kcFetch(`/api/gate/${gate.id}`, { method: 'DELETE' });
 		await loadGates();
 	}
@@ -219,11 +219,11 @@
 		onkeydown={(e) => e.key === 'Escape' && (openMenuId = null)}
 	>
 		<button type="button" class={menuItemClass} onclick={() => updateName(menuGate)}>
-			Rename
+			Byt namn
 		</button>
 		{#if menuGate.stage_id}
 			<button type="button" class={menuItemClass} onclick={() => unassignGate(menuGate)}>
-				Unassign
+				Koppla bort
 			</button>
 		{/if}
 		<button
@@ -231,7 +231,7 @@
 			class="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-red-600 hover:bg-gray-100 dark:text-red-400 dark:hover:bg-gray-600"
 			onclick={() => deleteGate(menuGate)}
 		>
-			<TrashBinOutline size="xs" /> Delete
+			<TrashBinOutline size="xs" /> Ta bort
 		</button>
 	</div>
 {/if}
@@ -239,21 +239,23 @@
 <div class="w-full space-y-6 p-5">
 	<Card class="max-w-none p-4 sm:p-6 md:p-8">
 		<div class="mb-4 flex items-center justify-between">
-			<P class="text-xl font-semibold tracking-widest text-black small-caps dark:text-white">Registered Gates</P>
-			<P class="text-sm opacity-60">Auto-refreshes every 5s</P>
+			<P class="small-caps text-xl font-semibold tracking-widest text-black dark:text-white"
+				>Registrerade grindar</P
+			>
+			<P class="text-sm opacity-60">Uppdateras automatiskt var 5:e sekund</P>
 		</div>
 
 		{#if !gates.length}
-			<P class="opacity-70">No gates registered. Gates will appear here when they connect.</P>
+			<P class="opacity-70">Inga grindar registrerade. Grindar visas här när de ansluter.</P>
 		{:else}
 			<Table hoverable>
 				<TableHead>
 					<TableHeadCell>Status</TableHeadCell>
-					<TableHeadCell>Name / ID</TableHeadCell>
-					<TableHeadCell>Assigned Stage</TableHeadCell>
-					<TableHeadCell>Last Seen</TableHeadCell>
+					<TableHeadCell>Namn / ID</TableHeadCell>
+					<TableHeadCell>Tilldelad sträcka</TableHeadCell>
+					<TableHeadCell>Senast sedd</TableHeadCell>
 					{#if $isAdmin}
-						<TableHeadCell class="text-right">Actions</TableHeadCell>
+						<TableHeadCell class="text-right">Åtgärder</TableHeadCell>
 					{/if}
 				</TableHead>
 				<TableBody>
@@ -281,7 +283,7 @@
 										<P class="text-xs opacity-60">{gate.rally_name}</P>
 									{/if}
 								{:else}
-									<Badge color="yellow">Unassigned</Badge>
+									<Badge color="yellow">Ej tilldelad</Badge>
 								{/if}
 							</TableBodyCell>
 							<TableBodyCell>
@@ -307,19 +309,21 @@
 
 	<Card class="max-w-none p-4 sm:p-6 md:p-8">
 		<div class="mb-2 flex items-center justify-between">
-			<P class="text-xl font-semibold tracking-widest text-black small-caps dark:text-white">Live Pass Console</P>
+			<P class="small-caps text-xl font-semibold tracking-widest text-black dark:text-white"
+				>Live passagekonsol</P
+			>
 			<P class="text-sm opacity-60">{consoleLog.length} / {MAX_LOG}</P>
 		</div>
 		<P class="mb-3 text-sm opacity-70">
-			Every gate pass appears here in real time. Wave an RFID tag at a gate to test scan — the gate
-			row above flashes and an entry is added below with its RSSI.
+			Varje grindpassage visas här i realtid. Vifta med en RFID-tagg vid en grind för att testa
+			skanning — raden för grinden ovan blinkar och en post läggs till nedan med dess RSSI.
 		</P>
 		<div
 			bind:this={consoleEl}
 			class="h-96 overflow-y-auto rounded-md border border-gray-200 bg-gray-900 p-3 font-mono text-xs text-gray-100 dark:border-gray-700"
 		>
 			{#if !consoleLog.length}
-				<div class="opacity-50">Waiting for gate passes…</div>
+				<div class="opacity-50">Väntar på grindpassager…</div>
 			{:else}
 				{#each consoleLog as entry (entry.id)}
 					<div class="flex items-center gap-2 py-0.5">
@@ -329,7 +333,7 @@
 						<span class="text-yellow-200">{entry.tag}</span>
 						<span class="ml-auto">
 							<Badge color={rssiColor(entry.rssi)}>
-								{entry.rssi != null ? `${entry.rssi} dBm` : 'no RSSI'}
+								{entry.rssi != null ? `${entry.rssi} dBm` : 'ingen RSSI'}
 							</Badge>
 						</span>
 					</div>

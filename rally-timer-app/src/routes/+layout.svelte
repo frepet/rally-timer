@@ -66,8 +66,8 @@
 </svelte:head>
 <Navbar>
 	<NavBrand href="/">
-		<img src="/icon-black.png" alt="Rally Timer Logo" class="m-2 w-24 dark:hidden" />
-		<img src="/icon-white.png" alt="Rally Timer Logo" class="m-2 hidden w-24 dark:block" />
+		<img src="/icon-black.png" alt="Rally Timer-logotyp" class="m-2 w-24 dark:hidden" />
+		<img src="/icon-white.png" alt="Rally Timer-logotyp" class="m-2 hidden w-24 dark:block" />
 		{#if editingTitle}
 			<Input
 				class="ml-2 w-80"
@@ -76,7 +76,7 @@
 				disabled={savingTitle}
 				autofocus
 			/>
-			<Button size="sm" class="ml-2" onclick={saveTitle} disabled={savingTitle}>Save</Button>
+			<Button size="sm" class="ml-2" onclick={saveTitle} disabled={savingTitle}>Spara</Button>
 			<Button
 				size="sm"
 				color="alternative"
@@ -85,7 +85,7 @@
 					titleDraft = title;
 					editingTitle = false;
 				}}
-				disabled={savingTitle}>Cancel</Button
+				disabled={savingTitle}>Avbryt</Button
 			>
 		{:else}
 			<Heading class="small-caps ml-2">{title}</Heading>
@@ -98,7 +98,7 @@
 						titleDraft = title;
 						editingTitle = true;
 					}}
-					aria-label="Edit title"
+					aria-label="Redigera titel"
 				>
 					<EditOutline size="sm" />
 				</button>
@@ -108,21 +108,21 @@
 
 	<NavHamburger />
 	<NavUl>
-		<NavLi href="/" class={navClass('/', true)}>Results</NavLi>
-		<NavLi href="/championships" class={navClass('/championships')}>Championships</NavLi>
-		<NavLi href="/rules" class={navClass('/rules')}>Rules</NavLi>
-		<NavLi href="/about" class={navClass('/about')}>About</NavLi>
+		<NavLi href="/" class={navClass('/', true)}>Resultat</NavLi>
+		<NavLi href="/championships" class={navClass('/championships')}>Mästerskap</NavLi>
+		<NavLi href="/rules" class={navClass('/rules')}>Regler</NavLi>
+		<NavLi href="/about" class={navClass('/about')}>Om</NavLi>
 		{#if $isAdmin}
 			<NavLi>|</NavLi>
 			<NavLi href="/rallies" class={navClass('/rallies')}>Rally</NavLi>
-			<NavLi href="/drivers" class={navClass('/drivers')}>Drivers</NavLi>
-			<NavLi href="/classes" class={navClass('/classes')}>Classes</NavLi>
-			<NavLi href="/gates" class={navClass('/gates')}>Gates</NavLi>
+			<NavLi href="/drivers" class={navClass('/drivers')}>Förare</NavLi>
+			<NavLi href="/classes" class={navClass('/classes')}>Klasser</NavLi>
+			<NavLi href="/gates" class={navClass('/gates')}>Grindar</NavLi>
 		{/if}
 		{#if $isAuthenticated}
-			<Button color="alternative" onclick={logout} class="p-1">Logout</Button>
+			<Button color="alternative" onclick={logout} class="p-1">Logga ut</Button>
 		{:else}
-			<Button color="alternative" onclick={login} class="p-1">Login</Button>
+			<Button color="alternative" onclick={login} class="p-1">Logga in</Button>
 		{/if}
 		<DarkModeToggle />
 	</NavUl>
