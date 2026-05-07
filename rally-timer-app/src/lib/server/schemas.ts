@@ -100,6 +100,16 @@ export const gateAssignSchema = z.object({
 	name: z.string().nullable().optional()
 });
 
+export const rallycrossConfigSchema = z.object({
+	gate_id: z.string().uuid().nullable().optional(),
+	cooldown_ms: z
+		.number()
+		.int()
+		.nonnegative()
+		.max(10 * 60 * 1000)
+		.optional()
+});
+
 export type DriverCreateInput = z.infer<typeof driverCreateSchema>;
 export type DriverActiveInput = z.infer<typeof driverActiveSchema>;
 export type GateRegisterInput = z.infer<typeof gateRegisterSchema>;
@@ -115,3 +125,4 @@ export const pageUpdateSchema = z.object({
 
 export type SubmitRallyInput = z.infer<typeof submitRallySchema>;
 export type PageUpdateInput = z.infer<typeof pageUpdateSchema>;
+export type RallycrossConfigInput = z.infer<typeof rallycrossConfigSchema>;

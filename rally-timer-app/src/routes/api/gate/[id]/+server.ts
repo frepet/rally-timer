@@ -42,6 +42,13 @@ export async function PATCH(event: RequestEvent): Promise<Response> {
 	const { stage_id, name } = parsed.data;
 
 	if (stage_id !== undefined) {
+		if (stage_id !== null) {
+			const [rx] = await sql<{ gate_id: string | null }[]>`
+				SELECT gate_id FROM rallycross WHERE id = 1
+			`;
+			if (rx?.gate_id === id)
+				throw error(409, 'Grinden används av rallycross — koppla bort den där först');
+		}
 		await sql`UPDATE gates SET stage_id = ${stage_id} WHERE id = ${id}`;
 	}
 	if (name !== undefined) {
