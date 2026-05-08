@@ -75,6 +75,8 @@ export const sv = {
   pointsHeader: 'Poäng',
   deleteChampionshipConfirm: (name: string) =>
     `Ta bort mästerskapet "${name}"? Detta går inte att ångra.`,
+  removeRallyFromChampionshipConfirm: (name: string) =>
+    `Ta bort rallyt "${name}" från det här mästerskapet?`,
 
   // Classes page
   addClass: 'Lägg till klass',
@@ -301,6 +303,8 @@ export const en: typeof sv = {
   pointsHeader: 'Points',
   deleteChampionshipConfirm: (name: string) =>
     `Delete championship "${name}"? This cannot be undone.`,
+  removeRallyFromChampionshipConfirm: (name: string) =>
+    `Remove rally "${name}" from this championship?`,
 
   // Classes page
   addClass: 'Add class',

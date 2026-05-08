@@ -12,7 +12,6 @@
 		TableBodyRow,
 		TableBodyCell,
 		Input,
-		Badge,
 		P,
 		Modal,
 		Tabs,
@@ -99,6 +98,12 @@
 		} finally {
 			creating = false;
 		}
+	}
+
+	async function removeRallyFromChampionship(rallyId: string, rallyName: string) {
+		if (!confirm(t.removeRallyFromChampionshipConfirm(rallyName))) return;
+		await kcFetchJSON(`/api/championship/${selectedId}/rally/${rallyId}`, { method: 'DELETE' });
+		await selectChampionship(selectedId!);
 	}
 
 	async function deleteChampionship(id: string) {
@@ -212,12 +217,36 @@
 				{#if rallies.length}
 					<div class="flex flex-wrap gap-2">
 						{#each rallies as r (r.id)}
-							<a href="/rallies/{r.id}">
-								<Badge
-									class="cursor-pointer bg-primary-700 text-white hover:brightness-90 dark:bg-primary-700 dark:text-white"
-									>{r.name} ({fmtDate(r.submitted_at)})</Badge
+							<div class="inline-flex overflow-hidden rounded text-xs font-medium">
+								<a
+									href="/rallies/{r.id}"
+									class="bg-primary-700 px-2.5 py-0.5 text-white hover:brightness-90"
 								>
-							</a>
+									{r.name} ({fmtDate(r.submitted_at)})
+								</a>
+								{#if $isAdmin}
+									<button
+										type="button"
+										title={t.delete}
+										onclick={() => removeRallyFromChampionship(r.id, r.name)}
+										class="flex items-center bg-primary-700 px-1.5 text-white hover:bg-red-600"
+									>
+										<svg
+											class="h-3 w-3"
+											fill="none"
+											stroke="currentColor"
+											stroke-width="2"
+											viewBox="0 0 24 24"
+										>
+											<path
+												stroke-linecap="round"
+												stroke-linejoin="round"
+												d="M6 18L18 6M6 6l12 12"
+											/>
+										</svg>
+									</button>
+								{/if}
+							</div>
 						{/each}
 					</div>
 				{/if}
