@@ -55,7 +55,9 @@ describe('rankRallyResultsByClass', () => {
 			row({ rally_id: 'r1', class_id: 2, driver_name: 'Carol', total_ms: 600000 }),
 			row({ rally_id: 'r2', class_id: 1, driver_name: 'Diana', total_ms: 500000 })
 		]);
-		const lookup = new Map(result.map((r) => [`${r.rally_id}:${r.class_id}:${r.driver_name}`, r.position]));
+		const lookup = new Map(
+			result.map((r) => [`${r.rally_id}:${r.class_id}:${r.driver_name}`, r.position])
+		);
 		expect(lookup.get('r1:1:Alice')).toBe(1);
 		expect(lookup.get('r1:1:Bob')).toBe(2);
 		expect(lookup.get('r1:2:Carol')).toBe(1);

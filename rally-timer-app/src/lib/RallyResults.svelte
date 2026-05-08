@@ -84,7 +84,9 @@
 						>
 						{#if r.penalty_ms > 0}
 							<span class="whitespace-nowrap text-amber-600 dark:text-amber-400"
-								><span class="mr-1 opacity-70">{t.penaltyLabel}</span>+{formatMs(r.penalty_ms)}</span
+								><span class="mr-1 opacity-70">{t.penaltyLabel}</span>+{formatMs(
+									r.penalty_ms
+								)}</span
 							>
 						{/if}
 					</div>
@@ -178,7 +180,9 @@
 							{/if}
 							{#if r.penalty_ms > 0}
 								<span class="whitespace-nowrap text-amber-600 dark:text-amber-400"
-									><span class="mr-1 opacity-70">{t.penaltyLabel}</span>+{formatMs(r.penalty_ms)}</span
+									><span class="mr-1 opacity-70">{t.penaltyLabel}</span>+{formatMs(
+										r.penalty_ms
+									)}</span
 								>
 							{/if}
 						</div>

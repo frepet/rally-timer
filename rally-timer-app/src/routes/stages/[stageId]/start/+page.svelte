@@ -217,7 +217,8 @@
 			{#if activeClass}
 				<P class="text-xl font-semibold">
 					{t.activeClassLabel} <span class="text-blue-600 dark:text-blue-400">{activeClass}</span>
-					<span class="text-sm font-normal opacity-70">({remainingInClass} {t.remainingLabel})</span>
+					<span class="text-sm font-normal opacity-70">({remainingInClass} {t.remainingLabel})</span
+					>
 				</P>
 			{/if}
 		</div>
@@ -309,9 +310,7 @@
 				<Input id="gap" type="number" min="1" class="w-20 rounded p-2" bind:value={gapSeconds} />
 			</div>
 			{#if !hasGate}
-				<P class="px-2 text-sm text-yellow-600 dark:text-yellow-400"
-					>{t.noGateForStage}</P
-				>
+				<P class="px-2 text-sm text-yellow-600 dark:text-yellow-400">{t.noGateForStage}</P>
 			{/if}
 			<div class="flex w-full flex-wrap gap-2 p-2">
 				<Button size="sm" onclick={start} disabled={running || !hasGate}>{t.startButton}</Button>

@@ -2,7 +2,6 @@ import postgres from 'postgres';
 import { env } from '$env/dynamic/private';
 
 declare global {
-	// eslint-disable-next-line no-var
 	var __pgSql__: ReturnType<typeof postgres> | undefined;
 }
 

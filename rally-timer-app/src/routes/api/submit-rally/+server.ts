@@ -102,4 +102,3 @@ export async function POST(event: RequestEvent): Promise<Response> {
 
 	return json({ id: submittedRallyId! }, { status: 201 });
 }
-

@@ -25,7 +25,8 @@ export async function PATCH({ params, request }: RequestEvent) {
 	}
 
 	const ts = Number(body?.timestamp);
-	if (!Number.isFinite(ts)) return json({ error: 'timestamp or penalty_ms required' }, { status: 400 });
+	if (!Number.isFinite(ts))
+		return json({ error: 'timestamp or penalty_ms required' }, { status: 400 });
 	const [row] = await sql`
 		UPDATE finish_events SET timestamp = ${ts} WHERE id = ${id}
 		RETURNING id, stage_id, timestamp, tag, penalty_ms

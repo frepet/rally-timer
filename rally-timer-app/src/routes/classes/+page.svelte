@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { SvelteMap } from 'svelte/reactivity';
 	import {
 		Card,
 		Button,
@@ -32,7 +33,7 @@
 		// Fetch drivers once to compute per-class counts (drivers list is small)
 		const dRes = await fetch('/api/driver');
 		const drivers = dRes.ok ? ((await dRes.json()) as { class_id: number }[]) : [];
-		const counts = new Map<number, number>();
+		const counts = new SvelteMap<number, number>();
 		for (const d of drivers) counts.set(d.class_id, (counts.get(d.class_id) ?? 0) + 1);
 
 		classes = list

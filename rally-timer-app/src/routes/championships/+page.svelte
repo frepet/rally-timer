@@ -206,7 +206,8 @@
 			{/if}
 			{#if $isAdmin}
 				<Button size="sm" class="whitespace-nowrap" onclick={() => (createModalOpen = true)}>
-					<PlusOutline size="sm" class="mr-1" /> {t.newChampionship}
+					<PlusOutline size="sm" class="mr-1" />
+					{t.newChampionship}
 				</Button>
 			{/if}
 		</div>

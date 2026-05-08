@@ -52,16 +52,10 @@ export function buildStageData(
 				(fe) => fe.stage_id === stage.id && String(fe.tag) === String(driver.rfid_tag)
 			);
 
-			const penalty_ms = driverFinishes.reduce(
-				(sum, fe) => sum + Number(fe.penalty_ms ?? 0),
-				0
-			);
+			const penalty_ms = driverFinishes.reduce((sum, fe) => sum + Number(fe.penalty_ms ?? 0), 0);
 			const effectiveTs = (fe: SummaryFinishEvent) => Number(fe.ts) + Number(fe.penalty_ms ?? 0);
 
-			const elapsed = calculateStageTime(
-				driverStarts,
-				driverFinishes.map(effectiveTs)
-			);
+			const elapsed = calculateStageTime(driverStarts, driverFinishes.map(effectiveTs));
 			if (elapsed === null) return [];
 
 			// DNF: all valid finishes (after latest start) are synthetic

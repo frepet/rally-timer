@@ -20,7 +20,9 @@ describe('dark mode: empty-state elements must have explicit dark text color', (
 
 	it('"t.noMatches / t.noDrivers" li in rallies page', () => {
 		const content = readTemplate('src/routes/rallies/+page.svelte');
-		const match = content.match(/<li class="([^"]*)">[^<]*\{driverSearch \? t\.noMatches : t\.noDrivers\}[^<]*<\/li>/);
+		const match = content.match(
+			/<li class="([^"]*)">[^<]*\{driverSearch \? t\.noMatches : t\.noDrivers\}[^<]*<\/li>/
+		);
 		expect(match).not.toBeNull();
 		expect(match![1]).toMatch(/dark:text-/);
 	});

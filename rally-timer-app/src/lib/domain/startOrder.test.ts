@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { computeStartOrder, type StartOrderDriver } from './startOrder';
 
-function driver(overrides: Partial<StartOrderDriver> & { id: number; name: string }): StartOrderDriver {
+function driver(
+	overrides: Partial<StartOrderDriver> & { id: number; name: string }
+): StartOrderDriver {
 	return {
 		rfid_tag: `tag-${overrides.id}`,
 		class_id: 1,
@@ -82,11 +84,46 @@ describe('computeStartOrder', () => {
 
 	it('Norway rally — Group A (priority 5) starts before Group N (priority 1); within each, unranked then slowest-first', () => {
 		const drivers: StartOrderDriver[] = [
-			driver({ id: 1, name: 'Alice', class_id: 1, class_name: 'A', class_start_priority: 5, total_ms: 440000 }),
-			driver({ id: 2, name: 'Diana', class_id: 1, class_name: 'A', class_start_priority: 5, total_ms: 423000 }),
-			driver({ id: 3, name: 'Erik', class_id: 1, class_name: 'A', class_start_priority: 5, total_ms: null }),
-			driver({ id: 4, name: 'Liam', class_id: 2, class_name: 'N', class_start_priority: 1, total_ms: 510000 }),
-			driver({ id: 5, name: 'Mia', class_id: 2, class_name: 'N', class_start_priority: 1, total_ms: null })
+			driver({
+				id: 1,
+				name: 'Alice',
+				class_id: 1,
+				class_name: 'A',
+				class_start_priority: 5,
+				total_ms: 440000
+			}),
+			driver({
+				id: 2,
+				name: 'Diana',
+				class_id: 1,
+				class_name: 'A',
+				class_start_priority: 5,
+				total_ms: 423000
+			}),
+			driver({
+				id: 3,
+				name: 'Erik',
+				class_id: 1,
+				class_name: 'A',
+				class_start_priority: 5,
+				total_ms: null
+			}),
+			driver({
+				id: 4,
+				name: 'Liam',
+				class_id: 2,
+				class_name: 'N',
+				class_start_priority: 1,
+				total_ms: 510000
+			}),
+			driver({
+				id: 5,
+				name: 'Mia',
+				class_id: 2,
+				class_name: 'N',
+				class_start_priority: 1,
+				total_ms: null
+			})
 		];
 		const result = computeStartOrder(drivers);
 		expect(result.map((d) => d.name)).toEqual(['Erik', 'Alice', 'Diana', 'Mia', 'Liam']);

@@ -35,7 +35,9 @@ describe('championships page: rename feature', () => {
 	it('has a rename modal with an input field', () => {
 		expect(content).toMatch(/[Rr]ename/);
 		// Must have a rename modal distinct from create modal
-		const renameSection = content.slice(content.indexOf('renameModal') || content.indexOf('Rename'));
+		const renameSection = content.slice(
+			content.indexOf('renameModal') || content.indexOf('Rename')
+		);
 		expect(renameSection).toMatch(/Input/);
 	});
 });

@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
 	import { Button, Textarea } from 'flowbite-svelte';
-	import { EditOutline } from 'flowbite-svelte-icons';
 	import { marked } from 'marked';
 	import { isAdmin } from '$lib/stores/auth';
 	import { kcFetch } from '$lib/kcFetch';
@@ -52,7 +51,8 @@
 	{#if editing}
 		<div class="mb-2 flex gap-2">
 			<Button onclick={save} disabled={saving}>{saving ? t.saving : t.save}</Button>
-			<Button color="alternative" onclick={() => (editing = false)} disabled={saving}>{t.cancel}</Button
+			<Button color="alternative" onclick={() => (editing = false)} disabled={saving}
+				>{t.cancel}</Button
 			>
 		</div>
 		<Textarea
@@ -68,6 +68,7 @@
 			<Button color="primary" class="mb-2" onclick={startEdit}>{t.edit}</Button>
 		{/if}
 		<div class="prose max-w-none dark:prose-invert [&_li]:my-0 [&_ol]:my-2 [&_ul]:my-2">
+			<!-- eslint-disable-next-line svelte/no-at-html-tags -->
 			{@html html}
 		</div>
 	{/if}

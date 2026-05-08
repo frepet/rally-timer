@@ -1,7 +1,7 @@
 import { sql } from '../db';
 
 export async function runMigration() {
-  await sql.unsafe(`
+	await sql.unsafe(`
 		CREATE TABLE IF NOT EXISTS pages (
 			slug TEXT PRIMARY KEY,
 			content TEXT NOT NULL,
@@ -9,7 +9,7 @@ export async function runMigration() {
 		);
 	`);
 
-  await sql.unsafe(`
+	await sql.unsafe(`
 		INSERT INTO pages (slug, content) VALUES
 			('rules', '# Rules'),
 			('about', '# About'),

@@ -32,10 +32,7 @@ describe('buildStageData (submitted rally)', () => {
 	});
 
 	it('sorts rows by elapsed_ms and assigns positions', () => {
-		const result = buildStageData([
-			r('SS1', 'Bob', 'A', 6000),
-			r('SS1', 'Alice', 'A', 4000)
-		]);
+		const result = buildStageData([r('SS1', 'Bob', 'A', 6000), r('SS1', 'Alice', 'A', 4000)]);
 		const rows = result[0].rows;
 		expect(rows[0].driver_name).toBe('Alice');
 		expect(rows[0].position).toBe(1);

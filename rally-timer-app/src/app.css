@@ -107,11 +107,20 @@
 	animation: status-pulse 1.6s ease-in-out infinite;
 }
 @keyframes status-pulse {
-	0%, 100% { opacity: 1; transform: scale(1); }
-	50%      { opacity: 0.45; transform: scale(0.8); }
+	0%,
+	100% {
+		opacity: 1;
+		transform: scale(1);
+	}
+	50% {
+		opacity: 0.45;
+		transform: scale(0.8);
+	}
 }
 @media (prefers-reduced-motion: reduce) {
-	.status-dot--live { animation: none; }
+	.status-dot--live {
+		animation: none;
+	}
 }
 
 /* Unlayered — beats all Tailwind/Flowbite layered utility classes (py-4, py-3, etc.).

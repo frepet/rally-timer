@@ -232,7 +232,8 @@
 			class="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-red-600 hover:bg-gray-100 dark:text-red-400 dark:hover:bg-gray-600"
 			onclick={() => deleteGate(menuGate)}
 		>
-			<TrashBinOutline size="xs" /> {t.delete}
+			<TrashBinOutline size="xs" />
+			{t.delete}
 		</button>
 	</div>
 {/if}

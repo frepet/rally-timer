@@ -362,7 +362,8 @@
 				deleteStage(id);
 			}}
 		>
-			<TrashBinOutline size="xs" /> {t.delete}
+			<TrashBinOutline size="xs" />
+			{t.delete}
 		</button>
 	</div>
 {/if}
@@ -382,14 +383,16 @@
 			{#if $isAdmin}
 				<Button size="sm" color="alternative" onclick={openPenaltyModal}>{t.penaltyButton}</Button>
 				<Button size="sm" color="alternative" onclick={openSubmitModal}>
-					<AwardOutline size="sm" class="mr-1" /> {t.submitToChampionshipButton}
+					<AwardOutline size="sm" class="mr-1" />
+					{t.submitToChampionshipButton}
 				</Button>
 				<button
 					type="button"
 					class="inline-flex items-center gap-1 rounded px-2 py-1 text-sm font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
 					onclick={() => (clearModalOpen = true)}
 				>
-					<RefreshOutline size="sm" /> {t.clearRallyButton}
+					<RefreshOutline size="sm" />
+					{t.clearRallyButton}
 				</button>
 			{/if}
 		</div>
@@ -503,7 +506,8 @@
 								class="hidden items-center gap-1 rounded px-2 py-1 text-sm font-medium text-green-600 hover:bg-gray-100 sm:inline-flex dark:text-green-400 dark:hover:bg-gray-700"
 								title={t.openStartTitle}
 							>
-								<PlayOutline size="sm" /> {t.startButton}
+								<PlayOutline size="sm" />
+								{t.startButton}
 							</a>
 						{:else}
 							<span class="hidden text-xs text-gray-400 sm:inline dark:text-gray-500"

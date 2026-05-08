@@ -25,7 +25,13 @@ const startRow = (
 	stage_name: opts.stage_name ?? `SS${stage_id}`
 });
 
-const finishRow = (stage_id: number, tag: string, timestamp: number, dnf = false, penalty_ms = 0) => ({
+const finishRow = (
+	stage_id: number,
+	tag: string,
+	timestamp: number,
+	dnf = false,
+	penalty_ms = 0
+) => ({
 	stage_id,
 	tag,
 	timestamp,

@@ -28,7 +28,10 @@ export async function GET(event: RequestEvent): Promise<Response> {
 		...rally,
 		submitted_at: Number(rally.submitted_at),
 		championships,
-		results: results.map((r) => ({ ...r, elapsed_ms: r.elapsed_ms != null ? Number(r.elapsed_ms) : null }))
+		results: results.map((r) => ({
+			...r,
+			elapsed_ms: r.elapsed_ms != null ? Number(r.elapsed_ms) : null
+		}))
 	});
 }
 

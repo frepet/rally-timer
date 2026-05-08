@@ -6,7 +6,6 @@
 
 	type Championship = { id: string; name: string };
 	type RallyDetail = {
-		id: string;
 		name: string;
 		submitted_at: number;
 		championships: Championship[];

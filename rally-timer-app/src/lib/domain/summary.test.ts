@@ -327,12 +327,7 @@ describe('buildRallyRows', () => {
 
 describe('buildStageData — status', () => {
 	it('stage with no starts is upcoming', () => {
-		const result = buildStageData(
-			[driver(1, 'Alice', 'A', 'tagA')],
-			[stage(1)],
-			[],
-			[]
-		);
+		const result = buildStageData([driver(1, 'Alice', 'A', 'tagA')], [stage(1)], [], []);
 		expect(result[0].status).toBe('upcoming');
 	});
 
