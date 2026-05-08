@@ -7,7 +7,7 @@ export async function GET(event: RequestEvent): Promise<Response> {
 	if (!Number.isFinite(id) || id <= 0) throw error(400, 'Invalid id');
 
 	const rows = await sql`
-		SELECT
+		SELECT DISTINCT ON (d.id)
 			fe.id         AS finish_event_id,
 			fe.timestamp  AS timestamp,
 			fe.penalty_ms AS penalty_ms,
@@ -17,7 +17,7 @@ export async function GET(event: RequestEvent): Promise<Response> {
 		JOIN drivers d ON d.tag = fe.tag
 		WHERE fe.stage_id = ${id}
 		  AND fe.dnf = false
-		ORDER BY fe.timestamp ASC
+		ORDER BY d.id, fe.timestamp ASC
 	`;
 
 	return json(
