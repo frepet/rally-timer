@@ -1,4 +1,5 @@
-import { json, error, type RequestEvent } from '@sveltejs/kit';
+import { json, error } from '@sveltejs/kit';
+import type { RequestEvent } from './$types';
 import { sql } from '../../../../lib/server/db';
 import { throwIfNotAdmin } from '../../../../lib/server/keycloak';
 import { pageUpdateSchema } from '../../../../lib/server/schemas';

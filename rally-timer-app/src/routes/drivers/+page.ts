@@ -1,4 +1,4 @@
-import type { PageLoad } from '$types';
+import type { PageLoad } from './$types';
 import type { DriverType } from '../../lib/types';
 
 export const load: PageLoad = async ({ fetch }) => {
