@@ -129,7 +129,7 @@ export function buildRallyRows(stageData: StageData[]): DisplayRallyRow[] {
 		dnf: v.dnf
 	}));
 
-	rows.sort((a, b) => a.total_ms - b.total_ms);
+	rows.sort((a, b) => b.finished_stages - a.finished_stages || a.total_ms - b.total_ms);
 	assignPositionsAndDeltas(rows, (r) => r.total_ms);
 	return rows;
 }

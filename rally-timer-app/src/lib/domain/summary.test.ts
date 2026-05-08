@@ -213,7 +213,64 @@ describe('buildRallyRows', () => {
 		expect(rows[1].position).toBe(2);
 	});
 
-	it('driver with more finished stages but slower total stays behind faster total', () => {
+	it('driver with more stages ranks above driver with fewer stages even if total time is slower', () => {
+		// Alice: SS1=10000, SS2=10000 → total=20000, 2 stages
+		// Bob: SS1=5000 → total=5000, 1 stage
+		// Alice should rank P1 despite slower time because she has more stages
+		const stageData = [
+			{
+				name: 'SS1',
+				status: 'closed' as const,
+				rows: [
+					{
+						driver_name: 'Alice',
+						class_name: 'A',
+						stage_ms: 10000,
+						penalty_ms: 0,
+						position: 1,
+						delta_p1: 0,
+						delta_prev: null,
+						dnf: false
+					},
+					{
+						driver_name: 'Bob',
+						class_name: 'A',
+						stage_ms: 5000,
+						penalty_ms: 0,
+						position: 1,
+						delta_p1: 0,
+						delta_prev: null,
+						dnf: false
+					}
+				]
+			},
+			{
+				name: 'SS2',
+				status: 'closed' as const,
+				rows: [
+					{
+						driver_name: 'Alice',
+						class_name: 'A',
+						stage_ms: 10000,
+						penalty_ms: 0,
+						position: 1,
+						delta_p1: 0,
+						delta_prev: null,
+						dnf: false
+					}
+				]
+			}
+		];
+		const rows = buildRallyRows(stageData);
+		expect(rows[0].driver_name).toBe('Alice');
+		expect(rows[0].position).toBe(1);
+		expect(rows[0].finished_stages).toBe(2);
+		expect(rows[1].driver_name).toBe('Bob');
+		expect(rows[1].position).toBe(2);
+		expect(rows[1].finished_stages).toBe(1);
+	});
+
+	it('driver with more finished stages and faster total wins on both criteria', () => {
 		// Diana: SS1=4000, SS2=3000 → total=7000, 2 stages
 		// Bob: SS1=8000 → total=8000, 1 stage
 		const stageData = [
