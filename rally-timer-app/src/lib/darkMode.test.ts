@@ -11,37 +11,37 @@ function readTemplate(relativePath: string) {
 // Each empty-state element must carry an explicit dark:text-* class so it
 // stays readable when the page is rendered in dark mode.
 describe('dark mode: empty-state elements must have explicit dark text color', () => {
-	it('"Inga sträckor än." in rallies page', () => {
+	it('"t.noStagesYet" in rallies page', () => {
 		const content = readTemplate('src/routes/rallies/+page.svelte');
-		const match = content.match(/class="([^"]*)"[^>]*>\s*Inga sträckor än\.\s*<\/\w+>/);
+		const match = content.match(/class="([^"]*)"[^>]*>\s*\{t\.noStagesYet\}\s*<\/\w+>/);
 		expect(match).not.toBeNull();
 		expect(match![1]).toMatch(/dark:text-/);
 	});
 
-	it('"Inga förare/Inga träffar" li in rallies page', () => {
+	it('"t.noMatches / t.noDrivers" li in rallies page', () => {
 		const content = readTemplate('src/routes/rallies/+page.svelte');
-		const match = content.match(/<li class="([^"]*)">[^<]*Inga förare[^<]*<\/li>/);
+		const match = content.match(/<li class="([^"]*)">[^<]*\{driverSearch \? t\.noMatches : t\.noDrivers\}[^<]*<\/li>/);
 		expect(match).not.toBeNull();
 		expect(match![1]).toMatch(/dark:text-/);
 	});
 
-	it('"Inga resultat än." in RallyResults', () => {
+	it('"t.noResultsYet" in RallyResults', () => {
 		const content = readTemplate('src/lib/RallyResults.svelte');
-		const match = content.match(/class="([^"]*)"[^>]*>Inga resultat än\.<\/\w+>/);
+		const match = content.match(/class="([^"]*)"[^>]*>\{t\.noResultsYet\}<\/\w+>/);
 		expect(match).not.toBeNull();
 		expect(match![1]).toMatch(/dark:text-/);
 	});
 
-	it('"Inga sträckor än." in RallyResults', () => {
+	it('"t.noStagesYet" in RallyResults', () => {
 		const content = readTemplate('src/lib/RallyResults.svelte');
-		const match = content.match(/class="([^"]*)"[^>]*>Inga sträckor än\.<\/\w+>/);
+		const match = content.match(/class="([^"]*)"[^>]*>\{t\.noStagesYet\}<\/\w+>/);
 		expect(match).not.toBeNull();
 		expect(match![1]).toMatch(/dark:text-/);
 	});
 
-	it('"Inga sträckaresultat än." in RallyResults', () => {
+	it('"t.noStageResultsYet" in RallyResults', () => {
 		const content = readTemplate('src/lib/RallyResults.svelte');
-		const match = content.match(/class="([^"]*)"[^>]*>Inga sträckaresultat än\.<\/\w+>/);
+		const match = content.match(/class="([^"]*)"[^>]*>\{t\.noStageResultsYet\}<\/\w+>/);
 		expect(match).not.toBeNull();
 		expect(match![1]).toMatch(/dark:text-/);
 	});

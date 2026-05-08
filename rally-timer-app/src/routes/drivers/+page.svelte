@@ -16,6 +16,7 @@
 		Badge
 	} from 'flowbite-svelte';
 	import { TrashBinOutline } from 'flowbite-svelte-icons';
+	import { t } from '../../lib/stores/locale.svelte';
 
 	type Driver = {
 		id: number;
@@ -245,28 +246,28 @@
 <div class="w-full space-y-6 p-5">
 	<Card class="max-w-none p-4 sm:p-6 md:p-8">
 		<p class="small-caps mb-4 text-xl font-semibold tracking-widest text-black dark:text-white">
-			Lägg till förare
+			{t.addDriver}
 		</p>
 
 		<div class="grid grid-cols-1 gap-3 md:grid-cols-4">
 			<div>
 				<label for="newName" class="mb-2 block text-sm font-medium text-gray-900 dark:text-white"
-					>Namn</label
+					>{t.name}</label
 				>
 				<Input
 					id="newName"
 					bind:value={newName}
-					placeholder="Förarnamn"
+					placeholder={t.driverName}
 					onkeydown={(e) => e.key === 'Enter' && createDriver()}
 				/>
 			</div>
 
 			<div>
 				<label for="newClass" class="mb-2 block text-sm font-medium text-gray-900 dark:text-white"
-					>Klass</label
+					>{t.classLabel}</label
 				>
 				<Select id="newClass" bind:value={newClassId}>
-					<option value="" disabled selected>Välj klass…</option>
+					<option value="" disabled selected>{t.selectClass}</option>
 					{#each classes as c (c.id)}
 						<option value={c.id}>{c.name}</option>
 					{/each}
@@ -275,13 +276,13 @@
 
 			<div>
 				<label for="newTag" class="mb-2 block text-sm font-medium text-gray-900 dark:text-white"
-					>RFID-tagg</label
+					>{t.rfidTag}</label
 				>
 				<Input
 					id="newTag"
 					bind:elementRef={tagInputEl}
 					bind:value={newTag}
-					placeholder={gateCaptureEnabled && selectedGateId ? 'Väntar på grind...' : 'Skanna tagg…'}
+					placeholder={gateCaptureEnabled && selectedGateId ? t.waitingForGate : t.scanTag}
 					class={captureFlash ? 'ring-2 ring-green-500' : ''}
 					disabled={!!(gateCaptureEnabled && selectedGateId)}
 					onkeydown={(e) => e.key === 'Enter' && createDriver()}
@@ -290,7 +291,7 @@
 
 			<div>
 				<label for="gateSelect" class="mb-2 block text-sm font-medium text-gray-900 dark:text-white"
-					>Grindfångst</label
+					>{t.gateCapture}</label
 				>
 				<div class="flex items-center gap-2">
 					<Select
@@ -299,7 +300,7 @@
 						class="flex-1"
 						disabled={gateCaptureEnabled}
 					>
-						<option value={null}>Manuell inmatning</option>
+						<option value={null}>{t.manualEntry}</option>
 						{#each gates.filter((g) => !g.stage_id) as g (g.id)}
 							<option value={g.id}>
 								{g.name ?? g.id.slice(0, 8)}
@@ -317,7 +318,7 @@
 							<Badge color="gray" class="text-xs">Offline</Badge>
 						{/if}
 						<Toggle bind:checked={autoSubmitEnabled} size="small" />
-						<span class="opacity-70">Lägg till automatiskt</span>
+						<span class="opacity-70">{t.addAutomatically}</span>
 					</div>
 				{/if}
 			</div>
@@ -325,7 +326,7 @@
 
 		{#if lastCapturedTag && gateCaptureEnabled}
 			<div class="mt-2 text-sm text-green-600 dark:text-green-400">
-				Senast fångad: <span class="font-mono font-bold">{lastCapturedTag}</span>
+				{t.lastCaptured} <span class="font-mono font-bold">{lastCapturedTag}</span>
 			</div>
 		{/if}
 
@@ -339,27 +340,27 @@
 						newTag = '';
 					}}
 				>
-					Avbryt fångst
+					{t.cancelCapture}
 				</Button>
 			{/if}
-			<Button class="w-32" onclick={createDriver}>Lägg till</Button>
+			<Button class="w-32" onclick={createDriver}>{t.add}</Button>
 		</div>
 	</Card>
 
 	<Card class="max-w-none p-4 sm:p-6 md:p-8">
 		<div class="mb-2 flex items-center gap-2">
 			<p class="small-caps flex-1 text-xl font-semibold tracking-widest text-black dark:text-white">
-				Förare
+				{t.driversHeading}
 			</p>
-			<Button color="red" class="w-32" onclick={clearAll}>Rensa alla</Button>
+			<Button color="red" class="w-32" onclick={clearAll}>{t.clearAll}</Button>
 		</div>
 
 		<Table hoverable={true}>
 			<TableHead>
-				<TableHeadCell>Namn</TableHeadCell>
-				<TableHeadCell>Klass</TableHeadCell>
-				<TableHeadCell>Tagg</TableHeadCell>
-				<TableHeadCell class="flex justify-end">Åtgärder</TableHeadCell>
+				<TableHeadCell>{t.name}</TableHeadCell>
+				<TableHeadCell>{t.classLabel}</TableHeadCell>
+				<TableHeadCell>{t.tag}</TableHeadCell>
+				<TableHeadCell class="flex justify-end">{t.actions}</TableHeadCell>
 			</TableHead>
 
 			<TableBody>
@@ -369,7 +370,7 @@
 						<TableBodyCell>
 							{#if editingId === d.id}
 								<Input
-									aria-label="Förarnamn"
+									aria-label={t.driverName}
 									bind:value={editName}
 									onkeydown={(e) => e.key === 'Enter' && saveEdit(d.id)}
 								/>
@@ -381,8 +382,8 @@
 						<!-- Class -->
 						<TableBodyCell>
 							{#if editingId === d.id}
-								<Select aria-label="Förarklass" bind:value={editClassId}>
-									<option value="" disabled>Välj klass…</option>
+								<Select aria-label={t.driverClassAriaLabel} bind:value={editClassId}>
+									<option value="" disabled>{t.selectClass}</option>
 									{#each classes as c (c.id)}
 										<option value={c.id}>{c.name}</option>
 									{/each}
@@ -396,7 +397,7 @@
 						<TableBodyCell>
 							{#if editingId === d.id}
 								<Input
-									aria-label="RFID-tagg"
+									aria-label={t.rfidTag}
 									bind:value={editTag}
 									onkeydown={(e) => e.key === 'Enter' && saveEdit(d.id)}
 								/>
@@ -408,10 +409,10 @@
 						<!-- Actions -->
 						<TableBodyCell class="flex justify-end gap-2">
 							{#if editingId === d.id}
-								<Button size="xs" onclick={() => saveEdit(d.id)}>Spara</Button>
-								<Button size="xs" color="light" onclick={cancelEdit}>Avbryt</Button>
+								<Button size="xs" onclick={() => saveEdit(d.id)}>{t.save}</Button>
+								<Button size="xs" color="light" onclick={cancelEdit}>{t.cancel}</Button>
 							{:else}
-								<Button size="xs" onclick={() => startEdit(d)}>Redigera</Button>
+								<Button size="xs" onclick={() => startEdit(d)}>{t.edit}</Button>
 								<Button size="xs" color="red" onclick={() => deleteOne(d.id)}
 									><TrashBinOutline size="xs" /></Button
 								>

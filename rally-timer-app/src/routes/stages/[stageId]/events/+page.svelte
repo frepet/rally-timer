@@ -15,6 +15,7 @@
 	import { TrashBinOutline } from 'flowbite-svelte-icons';
 	import type { PageProps } from './$types';
 	import { kcFetch } from '../../../../lib/kcFetch';
+	import { t } from '../../../../lib/stores/locale.svelte';
 
 	let { data }: PageProps = $props();
 
@@ -62,7 +63,7 @@
 		);
 	}
 	function fmtKind(k: UnifiedEvent['kind']): string {
-		return k === 'start' ? 'Start' : 'Mål';
+		return k === 'start' ? t.kindStart : t.kindFinish;
 	}
 
 	async function kcFetchJSON<T>(url: string, init?: RequestInit): Promise<T> {
@@ -81,7 +82,7 @@
 	}
 
 	async function unassignGate(gate: Gate) {
-		if (!confirm(`Koppla bort grinden "${gate.name ?? gate.id}" från denna sträcka?`)) return;
+		if (!confirm(t.unassignGateFromStageConfirm(gate.name ?? gate.id))) return;
 		await kcFetchJSON(`/api/gate/${gate.id}`, {
 			method: 'PATCH',
 			headers: { 'content-type': 'application/json' },
@@ -106,7 +107,7 @@
 	async function saveEdit(ev: UnifiedEvent) {
 		const parsed = new Date(editTs).getTime();
 		if (!Number.isFinite(parsed)) {
-			alert('Ogiltigt datum/tid.');
+			alert(t.invalidDatetime);
 			return;
 		}
 		await kcFetchJSON(endpointFor(ev.kind, ev.id), {
@@ -119,7 +120,7 @@
 	}
 
 	async function deleteEvent(ev: UnifiedEvent) {
-		if (!confirm(`Ta bort ${fmtKind(ev.kind)} #${ev.id}?`)) return;
+		if (!confirm(t.deleteEventConfirm(fmtKind(ev.kind), ev.id))) return;
 		await kcFetch(endpointFor(ev.kind, ev.id), { method: 'DELETE' });
 		await loadEvents();
 	}
@@ -154,7 +155,7 @@
 	<Card class="max-w-none p-4 sm:p-6 md:p-8">
 		<div class="mb-4">
 			<P class="small-caps text-xl font-semibold tracking-widest text-black dark:text-white"
-				>Händelser för {stageName}</P
+				>{t.eventsForStage(stageName)}</P
 			>
 		</div>
 
@@ -173,26 +174,25 @@
 						<button
 							class="ml-1 text-red-500 hover:text-red-700"
 							onclick={() => unassignGate(g)}
-							title="Koppla bort grind">×</button
+							title={t.disconnectGateTitle}>×</button
 						>
 					</div>
 				{/each}
 			</div>
 		{:else}
 			<P class="mb-4 text-sm text-yellow-600 dark:text-yellow-400">
-				Ingen grind tilldelad. Tilldela en grind från Sträckor-sidan för att ta emot RFID-händelser
-				automatiskt.
+				{t.noGateAssignedWarning}
 			</P>
 		{/if}
 
 		<Table hoverable>
 			<TableHead>
-				<TableHeadCell>Typ</TableHeadCell>
-				<TableHeadCell>Tidsstämpel (lokal)</TableHeadCell>
-				<TableHeadCell>Epoch ms</TableHeadCell>
-				<TableHeadCell>Förare (tagg)</TableHeadCell>
-				<TableHeadCell>RSSI</TableHeadCell>
-				<TableHeadCell class="flex justify-end">Åtgärder</TableHeadCell>
+				<TableHeadCell>{t.typeHeader}</TableHeadCell>
+				<TableHeadCell>{t.timestampHeader}</TableHeadCell>
+				<TableHeadCell>{t.epochHeader}</TableHeadCell>
+				<TableHeadCell>{t.driverTagHeader}</TableHeadCell>
+				<TableHeadCell>{t.rssiHeader}</TableHeadCell>
+				<TableHeadCell class="flex justify-end">{t.actions}</TableHeadCell>
 			</TableHead>
 			<TableBody>
 				{#each events as e (keyOf(e))}
@@ -205,7 +205,7 @@
 									type="datetime-local"
 									step="0.001"
 									bind:value={editTs}
-									aria-label="Tidsstämpel"
+									aria-label={t.timestampAriaLabel}
 									class="rounded border border-gray-300 bg-white px-2 py-1 text-sm dark:border-gray-600 dark:bg-gray-700"
 								/>
 							{:else}
@@ -229,10 +229,10 @@
 
 						<TableBodyCell class="flex justify-end gap-2">
 							{#if editingKey === keyOf(e)}
-								<Button size="xs" onclick={() => saveEdit(e)}>Spara</Button>
-								<Button size="xs" color="light" onclick={cancelEdit}>Avbryt</Button>
+								<Button size="xs" onclick={() => saveEdit(e)}>{t.save}</Button>
+								<Button size="xs" color="light" onclick={cancelEdit}>{t.cancel}</Button>
 							{:else}
-								<Button size="xs" onclick={() => startEdit(e)}>Redigera</Button>
+								<Button size="xs" onclick={() => startEdit(e)}>{t.edit}</Button>
 								<Button size="xs" color="red" onclick={() => deleteEvent(e)}
 									><TrashBinOutline size="xs" /></Button
 								>
@@ -243,7 +243,7 @@
 
 				{#if !events.length}
 					<TableBodyRow>
-						<TableBodyCell colspan={6} class="opacity-70">Inga händelser än.</TableBodyCell>
+						<TableBodyCell colspan={6} class="opacity-70">{t.noEventsYet}</TableBodyCell>
 					</TableBodyRow>
 				{/if}
 			</TableBody>

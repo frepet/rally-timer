@@ -2,6 +2,7 @@
 	import { Card, Button, Badge } from 'flowbite-svelte';
 
 	import { formatMs, type DisplayRallyRow, type StageData } from './results';
+	import { t } from './stores/locale.svelte';
 
 	let {
 		rallyRows,
@@ -33,7 +34,7 @@
 <!-- Rally leaderboard -->
 <Card class="max-w-none p-4 sm:p-6 md:p-8 dark:bg-surface-850">
 	<p class="small-caps mb-4 text-xl font-semibold tracking-widest text-black dark:text-white">
-		Rally-resultatlista
+		{t.rallyLeaderboard}
 	</p>
 	{#if rallyRows.length}
 		<div>
@@ -69,7 +70,7 @@
 					>
 						{#if r.position !== 1}
 							<span class="whitespace-nowrap"
-								><span class="mr-1 opacity-50">Totalt</span>{formatMs(r.total_ms)}</span
+								><span class="mr-1 opacity-50">{t.totalLabel}</span>{formatMs(r.total_ms)}</span
 							>
 							<span class="whitespace-nowrap"
 								><span class="mr-1 opacity-50">Δ P1</span>{r.delta_p1 != null
@@ -78,11 +79,11 @@
 							>
 						{/if}
 						<span class="whitespace-nowrap"
-							><span class="mr-1 opacity-50">Sträckor</span>{r.finished_stages}</span
+							><span class="mr-1 opacity-50">{t.stagesStatLabel}</span>{r.finished_stages}</span
 						>
 						{#if r.penalty_ms > 0}
 							<span class="whitespace-nowrap text-amber-600 dark:text-amber-400"
-								><span class="mr-1 opacity-70">Tillägg</span>+{formatMs(r.penalty_ms)}</span
+								><span class="mr-1 opacity-70">{t.penaltyLabel}</span>+{formatMs(r.penalty_ms)}</span
 							>
 						{/if}
 					</div>
@@ -90,14 +91,14 @@
 			{/each}
 		</div>
 	{:else}
-		<p class="text-sm text-gray-500 dark:text-gray-400">Inga resultat än.</p>
+		<p class="text-sm text-gray-500 dark:text-gray-400">{t.noResultsYet}</p>
 	{/if}
 </Card>
 
 <!-- Stage tabs + leaderboard -->
 <Card class="max-w-none p-4 sm:p-6 md:p-8 dark:bg-surface-850">
 	<p class="small-caps mb-4 text-xl font-semibold tracking-widest text-black dark:text-white">
-		Sträcka-resultatlista
+		{t.stageLeaderboard}
 	</p>
 	<div class="mb-4 flex flex-wrap gap-2">
 		{#each stages as s (s.name)}
@@ -118,7 +119,7 @@
 			</Button>
 		{/each}
 		{#if !stages.length}
-			<span class="text-sm text-gray-500 dark:text-gray-400">Inga sträckor än.</span>
+			<span class="text-sm text-gray-500 dark:text-gray-400">{t.noStagesYet}</span>
 		{/if}
 	</div>
 
@@ -164,7 +165,7 @@
 						>
 							{#if r.position !== 1}
 								<span class="whitespace-nowrap"
-									><span class="mr-1 opacity-50">Tid</span>{formatMs(r.stage_ms)}</span
+									><span class="mr-1 opacity-50">{t.timeLabel}</span>{formatMs(r.stage_ms)}</span
 								>
 								{#if !r.dnf}
 									<span class="whitespace-nowrap"
@@ -176,7 +177,7 @@
 							{/if}
 							{#if r.penalty_ms > 0}
 								<span class="whitespace-nowrap text-amber-600 dark:text-amber-400"
-									><span class="mr-1 opacity-70">Tillägg</span>+{formatMs(r.penalty_ms)}</span
+									><span class="mr-1 opacity-70">{t.penaltyLabel}</span>+{formatMs(r.penalty_ms)}</span
 								>
 							{/if}
 						</div>
@@ -184,7 +185,7 @@
 				{/each}
 			</div>
 		{:else}
-			<p class="text-sm text-gray-500 dark:text-gray-400">Inga sträckaresultat än.</p>
+			<p class="text-sm text-gray-500 dark:text-gray-400">{t.noStageResultsYet}</p>
 		{/if}
 	{/if}
 </Card>

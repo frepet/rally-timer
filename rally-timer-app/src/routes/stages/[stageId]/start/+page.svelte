@@ -15,6 +15,7 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { kcFetch } from '../../../../lib/kcFetch';
 	import type { BundleResponse } from '../../../../lib/types';
+	import { t } from '../../../../lib/stores/locale.svelte';
 
 	type Driver = { id: number; name: string; class_name?: string; tag: string };
 	type Gate = { id: string; name: string | null; stage_id: number | null };
@@ -116,15 +117,13 @@
 			if (drivers[idx].class_name !== launchedClass) {
 				paused = true;
 				speechSynthesis.speak(
-					createUtterance(
-						`Klass ${launchedClass ?? ''} klar. Nästa klass: ${drivers[idx].class_name ?? ''}`
-					)
+					createUtterance(t.speechClassDone(launchedClass ?? '', drivers[idx].class_name ?? ''))
 				);
 			} else {
-				speechSynthesis.speak(createUtterance('Nästa förare: ' + drivers[idx].name));
+				speechSynthesis.speak(createUtterance(t.speechNextDriver(drivers[idx].name)));
 			}
 		} else {
-			speechSynthesis.speak(createUtterance('Inga fler förare'));
+			speechSynthesis.speak(createUtterance(t.speechNoMoreDrivers));
 		}
 	}
 
@@ -165,7 +164,7 @@
 		setLED(6);
 		if (timer) clearInterval(timer);
 		timer = setInterval(tick, 100);
-		speechSynthesis.speak(createUtterance('Nästa förare: ' + drivers[idx].name));
+		speechSynthesis.speak(createUtterance(t.speechNextDriver(drivers[idx].name)));
 	}
 
 	function pause() {
@@ -198,7 +197,7 @@
 			['3', createUtterance('3')],
 			['4', createUtterance('4')],
 			['5', createUtterance('5')],
-			['go', createUtterance('kör')]
+			['go', createUtterance(t.speechGo)]
 		]);
 		loadQueue();
 		loadGates();
@@ -217,8 +216,8 @@
 			<P class="text-xl font-semibold">{stageName}</P>
 			{#if activeClass}
 				<P class="text-xl font-semibold">
-					Aktiv klass: <span class="text-blue-600 dark:text-blue-400">{activeClass}</span>
-					<span class="text-sm font-normal opacity-70">({remainingInClass} kvar)</span>
+					{t.activeClassLabel} <span class="text-blue-600 dark:text-blue-400">{activeClass}</span>
+					<span class="text-sm font-normal opacity-70">({remainingInClass} {t.remainingLabel})</span>
 				</P>
 			{/if}
 		</div>
@@ -253,7 +252,7 @@
 				{#if drivers[idx]}
 					{drivers[idx].name} <br />
 				{:else}
-					Inga fler förare
+					{t.noMoreDrivers}
 				{/if}
 			</P>
 			<P class="text-2xl tracking-wide italic">
@@ -267,7 +266,7 @@
 	<!-- Queue preview -->
 	<Card class="p-3">
 		<div class="">
-			<P class="text-sm opacity-70">Näst på tur</P>
+			<P class="text-sm opacity-70">{t.upNext}</P>
 			<P class="text-xl">{drivers[idx + 1]?.name} — {drivers[idx + 1]?.class_name || ''}</P>
 			<P class="text-lg opacity-80">
 				{drivers[idx + 2]?.name} — {drivers[idx + 2]?.class_name || ''}
@@ -277,12 +276,12 @@
 
 	<!-- Start order list -->
 	<Card class="p-3">
-		<P class="mb-2 text-sm font-semibold opacity-70">Startordning</P>
+		<P class="mb-2 text-sm font-semibold opacity-70">{t.startOrder}</P>
 		<Table striped={true}>
 			<TableHead>
 				<TableHeadCell class="w-12">#</TableHeadCell>
-				<TableHeadCell>Förare</TableHeadCell>
-				<TableHeadCell>Klass</TableHeadCell>
+				<TableHeadCell>{t.driverColumn}</TableHeadCell>
+				<TableHeadCell>{t.classColumn}</TableHeadCell>
 			</TableHead>
 			<TableBody>
 				{#each drivers as driver, i (driver.id)}
@@ -306,19 +305,19 @@
 	<Card class="p-3">
 		<div class="flex flex-col items-center justify-between">
 			<div class="flex w-full flex-row items-center gap-2 p-2">
-				<label for="gap" class="text-sm opacity-70"><P>Mellanrum (s)</P></label>
+				<label for="gap" class="text-sm opacity-70"><P>{t.gapSecondsLabel}</P></label>
 				<Input id="gap" type="number" min="1" class="w-20 rounded p-2" bind:value={gapSeconds} />
 			</div>
 			{#if !hasGate}
 				<P class="px-2 text-sm text-yellow-600 dark:text-yellow-400"
-					>Ingen grind tilldelad till denna sträcka.</P
+					>{t.noGateForStage}</P
 				>
 			{/if}
 			<div class="flex w-full flex-wrap gap-2 p-2">
-				<Button size="sm" onclick={start} disabled={running || !hasGate}>Start</Button>
-				<Button size="sm" onclick={pause} disabled={!running || paused}>Pausa</Button>
-				<Button size="sm" onclick={resume} disabled={!running || !paused}>Återuppta</Button>
-				<Button size="sm" color="red" onclick={restart}>Starta om</Button>
+				<Button size="sm" onclick={start} disabled={running || !hasGate}>{t.startButton}</Button>
+				<Button size="sm" onclick={pause} disabled={!running || paused}>{t.pauseButton}</Button>
+				<Button size="sm" onclick={resume} disabled={!running || !paused}>{t.resumeButton}</Button>
+				<Button size="sm" color="red" onclick={restart}>{t.restartButton}</Button>
 			</div>
 		</div>
 	</Card>

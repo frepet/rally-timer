@@ -4,6 +4,7 @@
 	import { marked } from 'marked';
 	import { isAdmin } from '$lib/stores/auth';
 	import { kcFetch } from '$lib/kcFetch';
+	import { t } from '../stores/locale.svelte';
 
 	let {
 		slug,
@@ -34,7 +35,7 @@
 			html = marked(draft) as string;
 			editing = false;
 		} catch (e) {
-			saveError = e instanceof Error ? e.message : 'Sparning misslyckades';
+			saveError = e instanceof Error ? e.message : t.saveFailed;
 		} finally {
 			saving = false;
 		}
@@ -49,8 +50,8 @@
 <div class="w-full px-4 py-8">
 	{#if editing}
 		<div class="mb-2 flex gap-2">
-			<Button onclick={save} disabled={saving}>{saving ? 'Sparar…' : 'Spara'}</Button>
-			<Button color="alternative" onclick={() => (editing = false)} disabled={saving}>Avbryt</Button
+			<Button onclick={save} disabled={saving}>{saving ? t.saving : t.save}</Button>
+			<Button color="alternative" onclick={() => (editing = false)} disabled={saving}>{t.cancel}</Button
 			>
 		</div>
 		<Textarea
@@ -63,7 +64,7 @@
 		{/if}
 	{:else}
 		{#if $isAdmin}
-			<Button color="primary" class="mb-2" onclick={startEdit}>Redigera</Button>
+			<Button color="primary" class="mb-2" onclick={startEdit}>{t.edit}</Button>
 		{/if}
 		<div class="prose max-w-none dark:prose-invert [&_li]:my-0 [&_ol]:my-2 [&_ul]:my-2">
 			{@html html}

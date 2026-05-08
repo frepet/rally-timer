@@ -15,6 +15,7 @@
 	import { SvelteSet } from 'svelte/reactivity';
 	import { kcFetch } from '../../lib/kcFetch';
 	import { isAdmin } from '../../lib/stores/auth';
+	import { t } from '../../lib/stores/locale.svelte';
 
 	type Gate = {
 		id: string;
@@ -59,11 +60,11 @@
 
 	function fmtAge(ts: number): string {
 		const sec = Math.floor((Date.now() - ts) / 1000);
-		if (sec < 10) return 'just nu';
-		if (sec < 60) return `${sec}s sedan`;
+		if (sec < 10) return t.justNow;
+		if (sec < 60) return `${sec}s ${t.agoSuffix}`;
 		const min = Math.floor(sec / 60);
-		if (min < 60) return `${min}m sedan`;
-		return `${Math.floor(min / 60)}h sedan`;
+		if (min < 60) return `${min}m ${t.agoSuffix}`;
+		return `${Math.floor(min / 60)}h ${t.agoSuffix}`;
 	}
 
 	function fmtTime(ts: number): string {
@@ -103,7 +104,7 @@
 
 	async function updateName(gate: Gate) {
 		openMenuId = null;
-		const newName = prompt('Ange nytt namn på grinden:', gate.name ?? '');
+		const newName = prompt(t.enterGateName, gate.name ?? '');
 		if (newName === null) return;
 		await kcFetchJSON(`/api/gate/${gate.id}`, {
 			method: 'PATCH',
@@ -115,7 +116,7 @@
 
 	async function unassignGate(gate: Gate) {
 		openMenuId = null;
-		if (!confirm(`Koppla bort grinden "${gate.name ?? gate.id}" från sträckan?`)) return;
+		if (!confirm(t.unassignGateConfirm(gate.name ?? gate.id))) return;
 		await kcFetchJSON(`/api/gate/${gate.id}`, {
 			method: 'PATCH',
 			headers: { 'content-type': 'application/json' },
@@ -126,7 +127,7 @@
 
 	async function deleteGate(gate: Gate) {
 		openMenuId = null;
-		if (!confirm(`Ta bort grinden "${gate.name ?? gate.id}"? Detta går inte att ångra.`)) return;
+		if (!confirm(t.deleteGateConfirm(gate.name ?? gate.id))) return;
 		await kcFetch(`/api/gate/${gate.id}`, { method: 'DELETE' });
 		await loadGates();
 	}
@@ -219,11 +220,11 @@
 		onkeydown={(e) => e.key === 'Escape' && (openMenuId = null)}
 	>
 		<button type="button" class={menuItemClass} onclick={() => updateName(menuGate)}>
-			Byt namn
+			{t.rename}
 		</button>
 		{#if menuGate.stage_id}
 			<button type="button" class={menuItemClass} onclick={() => unassignGate(menuGate)}>
-				Koppla bort
+				{t.disconnect}
 			</button>
 		{/if}
 		<button
@@ -231,7 +232,7 @@
 			class="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-red-600 hover:bg-gray-100 dark:text-red-400 dark:hover:bg-gray-600"
 			onclick={() => deleteGate(menuGate)}
 		>
-			<TrashBinOutline size="xs" /> Ta bort
+			<TrashBinOutline size="xs" /> {t.delete}
 		</button>
 	</div>
 {/if}
@@ -240,22 +241,22 @@
 	<Card class="max-w-none p-4 sm:p-6 md:p-8">
 		<div class="mb-4 flex items-center justify-between">
 			<P class="small-caps text-xl font-semibold tracking-widest text-black dark:text-white"
-				>Registrerade grindar</P
+				>{t.registeredGates}</P
 			>
-			<P class="text-sm opacity-60">Uppdateras automatiskt var 5:e sekund</P>
+			<P class="text-sm opacity-60">{t.autoUpdates}</P>
 		</div>
 
 		{#if !gates.length}
-			<P class="opacity-70">Inga grindar registrerade. Grindar visas här när de ansluter.</P>
+			<P class="opacity-70">{t.noGatesRegistered}</P>
 		{:else}
 			<Table hoverable>
 				<TableHead>
-					<TableHeadCell>Status</TableHeadCell>
-					<TableHeadCell>Namn / ID</TableHeadCell>
-					<TableHeadCell>Tilldelad sträcka</TableHeadCell>
-					<TableHeadCell>Senast sedd</TableHeadCell>
+					<TableHeadCell>{t.statusHeader}</TableHeadCell>
+					<TableHeadCell>{t.nameIdHeader}</TableHeadCell>
+					<TableHeadCell>{t.assignedStageHeader}</TableHeadCell>
+					<TableHeadCell>{t.lastSeenHeader}</TableHeadCell>
 					{#if $isAdmin}
-						<TableHeadCell class="text-right">Åtgärder</TableHeadCell>
+						<TableHeadCell class="text-right">{t.actions}</TableHeadCell>
 					{/if}
 				</TableHead>
 				<TableBody>
@@ -283,7 +284,7 @@
 										<P class="text-xs opacity-60">{gate.rally_name}</P>
 									{/if}
 								{:else}
-									<Badge color="yellow">Ej tilldelad</Badge>
+									<Badge color="yellow">{t.unassigned}</Badge>
 								{/if}
 							</TableBodyCell>
 							<TableBodyCell>
@@ -310,20 +311,17 @@
 	<Card class="max-w-none p-4 sm:p-6 md:p-8">
 		<div class="mb-2 flex items-center justify-between">
 			<P class="small-caps text-xl font-semibold tracking-widest text-black dark:text-white"
-				>Live passagekonsol</P
+				>{t.livePassageConsole}</P
 			>
 			<P class="text-sm opacity-60">{consoleLog.length} / {MAX_LOG}</P>
 		</div>
-		<P class="mb-3 text-sm opacity-70">
-			Varje grindpassage visas här i realtid. Vifta med en RFID-tagg vid en grind för att testa
-			skanning — raden för grinden ovan blinkar och en post läggs till nedan med dess RSSI.
-		</P>
+		<P class="mb-3 text-sm opacity-70">{t.passageConsoleDescription}</P>
 		<div
 			bind:this={consoleEl}
 			class="h-96 overflow-y-auto rounded-md border border-gray-200 bg-gray-900 p-3 font-mono text-xs text-gray-100 dark:border-gray-700"
 		>
 			{#if !consoleLog.length}
-				<div class="opacity-50">Väntar på grindpassager…</div>
+				<div class="opacity-50">{t.waitingForPassages}</div>
 			{:else}
 				{#each consoleLog as entry (entry.id)}
 					<div class="flex items-center gap-2 py-0.5">
@@ -333,7 +331,7 @@
 						<span class="text-yellow-200">{entry.tag}</span>
 						<span class="ml-auto">
 							<Badge color={rssiColor(entry.rssi)}>
-								{entry.rssi != null ? `${entry.rssi} dBm` : 'ingen RSSI'}
+								{entry.rssi != null ? `${entry.rssi} dBm` : t.noRssi}
 							</Badge>
 						</span>
 					</div>

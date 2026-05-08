@@ -15,8 +15,10 @@
 	} from 'flowbite-svelte';
 	import { EditOutline } from 'flowbite-svelte-icons';
 	import DarkModeToggle from '../lib/components/DarkModeToggle.svelte';
+	import LanguageSwitcher from '../lib/components/LanguageSwitcher.svelte';
 	import { initKeycloak, isAdmin, isAuthenticated, login, logout } from '../lib/stores/auth';
 	import { kcFetch } from '../lib/kcFetch';
+	import { initLocale, t } from '../lib/stores/locale.svelte';
 
 	let { children, data } = $props();
 
@@ -27,6 +29,7 @@
 
 	onMount(async () => {
 		initKeycloak();
+		initLocale();
 	});
 
 	async function saveTitle() {
@@ -66,8 +69,8 @@
 </svelte:head>
 <Navbar>
 	<NavBrand href="/">
-		<img src="/icon-black.png" alt="Rally Timer-logotyp" class="m-2 w-24 dark:hidden" />
-		<img src="/icon-white.png" alt="Rally Timer-logotyp" class="m-2 hidden w-24 dark:block" />
+		<img src="/icon-black.png" alt={t.logoAlt} class="m-2 w-24 dark:hidden" />
+		<img src="/icon-white.png" alt={t.logoAlt} class="m-2 hidden w-24 dark:block" />
 		{#if editingTitle}
 			<Input
 				class="ml-2 w-80"
@@ -76,7 +79,7 @@
 				disabled={savingTitle}
 				autofocus
 			/>
-			<Button size="sm" class="ml-2" onclick={saveTitle} disabled={savingTitle}>Spara</Button>
+			<Button size="sm" class="ml-2" onclick={saveTitle} disabled={savingTitle}>{t.save}</Button>
 			<Button
 				size="sm"
 				color="alternative"
@@ -85,7 +88,7 @@
 					titleDraft = title;
 					editingTitle = false;
 				}}
-				disabled={savingTitle}>Avbryt</Button
+				disabled={savingTitle}>{t.cancel}</Button
 			>
 		{:else}
 			<Heading class="small-caps ml-2">{title}</Heading>
@@ -98,7 +101,7 @@
 						titleDraft = title;
 						editingTitle = true;
 					}}
-					aria-label="Redigera titel"
+					aria-label={t.editTitle}
 				>
 					<EditOutline size="sm" />
 				</button>
@@ -108,22 +111,23 @@
 
 	<NavHamburger />
 	<NavUl>
-		<NavLi href="/" class={navClass('/', true)}>Resultat</NavLi>
-		<NavLi href="/championships" class={navClass('/championships')}>Mästerskap</NavLi>
-		<NavLi href="/rules" class={navClass('/rules')}>Regler</NavLi>
-		<NavLi href="/about" class={navClass('/about')}>Om</NavLi>
+		<NavLi href="/" class={navClass('/', true)}>{t.navResults}</NavLi>
+		<NavLi href="/championships" class={navClass('/championships')}>{t.navChampionships}</NavLi>
+		<NavLi href="/rules" class={navClass('/rules')}>{t.navRules}</NavLi>
+		<NavLi href="/about" class={navClass('/about')}>{t.navAbout}</NavLi>
 		{#if $isAdmin}
 			<NavLi>|</NavLi>
 			<NavLi href="/rallies" class={navClass('/rallies')}>Rally</NavLi>
-			<NavLi href="/drivers" class={navClass('/drivers')}>Förare</NavLi>
-			<NavLi href="/classes" class={navClass('/classes')}>Klasser</NavLi>
-			<NavLi href="/gates" class={navClass('/gates')}>Grindar</NavLi>
+			<NavLi href="/drivers" class={navClass('/drivers')}>{t.navDrivers}</NavLi>
+			<NavLi href="/classes" class={navClass('/classes')}>{t.navClasses}</NavLi>
+			<NavLi href="/gates" class={navClass('/gates')}>{t.navGates}</NavLi>
 		{/if}
 		{#if $isAuthenticated}
-			<Button color="alternative" onclick={logout} class="p-1">Logga ut</Button>
+			<Button color="alternative" onclick={logout} class="p-1">{t.logout}</Button>
 		{:else}
-			<Button color="alternative" onclick={login} class="p-1">Logga in</Button>
+			<Button color="alternative" onclick={login} class="p-1">{t.login}</Button>
 		{/if}
+		<LanguageSwitcher />
 		<DarkModeToggle />
 	</NavUl>
 </Navbar>

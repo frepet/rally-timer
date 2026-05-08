@@ -21,6 +21,7 @@
 	import { TrashBinOutline, PlusOutline, PenOutline } from 'flowbite-svelte-icons';
 	import { kcFetch } from '../../lib/kcFetch';
 	import { isAdmin } from '../../lib/stores/auth';
+	import { t } from '../../lib/stores/locale.svelte';
 
 	type Championship = { id: string; name: string; created_at: number };
 	type StandingRow = {
@@ -102,7 +103,7 @@
 
 	async function deleteChampionship(id: string) {
 		const c = championships.find((x) => x.id === id);
-		if (!confirm(`Delete championship "${c?.name}"? This cannot be undone.`)) return;
+		if (!confirm(t.deleteChampionshipConfirm(c?.name ?? ''))) return;
 		await kcFetchJSON(`/api/championship/${id}`, { method: 'DELETE' });
 		if (selectedId === id) {
 			selectedId = null;
@@ -163,10 +164,10 @@
 
 	{#if championships.length === 0}
 		<Card class="max-w-none p-8 text-center">
-			<P class="text-gray-500 dark:text-gray-400">Inga mästerskap än.</P>
+			<P class="text-gray-500 dark:text-gray-400">{t.noChampionshipsYet}</P>
 			{#if $isAdmin}
 				<Button class="mt-4" onclick={() => (createModalOpen = true)}
-					>Skapa ditt första mästerskap</Button
+					>{t.createFirstChampionship}</Button
 				>
 			{/if}
 		</Card>
@@ -185,14 +186,14 @@
 			{#if $isAdmin && selectedId}
 				<button
 					class="rounded p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
-					title="Byt namn på mästerskap"
+					title={t.renameChampionshipTitle}
 					onclick={openRenameModal}
 				>
 					<PenOutline size="sm" />
 				</button>
 				<button
 					class="rounded p-2 text-red-500 hover:bg-gray-100 dark:hover:bg-gray-700"
-					title="Ta bort mästerskap"
+					title={t.deleteChampionshipTitle}
 					onclick={() => deleteChampionship(selectedId!)}
 				>
 					<TrashBinOutline size="sm" />
@@ -200,7 +201,7 @@
 			{/if}
 			{#if $isAdmin}
 				<Button size="sm" class="whitespace-nowrap" onclick={() => (createModalOpen = true)}>
-					<PlusOutline size="sm" class="mr-1" /> Nytt mästerskap
+					<PlusOutline size="sm" class="mr-1" /> {t.newChampionship}
 				</Button>
 			{/if}
 		</div>
@@ -223,18 +224,16 @@
 
 				<!-- Standings per class -->
 				{#if loading}
-					<P class="text-gray-400">Laddar tabell…</P>
+					<P class="text-gray-400">{t.loadingStandings}</P>
 				{:else if standings.length === 0}
 					<Card class="max-w-none p-6 text-center">
-						<P class="text-gray-500 dark:text-gray-400"
-							>Inga resultat än. Skicka in ett rally för att se tabellen.</P
-						>
+						<P class="text-gray-500 dark:text-gray-400">{t.noResultsSubmitRally}</P>
 						{#if $isAdmin}
 							<a
 								href="/rallies"
 								class="mt-2 block text-sm text-blue-600 hover:underline dark:text-blue-400"
 							>
-								Gå till Hantera →
+								{t.goToManage}
 							</a>
 						{/if}
 					</Card>
@@ -246,8 +245,8 @@
 									<Table class="[&_tr]:border-0">
 										<TableHead class="bg-transparent dark:bg-transparent">
 											<TableHeadCell class="w-8 px-2 text-right">#</TableHeadCell>
-											<TableHeadCell>Förare</TableHeadCell>
-											<TableHeadCell class="text-right">Poäng</TableHeadCell>
+											<TableHeadCell>{t.driverHeader}</TableHeadCell>
+											<TableHeadCell class="text-right">{t.pointsHeader}</TableHeadCell>
 											{#each rallies as r (r.id)}
 												<TableHeadCell class="text-right text-xs">{r.name}</TableHeadCell>
 											{/each}
@@ -291,34 +290,34 @@
 </div>
 
 <!-- Rename Championship Modal -->
-<Modal title="Byt namn på mästerskap" bind:open={renameModalOpen} size="sm" autoclose={false}>
+<Modal title={t.renameChampionshipTitle} bind:open={renameModalOpen} size="sm" autoclose={false}>
 	<div class="flex flex-col gap-4">
 		<Input
 			bind:value={renameName}
-			placeholder="Mästerskapsnamn"
+			placeholder={t.championshipName}
 			onkeydown={(e) => e.key === 'Enter' && renameChampionship()}
 		/>
 		<div class="flex justify-end gap-2">
-			<Button color="light" onclick={() => (renameModalOpen = false)}>Avbryt</Button>
+			<Button color="light" onclick={() => (renameModalOpen = false)}>{t.cancel}</Button>
 			<Button onclick={renameChampionship} disabled={renaming || !renameName.trim()}>
-				{renaming ? 'Sparar…' : 'Spara'}
+				{renaming ? t.saving : t.save}
 			</Button>
 		</div>
 	</div>
 </Modal>
 
 <!-- Create Championship Modal -->
-<Modal title="Nytt mästerskap" bind:open={createModalOpen} size="sm" autoclose={false}>
+<Modal title={t.newChampionship} bind:open={createModalOpen} size="sm" autoclose={false}>
 	<div class="flex flex-col gap-4">
 		<Input
 			bind:value={newChampName}
-			placeholder="Mästerskapsnamn"
+			placeholder={t.championshipName}
 			onkeydown={(e) => e.key === 'Enter' && createChampionship()}
 		/>
 		<div class="flex justify-end gap-2">
-			<Button color="light" onclick={() => (createModalOpen = false)}>Avbryt</Button>
+			<Button color="light" onclick={() => (createModalOpen = false)}>{t.cancel}</Button>
 			<Button onclick={createChampionship} disabled={creating || !newChampName.trim()}>
-				{creating ? 'Skapar…' : 'Skapa'}
+				{creating ? t.creating : t.create}
 			</Button>
 		</div>
 	</div>

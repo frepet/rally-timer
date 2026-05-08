@@ -14,6 +14,7 @@
 	} from 'flowbite-svelte';
 	import { TrashBinOutline } from 'flowbite-svelte-icons';
 	import { kcFetch } from '../../lib/kcFetch';
+	import { t } from '../../lib/stores/locale.svelte';
 
 	type ClassItem = { id: number; name: string; start_priority: number; driver_count: number };
 
@@ -103,16 +104,13 @@
 	}
 
 	async function deleteClass(c: ClassItem) {
-		const driverWarning =
-			c.driver_count > 0
-				? `\n\nDetta tar även bort ${c.driver_count} förare och deras pågående starttider.`
-				: '';
-		const msg = `Ta bort klassen "${c.name}"?${driverWarning}\n\nInskickade rallyresultat bevaras.`;
+		const driverWarning = c.driver_count > 0 ? t.deleteClassDriverWarning(c.driver_count) : '';
+		const msg = t.deleteClassConfirm(c.name, driverWarning);
 		if (!confirm(msg)) return;
 
 		const res = await kcFetch(`/api/class/${c.id}`, { method: 'DELETE' });
 		if (!res.ok) {
-			error = (await res.text()) || `Misslyckades (${res.status})`;
+			error = (await res.text()) || t.failedStatus(res.status);
 			return;
 		}
 		await refresh();
@@ -130,41 +128,41 @@
 
 	<Card class="max-w-none p-4 sm:p-6 md:p-8">
 		<p class="small-caps mb-4 text-xl font-semibold tracking-widest text-black dark:text-white">
-			Lägg till klass
+			{t.addClass}
 		</p>
 		<div class="flex gap-3">
 			<Input
 				bind:value={newName}
-				placeholder="Klassnamn"
+				placeholder={t.className}
 				class="flex-1"
 				onkeydown={(e) => e.key === 'Enter' && createClass()}
 			/>
 			<Input
 				bind:value={newPriority}
 				type="number"
-				placeholder="Prioritet"
+				placeholder={t.priority}
 				class="w-28"
-				title="Startprioritet — högre nummer startar först"
+				title={t.startPriorityTitle}
 			/>
 			<Button class="w-32" onclick={createClass} disabled={creating || !newName.trim()}>
-				{creating ? 'Lägger till…' : 'Lägg till'}
+				{creating ? t.adding : t.add}
 			</Button>
 		</div>
 	</Card>
 
 	<Card class="max-w-none p-4 sm:p-6 md:p-8">
 		<p class="small-caps mb-2 text-xl font-semibold tracking-widest text-black dark:text-white">
-			Klasser
+			{t.classesHeading}
 		</p>
 
 		<Table hoverable={true}>
 			<TableHead>
-				<TableHeadCell>Namn</TableHeadCell>
-				<TableHeadCell class="w-32 text-right" title="Högre nummer = startar först"
-					>Prioritet</TableHeadCell
+				<TableHeadCell>{t.name}</TableHeadCell>
+				<TableHeadCell class="w-32 text-right" title={t.startPriorityHigherNote}
+					>{t.priority}</TableHeadCell
 				>
-				<TableHeadCell class="text-right">Förare</TableHeadCell>
-				<TableHeadCell class="flex justify-end">Åtgärder</TableHeadCell>
+				<TableHeadCell class="text-right">{t.driversHeading}</TableHeadCell>
+				<TableHeadCell class="flex justify-end">{t.actions}</TableHeadCell>
 			</TableHead>
 			<TableBody>
 				{#each classes as c (c.id)}
@@ -172,7 +170,7 @@
 						<TableBodyCell>
 							{#if editingId === c.id}
 								<Input
-									aria-label="Klassnamn"
+									aria-label={t.className}
 									bind:value={editName}
 									onkeydown={(e) => {
 										if (e.key === 'Enter') saveEdit(c.id);
@@ -186,7 +184,7 @@
 						<TableBodyCell class="text-right">
 							{#if editingId === c.id}
 								<Input
-									aria-label="Startprioritet"
+									aria-label={t.startPriorityAriaLabel}
 									type="number"
 									bind:value={editPriority}
 									class="w-24 text-right"
@@ -202,10 +200,10 @@
 						<TableBodyCell class="text-right">{c.driver_count}</TableBodyCell>
 						<TableBodyCell class="flex justify-end gap-2">
 							{#if editingId === c.id}
-								<Button size="xs" onclick={() => saveEdit(c.id)}>Spara</Button>
-								<Button size="xs" color="light" onclick={cancelEdit}>Avbryt</Button>
+								<Button size="xs" onclick={() => saveEdit(c.id)}>{t.save}</Button>
+								<Button size="xs" color="light" onclick={cancelEdit}>{t.cancel}</Button>
 							{:else}
-								<Button size="xs" onclick={() => startEdit(c)}>Redigera</Button>
+								<Button size="xs" onclick={() => startEdit(c)}>{t.edit}</Button>
 								<Button size="xs" color="red" onclick={() => deleteClass(c)}>
 									<TrashBinOutline size="xs" />
 								</Button>
@@ -217,7 +215,7 @@
 		</Table>
 
 		{#if classes.length === 0}
-			<P class="mt-4 text-gray-500 dark:text-gray-400">Inga klasser än.</P>
+			<P class="mt-4 text-gray-500 dark:text-gray-400">{t.noResultsYet}</P>
 		{/if}
 	</Card>
 </div>
