@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { Button, Textarea } from 'flowbite-svelte';
 	import { EditOutline } from 'flowbite-svelte-icons';
 	import { marked } from 'marked';
@@ -17,8 +18,8 @@
 	}>();
 
 	let editing = $state(false);
-	let draft = $state(initialContent);
-	let html = $state(initialHtml);
+	let draft = $state(untrack(() => initialContent));
+	let html = $state(untrack(() => initialHtml));
 	let saving = $state(false);
 	let saveError = $state('');
 

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { kcFetch } from '../../lib/kcFetch';
 	import type { PageProps } from './$types';
 	import {
@@ -34,7 +35,7 @@
 	};
 
 	let { data }: PageProps = $props();
-	let drivers: Driver[] = $state(data.drivers as Driver[]);
+	let drivers: Driver[] = $state(untrack(() => data.drivers as Driver[]));
 	const apiPath = '/api/driver';
 
 	// Create form

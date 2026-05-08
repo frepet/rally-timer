@@ -16,6 +16,7 @@
 	import { EditOutline } from 'flowbite-svelte-icons';
 	import DarkModeToggle from '../lib/components/DarkModeToggle.svelte';
 	import LanguageSwitcher from '../lib/components/LanguageSwitcher.svelte';
+	import { untrack } from 'svelte';
 	import { initKeycloak, isAdmin, isAuthenticated, login, logout } from '../lib/stores/auth';
 	import { kcFetch } from '../lib/kcFetch';
 	import { initLocale, t } from '../lib/stores/locale.svelte';
@@ -23,9 +24,20 @@
 	let { children, data } = $props();
 
 	let editingTitle = $state(false);
-	let titleDraft = $state(data.title);
-	let title = $state(data.title);
+	let titleDraft = $state(untrack(() => data.title));
+	let title = $state(untrack(() => data.title));
 	let savingTitle = $state(false);
+
+	// Re-sync when layout data refreshes on navigation
+	$effect(() => {
+		const latest = data.title;
+		untrack(() => {
+			if (!editingTitle) {
+				title = latest;
+				titleDraft = latest;
+			}
+		});
+	});
 
 	onMount(async () => {
 		initKeycloak();

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Card, Button, Badge } from 'flowbite-svelte';
 
+	import { untrack } from 'svelte';
 	import { formatMs, type DisplayRallyRow, type StageData } from './results';
 	import { t } from './stores/locale.svelte';
 
@@ -22,7 +23,7 @@
 		);
 	}
 
-	let activeStage = $state(defaultStage(stages));
+	let activeStage = $state(untrack(() => defaultStage(stages)));
 
 	$effect(() => {
 		if (activeStage == null && stages.length) activeStage = defaultStage(stages);
