@@ -220,8 +220,10 @@ export const sv = {
 	pauseButton: 'Pausa',
 	resumeButton: 'Återuppta',
 	restartButton: 'Starta om',
+	startWholeClassLabel: 'Starta hela klassen samtidigt',
 	speechClassDone: (cls: string, next: string) => `Klass ${cls} klar. Nästa klass: ${next}`,
 	speechNextDriver: (name: string) => `Nästa förare: ${name}`,
+	speechNextClass: (cls: string, count: number) => `Nästa klass: ${cls}, ${count} förare`,
 	speechNoMoreDrivers: 'Inga fler förare',
 	speechGo: 'kör'
 };
@@ -447,8 +449,10 @@ export const en: typeof sv = {
 	pauseButton: 'Pause',
 	resumeButton: 'Resume',
 	restartButton: 'Restart',
+	startWholeClassLabel: 'Start whole class together',
 	speechClassDone: (cls: string, next: string) => `Class ${cls} done. Next class: ${next}`,
 	speechNextDriver: (name: string) => `Next driver: ${name}`,
+	speechNextClass: (cls: string, count: number) => `Next class: ${cls}, ${count} drivers`,
 	speechNoMoreDrivers: 'No more drivers',
 	speechGo: 'go'
 };

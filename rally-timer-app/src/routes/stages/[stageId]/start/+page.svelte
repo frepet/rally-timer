@@ -9,7 +9,8 @@
 		TableBodyCell,
 		TableBodyRow,
 		TableHead,
-		TableHeadCell
+		TableHeadCell,
+		Toggle
 	} from 'flowbite-svelte';
 	import { page } from '$app/stores';
 	import { onMount, onDestroy } from 'svelte';
@@ -29,6 +30,7 @@
 	let running = $state(false);
 	let paused = $state(false);
 	let gapSeconds = $state(10);
+	let startWholeClass = $state(false);
 	let remainingMs = $state(0);
 	const leds = $state([0, 0, 0, 0, 0]);
 	let timer: ReturnType<typeof setInterval> | undefined;
@@ -107,12 +109,24 @@
 		const launchedClass = drivers[idx].class_name;
 		speechSynthesis.cancel();
 		speechSynthesis.speak(utters.get('go')!);
+
+		let count = 1;
+		if (startWholeClass) {
+			while (idx + count < drivers.length && drivers[idx + count].class_name === launchedClass) {
+				count += 1;
+			}
+		}
+
+		const body =
+			count > 1
+				? { driver_ids: drivers.slice(idx, idx + count).map((d) => d.id) }
+				: { driver_id: drivers[idx].id };
 		await kcFetch(`/api/stage/${stageId}/start`, {
 			method: 'POST',
 			headers: { 'content-type': 'application/json' },
-			body: JSON.stringify({ driver_id: drivers[idx].id })
+			body: JSON.stringify(body)
 		});
-		idx += 1;
+		idx += count;
 		if (idx < drivers.length) {
 			if (drivers[idx].class_name !== launchedClass) {
 				paused = true;
@@ -164,7 +178,13 @@
 		setLED(6);
 		if (timer) clearInterval(timer);
 		timer = setInterval(tick, 100);
-		speechSynthesis.speak(createUtterance(t.speechNextDriver(drivers[idx].name)));
+		if (startWholeClass && drivers[idx]) {
+			speechSynthesis.speak(
+				createUtterance(t.speechNextClass(drivers[idx].class_name ?? '', remainingInClass))
+			);
+		} else {
+			speechSynthesis.speak(createUtterance(t.speechNextDriver(drivers[idx].name)));
+		}
 	}
 
 	function pause() {
@@ -308,6 +328,11 @@
 			<div class="flex w-full flex-row items-center gap-2 p-2">
 				<label for="gap" class="text-sm opacity-70"><P>{t.gapSecondsLabel}</P></label>
 				<Input id="gap" type="number" min="1" class="w-20 rounded p-2" bind:value={gapSeconds} />
+			</div>
+			<div class="flex w-full flex-row items-center gap-2 p-2">
+				<Toggle bind:checked={startWholeClass} disabled={running}>
+					{t.startWholeClassLabel}
+				</Toggle>
 			</div>
 			{#if !hasGate}
 				<P class="px-2 text-sm text-yellow-600 dark:text-yellow-400">{t.noGateForStage}</P>
