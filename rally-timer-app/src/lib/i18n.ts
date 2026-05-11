@@ -288,7 +288,10 @@ export const sv = {
   rxCreateFailed: 'Kunde inte skapa heat: ',
   rxStartFailed: 'Kunde inte starta heat: ',
   rxCloseFailed: 'Kunde inte stänga heat: ',
-  rxHeatCount: (n: number) => `${n} heat${n !== 1 ? 's' : ''}`
+  rxHeatCount: (n: number) => `${n} heat${n !== 1 ? 's' : ''}`,
+  rxSubmitModal: 'Skicka rallycross till mästerskap',
+  rxSubmitted: 'Rallycross inskickat!',
+  rxSubmitFailed: 'Inskickning misslyckades: '
 };
 
 export const en: typeof sv = {
@@ -580,5 +583,8 @@ export const en: typeof sv = {
   rxCreateFailed: 'Could not create heat: ',
   rxStartFailed: 'Could not start heat: ',
   rxCloseFailed: 'Could not close heat: ',
-  rxHeatCount: (n: number) => `${n} heat${n !== 1 ? 's' : ''}`
+  rxHeatCount: (n: number) => `${n} heat${n !== 1 ? 's' : ''}`,
+  rxSubmitModal: 'Submit rallycross to championship',
+  rxSubmitted: 'Rallycross submitted!',
+  rxSubmitFailed: 'Submit failed: '
 };

@@ -1,6 +1,7 @@
 <script lang="ts">
-	import { Card, Button, Input, Select, Badge, Modal } from 'flowbite-svelte';
+	import { Card, Button, Input, Select, Badge, Modal, Toggle } from 'flowbite-svelte';
 	import { RefreshOutline } from 'flowbite-svelte-icons';
+	import { SvelteSet } from 'svelte/reactivity';
 	import { kcFetch } from '../../lib/kcFetch';
 	import { isAdmin } from '../../lib/stores/auth';
 	import { formatMs } from '../../lib/results';
@@ -43,8 +44,13 @@
 		heats: [],
 		active_heat: null
 	});
+	type Driver = { id: number; name: string; class_name: string | null; active: boolean };
+	type Championship = { id: string; name: string };
+
 	let gates = $state<Gate[]>([]);
 	let leaderboard = $state<OverallResult[]>([]);
+	let allDrivers = $state<Driver[]>([]);
+	let championships = $state<Championship[]>([]);
 
 	let cooldownSecondsInput = $state(10);
 	let maxPerHeatInput = $state(4);
@@ -53,6 +59,23 @@
 	let saving = $state(false);
 	let clearing = $state(false);
 	let clearModalOpen = $state(false);
+
+	// Active drivers modal
+	let driversModalOpen = $state(false);
+	let driverSearch = $state('');
+	const filteredDrivers = $derived.by(() => {
+		const q = driverSearch.trim().toLowerCase();
+		return allDrivers.filter(
+			(d) => !q || d.name.toLowerCase().includes(q) || (d.class_name ?? '').toLowerCase().includes(q)
+		);
+	});
+
+	// Submit modal
+	let submitModalOpen = $state(false);
+	let submitName = $state('');
+	let selectedChampIds = new SvelteSet<string>();
+	let submitting = $state(false);
+	let submitSuccess = $state<string | null>(null);
 
 	const eligibleGates = $derived(gates.filter((g) => g.stage_id === null));
 
@@ -78,6 +101,55 @@
 		const res = await kcFetch('/api/gate');
 		if (!res.ok) return;
 		gates = await res.json();
+	}
+
+	async function loadAllDrivers() {
+		const res = await kcFetch('/api/driver');
+		if (!res.ok) return;
+		allDrivers = await res.json();
+	}
+
+	async function toggleDriver(id: number, active: boolean) {
+		await kcFetch(`/api/driver/${id}`, {
+			method: 'PATCH',
+			headers: { 'content-type': 'application/json' },
+			body: JSON.stringify({ active })
+		});
+		const d = allDrivers.find((x) => x.id === id);
+		if (d) d.active = active;
+	}
+
+	async function openSubmitModal() {
+		const res = await fetch('/api/championship');
+		if (res.ok) championships = await res.json();
+		selectedChampIds.clear();
+		submitName = '';
+		submitSuccess = null;
+		submitModalOpen = true;
+	}
+
+	function toggleChampionship(id: string) {
+		if (selectedChampIds.has(id)) selectedChampIds.delete(id);
+		else selectedChampIds.add(id);
+	}
+
+	async function submitRallycross() {
+		if (!submitName.trim() || selectedChampIds.size === 0) return;
+		submitting = true;
+		try {
+			const res = await kcFetch('/api/rallycross/submit', {
+				method: 'POST',
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify({ name: submitName.trim(), championship_ids: [...selectedChampIds] })
+			});
+			if (!res.ok) throw new Error(await res.text());
+			const { id } = (await res.json()) as { id: string };
+			submitSuccess = id;
+		} catch (e) {
+			alert(t.rxSubmitFailed + (e as Error).message);
+		} finally {
+			submitting = false;
+		}
 	}
 
 	async function saveConfig() {
@@ -122,6 +194,7 @@
 		loadState(true);
 		loadGates();
 		loadLeaderboard();
+		loadAllDrivers();
 		const timer = setInterval(() => {
 			loadState();
 			loadLeaderboard();
@@ -183,9 +256,17 @@
 				<Button onclick={saveConfig} disabled={saving}>
 					{saving ? t.saving : t.rxSaveSettings}
 				</Button>
+				<Button color="alternative" onclick={() => (driversModalOpen = true)}>
+					{t.activeDriversButton}
+				</Button>
 				<a href="/rallycross/start">
 					<Button color="green" disabled={!rx.gate_id}>{t.rxManageHeats}</Button>
 				</a>
+				{#if leaderboard.length}
+					<Button color="blue" onclick={openSubmitModal}>
+						{t.submitToChampionshipButton}
+					</Button>
+				{/if}
 				{#if !rx.gate_id}
 					<span class="text-xs text-gray-500">{t.rxAssignGateFirst}</span>
 				{/if}
@@ -277,6 +358,91 @@
 		</Card>
 	{/if}
 </div>
+
+<!-- Active Drivers Modal -->
+<Modal title={t.activeDriversModal} bind:open={driversModalOpen} size="md" autoclose={false}>
+	<div class="mb-3">
+		<Input size="sm" placeholder={t.searchDriversPlaceholder} bind:value={driverSearch} />
+	</div>
+	<ul class="max-h-96 space-y-2 overflow-y-auto">
+		{#each filteredDrivers as d (d.id)}
+			<li class="flex items-center justify-between gap-2 rounded border p-2">
+				<span>{d.name}{d.class_name ? ` — ${d.class_name}` : ''}</span>
+				{#if $isAdmin}
+					<Toggle checked={d.active} onchange={() => toggleDriver(d.id, !d.active)} size="small" />
+				{:else}
+					<Badge color={d.active ? 'green' : 'gray'}>{d.active ? t.active : t.inactive}</Badge>
+				{/if}
+			</li>
+		{/each}
+		{#if !filteredDrivers.length}
+			<li class="text-gray-500 dark:text-gray-400">
+				{driverSearch ? t.noMatches : t.noDrivers}
+			</li>
+		{/if}
+	</ul>
+	<div class="mt-4 border-t pt-3">
+		<a href="/drivers" class="text-sm text-blue-600 hover:underline dark:text-blue-400">
+			{t.manageAddDrivers}
+		</a>
+	</div>
+</Modal>
+
+<!-- Submit to Championship Modal -->
+<Modal title={t.rxSubmitModal} bind:open={submitModalOpen} size="md" autoclose={false}>
+	{#if submitSuccess}
+		<div class="space-y-4">
+			<p class="font-medium text-green-600 dark:text-green-400">{t.rxSubmitted}</p>
+			<div class="flex justify-end gap-2">
+				<a href="/championships" class="text-sm text-blue-600 hover:underline dark:text-blue-400">
+					{t.viewChampionships}
+				</a>
+				<Button color="alternative" onclick={() => (submitModalOpen = false)}>{t.close}</Button>
+			</div>
+		</div>
+	{:else}
+		<div class="space-y-4">
+			<div>
+				<label for="rxSubmitName" class="mb-1 block text-sm font-medium">{t.rallyNameLabel}</label>
+				<Input id="rxSubmitName" bind:value={submitName} placeholder={t.rallyNamePlaceholder} />
+			</div>
+			<div>
+				<p class="mb-2 text-sm font-medium">{t.submitToChampionshipLabel}</p>
+				{#if championships.length}
+					<ul class="max-h-48 space-y-1 overflow-y-auto">
+						{#each championships as c (c.id)}
+							<li>
+								<label class="flex cursor-pointer items-center gap-2 rounded p-2 hover:bg-gray-50 dark:hover:bg-gray-700">
+									<input
+										type="checkbox"
+										checked={selectedChampIds.has(c.id)}
+										onchange={() => toggleChampionship(c.id)}
+										class="rounded"
+									/>
+									<span>{c.name}</span>
+								</label>
+							</li>
+						{/each}
+					</ul>
+				{:else}
+					<p class="text-sm text-gray-500 dark:text-gray-400">
+						{t.noChampionshipsYetCreate}
+						<a href="/championships" class="text-blue-600 hover:underline dark:text-blue-400">{t.createOne}</a>
+					</p>
+				{/if}
+			</div>
+			<div class="flex justify-end gap-2 border-t pt-3">
+				<Button color="alternative" onclick={() => (submitModalOpen = false)}>{t.cancel}</Button>
+				<Button
+					onclick={submitRallycross}
+					disabled={submitting || !submitName.trim() || selectedChampIds.size === 0}
+				>
+					{submitting ? t.sending : t.send}
+				</Button>
+			</div>
+		</div>
+	{/if}
+</Modal>
 
 <Modal title={t.rxClearHeading} bind:open={clearModalOpen} size="sm" autoclose={false}>
 	<div class="space-y-4">
