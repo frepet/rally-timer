@@ -60,12 +60,14 @@
 			: []
 	);
 
-	async function loadState() {
+	async function loadState(syncForm = false) {
 		const res = await fetch('/api/rallycross');
 		if (!res.ok) return;
 		rx = (await res.json()) as RallycrossState;
-		cooldownSecondsInput = Math.round(rx.cooldown_ms / 1000);
-		selectedGateId = rx.gate_id ?? '';
+		if (syncForm) {
+			cooldownSecondsInput = Math.round(rx.cooldown_ms / 1000);
+			selectedGateId = rx.gate_id ?? '';
+		}
 	}
 
 	async function loadGates() {
@@ -85,7 +87,7 @@
 				body: JSON.stringify({ gate_id, cooldown_ms })
 			});
 			if (!res.ok) throw new Error(await res.text());
-			await Promise.all([loadState(), loadGates()]);
+			await Promise.all([loadState(true), loadGates()]);
 		} catch (e) {
 			alert('Kunde inte spara: ' + (e as Error).message);
 		} finally {
@@ -122,7 +124,7 @@
 	}
 
 	$effect(() => {
-		loadState();
+		loadState(true);
 		loadGates();
 		const t = setInterval(() => {
 			loadState();

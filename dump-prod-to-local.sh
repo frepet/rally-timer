@@ -16,9 +16,15 @@ POD=$(kubectl get pod -n "$NAMESPACE" \
   -o jsonpath='{.items[0].metadata.name}')
 echo "Using pod: $POD"
 
+echo "Resetting local schema..."
+echo "DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO $LOCAL_USER;" \
+  | docker compose -f "$SCRIPT_DIR/docker-compose.yml" exec -T postgres \
+      psql -U "$LOCAL_USER" -d "$LOCAL_DB" --quiet
+
 echo "Dumping prod database and restoring to local..."
 kubectl exec -n "$NAMESPACE" "$POD" -- \
-  pg_dump -U postgres --no-owner --no-acl --clean --if-exists "$REMOTE_DB" \
+  pg_dump -U postgres --no-owner --no-acl "$REMOTE_DB" \
+  | grep -v "transaction_timeout" \
   | docker compose -f "$SCRIPT_DIR/docker-compose.yml" exec -T postgres \
       psql -U "$LOCAL_USER" -d "$LOCAL_DB" --quiet
 
