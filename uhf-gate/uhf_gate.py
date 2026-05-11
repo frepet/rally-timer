@@ -18,6 +18,7 @@ from reader import YRM100Reader, extract_frames, parse_inventory, find_serial_po
 from event_queue import EventQueue
 from api import APIClient
 from ntp_sync import sync_time, get_local_time_ms
+from feedback import Feedback
 
 # Configure logging
 logging.basicConfig(
@@ -36,6 +37,7 @@ class UHFGate:
         self.reader = YRM100Reader(config.serial_port)
         self.queue = EventQueue(config.db_file)
         self.api = APIClient(config.api_base_url, config.get_or_create_uuid())
+        self.feedback = Feedback(config.led_pin, config.dedup_led_pin, config.buzzer_pin)
 
         # State
         self.last_seen: dict[str, float] = {}
@@ -97,10 +99,12 @@ class UHFGate:
         # Client-side deduplication
         prev = self.last_seen.get(epc, 0)
         if now - prev < config.dedup_seconds * 1000:
+            self.feedback.trigger_dedup()
             return
 
         self.last_seen[epc] = now
         self.tag_count += 1
+        self.feedback.trigger()
 
         # Log the detection
         ts_str = datetime.now().strftime("%H:%M:%S.%f")[:-3]
@@ -191,6 +195,7 @@ class UHFGate:
         self.running = False
 
         self.reader.close()
+        self.feedback.close()
 
         if self.sync_thread:
             self.sync_thread.join(timeout=2)
