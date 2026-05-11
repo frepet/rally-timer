@@ -272,12 +272,21 @@ export function buildOverallLeaderboard(allHeatResults: HeatResult[]): OverallRe
 }
 
 export function suggestNextHeatGroups(
-	standings: Pick<OverallResult, 'driver_id'>[],
+	standings: Pick<OverallResult, 'driver_id' | 'class_name' | 'heat_results' | 'best_total_ms'>[],
 	maxPerHeat: number
 ): number[][] {
+	const sorted = [...standings].sort((a, b) => {
+		if (a.class_name !== b.class_name) return a.class_name.localeCompare(b.class_name);
+		if (a.heat_results.length !== b.heat_results.length)
+			return a.heat_results.length - b.heat_results.length;
+		if (a.best_total_ms === null && b.best_total_ms === null) return 0;
+		if (a.best_total_ms === null) return 1;
+		if (b.best_total_ms === null) return -1;
+		return a.best_total_ms - b.best_total_ms;
+	});
 	const groups: number[][] = [];
-	for (let i = 0; i < standings.length; i += maxPerHeat) {
-		groups.push(standings.slice(i, i + maxPerHeat).map((s) => s.driver_id));
+	for (let i = 0; i < sorted.length; i += maxPerHeat) {
+		groups.push(sorted.slice(i, i + maxPerHeat).map((s) => s.driver_id));
 	}
 	return groups;
 }

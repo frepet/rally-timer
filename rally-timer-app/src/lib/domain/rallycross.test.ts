@@ -9,7 +9,8 @@ import {
 	buildHeatLeaderboard,
 	buildOverallLeaderboard,
 	suggestNextHeatGroups,
-	buildRallycrossSubmission
+	buildRallycrossSubmission,
+	type HeatResult
 } from './rallycross';
 
 // ---------------------------------------------------------------------------
@@ -267,31 +268,62 @@ describe('buildOverallLeaderboard', () => {
 });
 
 describe('suggestNextHeatGroups', () => {
-	const mkStanding = (driver_id: number, driver_name: string, best_total_ms: number | null) => ({
+	const mkStanding = (
+		driver_id: number,
+		class_name: string,
+		best_total_ms: number | null,
+		heatCount = 0
+	) => ({
 		driver_id,
-		driver_name,
+		driver_name: `D${driver_id}`,
 		class_id: 1,
-		class_name: 'A',
+		class_name,
 		best_total_ms,
-		best_heat_number: best_total_ms ? 1 : null,
-		heat_results: []
+		best_heat_number: best_total_ms !== null ? 1 : null,
+		heat_results: Array(heatCount).fill({}) as HeatResult[]
 	});
 
-	it('groups drivers into chunks of max_per_heat in standings order', () => {
+	it('sorts by class then heat count then best time, then slices into groups', () => {
 		const standings = [
-			mkStanding(1, 'P1', 100000),
-			mkStanding(2, 'P2', 110000),
-			mkStanding(3, 'P3', 120000),
-			mkStanding(4, 'P4', 130000),
-			mkStanding(5, 'P5', 140000),
-			mkStanding(6, 'P6', null)
+			mkStanding(1, 'A', 100000, 0),
+			mkStanding(2, 'A', 110000, 0),
+			mkStanding(3, 'A', 120000, 0),
+			mkStanding(4, 'A', 130000, 0),
+			mkStanding(5, 'A', 140000, 0),
+			mkStanding(6, 'A', null, 0)
 		];
-		const groups = suggestNextHeatGroups(standings, 4);
-		expect(groups).toEqual([[1, 2, 3, 4], [5, 6]]);
+		expect(suggestNextHeatGroups(standings, 4)).toEqual([[1, 2, 3, 4], [5, 6]]);
+	});
+
+	it('prioritises drivers with fewer heats driven', () => {
+		const standings = [
+			mkStanding(1, 'A', 100000, 2), // 2 heats — should go last
+			mkStanding(2, 'A', 90000, 1),  // 1 heat — middle
+			mkStanding(3, 'A', 80000, 0),  // 0 heats — first
+		];
+		expect(suggestNextHeatGroups(standings, 2)).toEqual([[3, 2], [1]]);
+	});
+
+	it('sorts by class before heat count', () => {
+		const standings = [
+			mkStanding(1, 'B', 100000, 0),
+			mkStanding(2, 'A', 200000, 1), // class A but more heats
+			mkStanding(3, 'A', 110000, 0),
+		];
+		// class A before B; within A: 0 heats first; within same heat count: best time first
+		expect(suggestNextHeatGroups(standings, 2)).toEqual([[3, 2], [1]]);
+	});
+
+	it('puts null best_total_ms last within same heat count', () => {
+		const standings = [
+			mkStanding(1, 'A', null, 1),
+			mkStanding(2, 'A', 100000, 1),
+		];
+		expect(suggestNextHeatGroups(standings, 4)).toEqual([[2, 1]]);
 	});
 
 	it('returns a single group when all fit', () => {
-		const standings = [mkStanding(1, 'A', 100000), mkStanding(2, 'B', 110000)];
+		const standings = [mkStanding(1, 'A', 100000), mkStanding(2, 'A', 110000)];
 		expect(suggestNextHeatGroups(standings, 4)).toEqual([[1, 2]]);
 	});
 });

@@ -156,16 +156,18 @@ check "Charlie is not DNF"              "false"  "$charlie_dnf"
 echo ""
 echo "── Suggest Next Heat Groups ───────────────────────────────────────────"
 
-# Overall standings: Alice 120000, Bob 135000, Charlie 130000 → then Diana DNF
-# With max_per_heat=2: group1=[Alice, Charlie], group2=[Bob, Diana]
-# (sorted: Alice 120000, Charlie 130000, Bob 135000, Diana DNF)
+# After 1 heat each, sorted by (class, heat_count, best_time):
+#   Group A (1 heat): Alice 120000, Diana 160000 → group 1
+#   Group B (1 heat): Bob 135000               → group 2
+#   Group S (1 heat): Charlie 130000            → group 2
+# With max_per_heat=2: group1=[Alice,Diana], group2=[Bob,Charlie]
 suggest=$(get /api/rallycross/suggest-heat)
 g1=$(echo "$suggest" | jq -c '.groups[0]')
 g2=$(echo "$suggest" | jq -c '.groups[1]')
 
 alice_id=1; charlie_id=3; bob_id=2; diana_id=4
-check "group 1 has Alice and Charlie" "[$alice_id,$charlie_id]" "$g1"
-check "group 2 has Bob and Diana"     "[$bob_id,$diana_id]"     "$g2"
+check "group 1 has Alice and Diana" "[$alice_id,$diana_id]" "$g1"
+check "group 2 has Bob and Charlie" "[$bob_id,$charlie_id]" "$g2"
 
 # ---------------------------------------------------------------------------
 echo ""

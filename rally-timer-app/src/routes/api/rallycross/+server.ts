@@ -47,6 +47,22 @@ export async function GET(): Promise<Response> {
 		gate_name = g?.name ?? null;
 	}
 
+	const heatDrivers = heats.length
+		? await sql<{ heat_id: number; driver_name: string }[]>`
+				SELECT rhe.heat_id, d.name AS driver_name
+				FROM rallycross_heat_entries rhe
+				JOIN drivers d ON d.id = rhe.driver_id
+				ORDER BY rhe.heat_id, d.name
+			`
+		: [];
+
+	const driversByHeat = new Map<number, string[]>();
+	for (const row of heatDrivers) {
+		const list = driversByHeat.get(row.heat_id) ?? [];
+		list.push(row.driver_name);
+		driversByHeat.set(row.heat_id, list);
+	}
+
 	const activeHeat = heats.find((h) => h.started_at !== null && h.closed_at === null) ?? null;
 
 	return json({
@@ -61,7 +77,8 @@ export async function GET(): Promise<Response> {
 			number: h.number,
 			required_laps: h.required_laps,
 			started_at: h.started_at !== null ? Number(h.started_at) : null,
-			closed_at: h.closed_at !== null ? Number(h.closed_at) : null
+			closed_at: h.closed_at !== null ? Number(h.closed_at) : null,
+			drivers: driversByHeat.get(h.id) ?? []
 		})),
 		active_heat: activeHeat
 			? {

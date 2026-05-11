@@ -287,7 +287,8 @@ export const sv = {
     `Förare som inte slutfört ${laps} varv får DNF-tid (snabbaste fullbordade + 30 s).`,
   rxCreateFailed: 'Kunde inte skapa heat: ',
   rxStartFailed: 'Kunde inte starta heat: ',
-  rxCloseFailed: 'Kunde inte stänga heat: '
+  rxCloseFailed: 'Kunde inte stänga heat: ',
+  rxHeatCount: (n: number) => `${n} heat${n !== 1 ? 's' : ''}`
 };
 
 export const en: typeof sv = {
@@ -578,5 +579,6 @@ export const en: typeof sv = {
     `Drivers who have not completed ${laps} lap${laps === 1 ? '' : 's'} will receive a DNF time (fastest finisher + 30 s).`,
   rxCreateFailed: 'Could not create heat: ',
   rxStartFailed: 'Could not start heat: ',
-  rxCloseFailed: 'Could not close heat: '
+  rxCloseFailed: 'Could not close heat: ',
+  rxHeatCount: (n: number) => `${n} heat${n !== 1 ? 's' : ''}`
 };

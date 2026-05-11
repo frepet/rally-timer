@@ -14,6 +14,7 @@
 		required_laps: number;
 		started_at: number | null;
 		closed_at: number | null;
+		drivers: string[];
 	};
 	type RallycrossState = {
 		gate_id: string | null;
@@ -216,14 +217,19 @@
 			<p class="mb-3 font-semibold">{t.rxHeatsHeading}</p>
 			<div class="space-y-1">
 				{#each rx.heats as h (h.id)}
-					<div class="flex items-center justify-between rounded px-2 py-1.5 text-sm odd:bg-gray-50 dark:odd:bg-gray-700/30">
-						<span class="font-medium">{t.rxHeatLabel(h.number)}</span>
-						{#if h.closed_at !== null}
-							<Badge color="gray">{t.rxStatusDone}</Badge>
-						{:else if h.started_at !== null}
-							<Badge color="green">{t.rxStatusInProgress}</Badge>
-						{:else}
-							<Badge color="yellow">{t.rxStatusNotStarted}</Badge>
+					<div class="rounded px-2 py-1.5 text-sm odd:bg-gray-50 dark:odd:bg-gray-700/30">
+						<div class="flex items-center justify-between">
+							<span class="font-medium">{t.rxHeatLabel(h.number)}</span>
+							{#if h.closed_at !== null}
+								<Badge color="gray">{t.rxStatusDone}</Badge>
+							{:else if h.started_at !== null}
+								<Badge color="green">{t.rxStatusInProgress}</Badge>
+							{:else}
+								<Badge color="yellow">{t.rxStatusNotStarted}</Badge>
+							{/if}
+						</div>
+						{#if h.drivers.length}
+							<p class="mt-0.5 text-xs text-gray-400">{h.drivers.join(', ')}</p>
 						{/if}
 					</div>
 				{/each}

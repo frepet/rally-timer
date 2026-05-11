@@ -29,6 +29,7 @@
 		class_id: number;
 		class_name: string;
 		best_total_ms: number | null;
+		heat_count: number;
 	};
 
 	type OverallResult = {
@@ -290,6 +291,7 @@
 								<div>
 									<span class="text-sm font-medium">{s.driver_name}</span>
 									<span class="ml-1 text-xs text-gray-500">{s.class_name}</span>
+									<span class="ml-1 text-xs text-gray-400">· {t.rxHeatCount(s.heat_count)}</span>
 								</div>
 							</div>
 						{/each}

@@ -126,7 +126,8 @@ export async function GET(): Promise<Response> {
 			driver_name: s.driver_name,
 			class_id: s.class_id,
 			class_name: s.class_name,
-			best_total_ms: s.best_total_ms
+			best_total_ms: s.best_total_ms,
+			heat_count: s.heat_results.length
 		}))
 	});
 }
