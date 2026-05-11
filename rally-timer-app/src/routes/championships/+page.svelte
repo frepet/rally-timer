@@ -21,6 +21,7 @@
 	import { kcFetch } from '../../lib/kcFetch';
 	import { isAdmin } from '../../lib/stores/auth';
 	import { t } from '../../lib/stores/locale.svelte';
+	import { formatMs } from '../../lib/results';
 
 	type Championship = { id: string; name: string; created_at: number };
 	type StandingRow = {
@@ -29,7 +30,7 @@
 		class_id: number;
 		class_name: string;
 		total_points: number;
-		rally_points: { rally_id: string; rally_name: string; points: number; position: number }[];
+		rally_points: { rally_id: string; rally_name: string; points: number; position: number; total_ms: number | null }[];
 	};
 	type SubmittedRally = { id: string; name: string; submitted_at: number };
 
@@ -299,7 +300,12 @@
 														{@const rp = row.rally_points.find((x) => x.rally_id === r.id)}
 														<TableBodyCell class="text-right font-mono">
 															{#if rp}
-																<span title="P{rp.position}">{rp.points}</span>
+																<div class="flex flex-col items-end leading-tight">
+																	<span title="P{rp.position}">{rp.points}</span>
+																	{#if rp.total_ms !== null}
+																		<span class="text-xs text-gray-400">{formatMs(rp.total_ms)}</span>
+																	{/if}
+																</div>
 															{:else}
 																<span class="opacity-40">—</span>
 															{/if}

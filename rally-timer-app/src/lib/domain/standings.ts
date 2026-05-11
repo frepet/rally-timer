@@ -6,6 +6,7 @@ export type RankedDriverRally = {
 	class_id: number;
 	class_name: string;
 	position: number;
+	total_ms: number | null;
 };
 
 export type RallyPointsEntry = {
@@ -13,6 +14,7 @@ export type RallyPointsEntry = {
 	rally_name: string;
 	points: number;
 	position: number;
+	total_ms: number | null;
 };
 
 export type DriverStanding = {
@@ -37,7 +39,7 @@ export function calculateStandings(
 	const map = new Map<string, DriverStanding>();
 
 	for (const row of ranked) {
-		const { driver_uuid, driver_name, class_id, class_name, rally_id, rally_name, position } = row;
+		const { driver_uuid, driver_name, class_id, class_name, rally_id, rally_name, position, total_ms } = row;
 		const totalDrivers = starterCounts.get(`${rally_id}:${class_id}`) ?? 0;
 		const points = getPoints(position, totalDrivers);
 
@@ -54,7 +56,7 @@ export function calculateStandings(
 
 		const standing = map.get(driver_uuid)!;
 		standing.total_points += points;
-		standing.rally_points.push({ rally_id, rally_name, points, position });
+		standing.rally_points.push({ rally_id, rally_name, points, position, total_ms: row.total_ms });
 	}
 
 	return [...map.values()].sort((a, b) => {

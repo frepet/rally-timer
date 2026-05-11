@@ -48,7 +48,8 @@ export async function GET(event: RequestEvent): Promise<Response> {
 			driver_name: r.driver_name,
 			class_id: r.class_id,
 			class_name: r.class_name,
-			position: r.position
+			position: r.position,
+			total_ms: r.is_dnf ? null : r.total_ms
 		})),
 		positionToPoints
 	);

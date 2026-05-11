@@ -101,3 +101,4 @@ python uhf_gate.py
 ## UI
 
 - **Component library**: Flowbite Svelte (`flowbite-svelte` + `flowbite-svelte-icons`). Use Flowbite components (`Card`, `Button`, `Input`, `Select`, `Modal`, `Table`, `Badge`, etc.) for all UI elements.
+- **i18n**: Every user-visible string must be defined in `src/lib/i18n.ts` (both `sv` and `en` objects) and referenced via the `t` proxy from `src/lib/stores/locale.svelte`. Never hardcode UI text directly in `.svelte` files. Add new keys under a comment block that groups them by feature (e.g. `// Rallycross - config`). Interpolated strings use functions: `(n: number) => \`Heat ${n}\``.

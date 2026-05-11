@@ -102,12 +102,13 @@ export const gateAssignSchema = z.object({
 
 export const rallycrossConfigSchema = z.object({
 	gate_id: z.string().uuid().nullable().optional(),
-	cooldown_ms: z
-		.number()
-		.int()
-		.nonnegative()
-		.max(10 * 60 * 1000)
-		.optional()
+	cooldown_ms: z.number().int().nonnegative().max(10 * 60 * 1000).optional(),
+	max_per_heat: z.number().int().min(1).max(20).optional(),
+	required_laps: z.number().int().min(1).max(50).optional()
+});
+
+export const heatCreateSchema = z.object({
+	driver_ids: z.array(z.number().int().positive()).min(1)
 });
 
 export type DriverCreateInput = z.infer<typeof driverCreateSchema>;

@@ -9,8 +9,9 @@ const ranked = (
 	rally_id: string,
 	rally_name: string,
 	position: number,
-	class_id = 1
-) => ({ driver_uuid, driver_name, class_id, class_name, rally_id, rally_name, position });
+	class_id = 1,
+	total_ms: number | null = null
+) => ({ driver_uuid, driver_name, class_id, class_name, rally_id, rally_name, position, total_ms });
 
 describe('calculateStandings', () => {
 	it('returns empty array for no ranked rows', () => {
@@ -60,7 +61,8 @@ describe('calculateStandings', () => {
 			rally_id: 'rally-1',
 			rally_name: 'Norway',
 			points: 1, // N=1, P1 → 1 point
-			position: 1
+			position: 1,
+			total_ms: null
 		});
 	});
 

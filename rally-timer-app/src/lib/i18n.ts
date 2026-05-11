@@ -227,7 +227,67 @@ export const sv = {
   speechNextDriver: (name: string) => `Nästa förare: ${name}`,
   speechNextClass: (cls: string, count: number) => `Nästa klass: ${cls}, ${count} förare`,
   speechNoMoreDrivers: 'Inga fler förare',
-  speechGo: 'kör'
+  speechGo: 'kör',
+
+  // Rallycross - common
+  rxHeading: 'Rallycross',
+  rxStatusNotStarted: 'Ej startat',
+  rxStatusInProgress: 'Pågår',
+  rxStatusDone: 'Klar',
+  rxStatusHeatInProgress: (n: number) => `Heat ${n} pågår`,
+  rxStatusHeatsRun: (n: number) => `${n} heat körda`,
+  rxHeatLabel: (n: number) => `Heat ${n}`,
+
+  // Rallycross - config
+  rxFinishGate: 'Mållinjegrind',
+  rxChooseGate: '— Välj grind —',
+  rxCooldownLabel: 'Cooldown (s)',
+  rxMaxPerHeat: 'Max per heat',
+  rxLapsLabel: 'Varv',
+  rxSaveSettings: 'Spara inställningar',
+  rxManageHeats: 'Hantera heat →',
+  rxAssignGateFirst: 'Tilldela en grind för att hantera heat.',
+  rxConfigSummary: (gate: string, cooldown: number, max: number, laps: number) =>
+    `Grind: ${gate} · Cooldown: ${cooldown}s · Max per heat: ${max} · Varv: ${laps}`,
+
+  // Rallycross - leaderboard / heat list
+  rxHeatsHeading: 'Heat',
+  rxOverallStandings: 'Sammanlagd ställning',
+  rxBestTime: 'Bästa tid',
+  rxBestLap: 'Bästa varv',
+  rxHeatColumn: 'Heat',
+  rxWaitingForHeats: 'Väntar på att heat ska köras.',
+
+  // Rallycross - clear modal
+  rxClearHeading: 'Rensa rallycross',
+  rxClearDescription: 'Alla heat och resultat tas bort. Grinden och dess händelser behålls.',
+  rxSaveFailed: 'Kunde inte spara: ',
+  rxClearFailed: 'Kunde inte rensa: ',
+
+  // Rallycross - heat management page (start/)
+  rxBack: 'Tillbaka',
+  rxManageHeatsHeading: 'Hantera heat',
+  rxCloseHeat: 'Stäng heat',
+  rxClosingHeat: 'Stänger…',
+  rxRequiredLaps: (n: number) => `Krav: ${n} varv`,
+  rxWaitingForDrivers: 'Väntar på förare att passera grinden…',
+  rxLapsColumn: 'Varv',
+  rxStartHeat: 'Starta heat',
+  rxStartingHeat: 'Startar…',
+  rxAssignGateBeforeStart: 'Tilldela en grind i inställningar innan start.',
+  rxCreateNextHeat: 'Skapa nästa heat',
+  rxSuggestedGroups: 'Förslag baserat på ställning:',
+  rxGroupLabel: (n: number) => `Grupp ${n}`,
+  rxSelectDrivers: (selected: number, max: number) => `Välj förare (${selected} av max ${max}):`,
+  rxTooManyDrivers: (max: number) => `Max ${max} förare per heat. Avmarkera några.`,
+  rxCreateHeat: (n: number) => `Skapa heat (${n} förare)`,
+  rxCompletedHeats: 'Genomförda heat',
+  rxCloseHeatTitle: 'Stäng heat',
+  rxCloseHeatDescription: (laps: number) =>
+    `Förare som inte slutfört ${laps} varv får DNF-tid (snabbaste fullbordade + 30 s).`,
+  rxCreateFailed: 'Kunde inte skapa heat: ',
+  rxStartFailed: 'Kunde inte starta heat: ',
+  rxCloseFailed: 'Kunde inte stänga heat: '
 };
 
 export const en: typeof sv = {
@@ -458,5 +518,65 @@ export const en: typeof sv = {
   speechNextDriver: (name: string) => `Next driver: ${name}`,
   speechNextClass: (cls: string, count: number) => `Next class: ${cls}, ${count} drivers`,
   speechNoMoreDrivers: 'No more drivers',
-  speechGo: 'go'
+  speechGo: 'go',
+
+  // Rallycross - common
+  rxHeading: 'Rallycross',
+  rxStatusNotStarted: 'Not started',
+  rxStatusInProgress: 'In progress',
+  rxStatusDone: 'Done',
+  rxStatusHeatInProgress: (n: number) => `Heat ${n} in progress`,
+  rxStatusHeatsRun: (n: number) => `${n} heat${n === 1 ? '' : 's'} run`,
+  rxHeatLabel: (n: number) => `Heat ${n}`,
+
+  // Rallycross - config
+  rxFinishGate: 'Finish line gate',
+  rxChooseGate: '— Choose gate —',
+  rxCooldownLabel: 'Cooldown (s)',
+  rxMaxPerHeat: 'Max per heat',
+  rxLapsLabel: 'Laps',
+  rxSaveSettings: 'Save settings',
+  rxManageHeats: 'Manage heats →',
+  rxAssignGateFirst: 'Assign a gate to manage heats.',
+  rxConfigSummary: (gate: string, cooldown: number, max: number, laps: number) =>
+    `Gate: ${gate} · Cooldown: ${cooldown}s · Max per heat: ${max} · Laps: ${laps}`,
+
+  // Rallycross - leaderboard / heat list
+  rxHeatsHeading: 'Heats',
+  rxOverallStandings: 'Overall standings',
+  rxBestTime: 'Best time',
+  rxBestLap: 'Best lap',
+  rxHeatColumn: 'Heat',
+  rxWaitingForHeats: 'Waiting for heats to run.',
+
+  // Rallycross - clear modal
+  rxClearHeading: 'Clear rallycross',
+  rxClearDescription: 'All heats and results will be removed. The gate and its events are kept.',
+  rxSaveFailed: 'Could not save: ',
+  rxClearFailed: 'Could not clear: ',
+
+  // Rallycross - heat management page (start/)
+  rxBack: 'Back',
+  rxManageHeatsHeading: 'Manage heats',
+  rxCloseHeat: 'Close heat',
+  rxClosingHeat: 'Closing…',
+  rxRequiredLaps: (n: number) => `Required: ${n} lap${n === 1 ? '' : 's'}`,
+  rxWaitingForDrivers: 'Waiting for drivers to pass the gate…',
+  rxLapsColumn: 'Laps',
+  rxStartHeat: 'Start heat',
+  rxStartingHeat: 'Starting…',
+  rxAssignGateBeforeStart: 'Assign a gate in settings before starting.',
+  rxCreateNextHeat: 'Create next heat',
+  rxSuggestedGroups: 'Suggested groups based on standings:',
+  rxGroupLabel: (n: number) => `Group ${n}`,
+  rxSelectDrivers: (selected: number, max: number) => `Select drivers (${selected} of max ${max}):`,
+  rxTooManyDrivers: (max: number) => `Max ${max} drivers per heat. Deselect some.`,
+  rxCreateHeat: (n: number) => `Create heat (${n} driver${n === 1 ? '' : 's'})`,
+  rxCompletedHeats: 'Completed heats',
+  rxCloseHeatTitle: 'Close heat',
+  rxCloseHeatDescription: (laps: number) =>
+    `Drivers who have not completed ${laps} lap${laps === 1 ? '' : 's'} will receive a DNF time (fastest finisher + 30 s).`,
+  rxCreateFailed: 'Could not create heat: ',
+  rxStartFailed: 'Could not start heat: ',
+  rxCloseFailed: 'Could not close heat: '
 };
