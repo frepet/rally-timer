@@ -6,7 +6,7 @@
 	import { isAdmin } from '../../lib/stores/auth';
 	import { formatMs } from '../../lib/results';
 	import { t } from '../../lib/stores/locale.svelte';
-	import type { OverallResult, HeatResult } from '../../lib/domain/rallycross';
+	import { heatResultComparator, type OverallResult, type HeatResult } from '../../lib/domain/rallycross';
 
 	type Gate = { id: string; name: string | null; last_seen: number; stage_id: number | null };
 	type HeatRow = {
@@ -16,6 +16,7 @@
 		started_at: number | null;
 		closed_at: number | null;
 		drivers: string[];
+		driver_entries: { id: number; name: string }[];
 	};
 	type RallycrossState = {
 		gate_id: string | null;
@@ -76,6 +77,12 @@
 	let starting = $state(false);
 	let closing = $state(false);
 
+	// Manual finish order
+	let manualOrderModalOpen = $state(false);
+	let manualOrderHeatId = $state<number | null>(null);
+	let manualOrderDrivers = $state<{ id: number; name: string }[]>([]);
+	let savingManualOrder = $state(false);
+
 	// Active drivers modal
 	let driversModalOpen = $state(false);
 	let driverSearch = $state('');
@@ -105,12 +112,7 @@
 			}
 		}
 		for (const results of map.values()) {
-			results.sort((a, b) => {
-				if (a.finished !== b.finished) return a.finished ? -1 : 1;
-				if (a.finished && b.finished) return (a.total_ms ?? 0) - (b.total_ms ?? 0);
-				if (a.dnf !== b.dnf) return a.dnf ? -1 : 1;
-				return b.lap_count - a.lap_count;
-			});
+			results.sort(heatResultComparator);
 		}
 		return map;
 	});
@@ -120,11 +122,7 @@
 			? leaderboard
 					.flatMap((d) => d.heat_results)
 					.filter((r) => r.heat_number === rx.active_heat!.number)
-					.sort((a, b) => {
-						if (a.finished !== b.finished) return a.finished ? -1 : 1;
-						if (a.finished && b.finished) return (a.total_ms ?? 0) - (b.total_ms ?? 0);
-						return b.lap_count - a.lap_count;
-					})
+					.sort(heatResultComparator)
 			: []
 	);
 
@@ -300,6 +298,39 @@
 		}
 	}
 
+	function openManualOrder(heat: HeatRow) {
+		manualOrderHeatId = heat.id;
+		manualOrderDrivers = [...heat.driver_entries];
+		manualOrderModalOpen = true;
+	}
+
+	function moveDriver(index: number, direction: -1 | 1) {
+		const next = [...manualOrderDrivers];
+		const swap = index + direction;
+		if (swap < 0 || swap >= next.length) return;
+		[next[index], next[swap]] = [next[swap], next[index]];
+		manualOrderDrivers = next;
+	}
+
+	async function saveManualOrder() {
+		if (!manualOrderHeatId || manualOrderDrivers.length === 0) return;
+		savingManualOrder = true;
+		try {
+			const res = await kcFetch(`/api/rallycross/heat/${manualOrderHeatId}/close-manual`, {
+				method: 'POST',
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify({ finish_order: manualOrderDrivers.map((d) => d.id) })
+			});
+			if (!res.ok) throw new Error(await res.text());
+			manualOrderModalOpen = false;
+			await Promise.all([loadState(), loadLeaderboard(), loadSuggest()]);
+		} catch (e) {
+			alert(t.rxManualCloseFailed + (e as Error).message);
+		} finally {
+			savingManualOrder = false;
+		}
+	}
+
 	async function closeHeat(heatId: number) {
 		closing = true;
 		try {
@@ -469,7 +500,7 @@
 			{/if}
 		</Card>
 	{:else}
-		{@const pendingHeat = rx.heats.find((h) => h.started_at === null)}
+		{@const pendingHeat = rx.heats.find((h) => h.started_at === null && h.closed_at === null)}
 		{#if pendingHeat}
 			<!-- Pending heat waiting to start -->
 			<Card class="max-w-none p-4">
@@ -479,14 +510,23 @@
 						<Badge color="yellow">{t.rxStatusNotStarted}</Badge>
 					</div>
 					{#if $isAdmin}
-						<Button
-							size="sm"
-							onclick={() => startHeat(pendingHeat.id)}
-							disabled={starting || !rx.gate_id}
-						>
-							<PlayOutline size="sm" class="mr-1" />
-							{starting ? t.rxStartingHeat : t.rxStartHeat}
-						</Button>
+						<div class="flex items-center gap-2">
+							<Button
+								color="alternative"
+								size="sm"
+								onclick={() => openManualOrder(pendingHeat)}
+							>
+								{t.rxManualOrder}
+							</Button>
+							<Button
+								size="sm"
+								onclick={() => startHeat(pendingHeat.id)}
+								disabled={starting || !rx.gate_id}
+							>
+								<PlayOutline size="sm" class="mr-1" />
+								{starting ? t.rxStartingHeat : t.rxStartHeat}
+							</Button>
+						</div>
 					{/if}
 				</div>
 				{#if !rx.gate_id}
@@ -729,6 +769,43 @@
 			<Button color="alternative" onclick={() => (clearModalOpen = false)}>{t.cancel}</Button>
 			<Button color="red" onclick={clearSession} disabled={clearing}>
 				{clearing ? t.clearing : t.clearAction}
+			</Button>
+		</div>
+	</div>
+</Modal>
+
+<!-- Manual Finish Order Modal -->
+<Modal title={t.rxManualOrderTitle} bind:open={manualOrderModalOpen} size="sm" autoclose={false}>
+	<div class="space-y-4">
+		<p class="text-sm text-gray-500 dark:text-gray-400">{t.rxManualOrderHint}</p>
+		<ul class="space-y-2">
+			{#each manualOrderDrivers as driver, i (driver.id)}
+				<li class="flex items-center gap-2 rounded border border-gray-200 px-3 py-2 dark:border-gray-600">
+					<span class="w-5 text-right font-mono text-sm font-semibold text-gray-500">{i + 1}.</span>
+					<span class="flex-1 text-sm font-medium">{driver.name}</span>
+					<div class="flex flex-col gap-0.5">
+						<button
+							type="button"
+							class="rounded px-1 text-xs text-gray-400 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-30 dark:hover:bg-gray-700"
+							disabled={i === 0}
+							onclick={() => moveDriver(i, -1)}
+							aria-label="Move up"
+						>▲</button>
+						<button
+							type="button"
+							class="rounded px-1 text-xs text-gray-400 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-30 dark:hover:bg-gray-700"
+							disabled={i === manualOrderDrivers.length - 1}
+							onclick={() => moveDriver(i, 1)}
+							aria-label="Move down"
+						>▼</button>
+					</div>
+				</li>
+			{/each}
+		</ul>
+		<div class="flex justify-end gap-2 border-t pt-3">
+			<Button color="alternative" onclick={() => (manualOrderModalOpen = false)}>{t.cancel}</Button>
+			<Button onclick={saveManualOrder} disabled={savingManualOrder || manualOrderDrivers.length === 0}>
+				{savingManualOrder ? t.rxSavingOrder : t.rxSaveOrder}
 			</Button>
 		</div>
 	</div>

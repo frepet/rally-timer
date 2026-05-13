@@ -48,8 +48,8 @@ export async function GET(): Promise<Response> {
 	}
 
 	const heatDrivers = heats.length
-		? await sql<{ heat_id: number; driver_name: string }[]>`
-				SELECT rhe.heat_id, d.name AS driver_name
+		? await sql<{ heat_id: number; driver_id: number; driver_name: string }[]>`
+				SELECT rhe.heat_id, rhe.driver_id, d.name AS driver_name
 				FROM rallycross_heat_entries rhe
 				JOIN drivers d ON d.id = rhe.driver_id
 				ORDER BY rhe.heat_id, d.name
@@ -57,10 +57,15 @@ export async function GET(): Promise<Response> {
 		: [];
 
 	const driversByHeat = new Map<number, string[]>();
+	const driverEntriesByHeat = new Map<number, { id: number; name: string }[]>();
 	for (const row of heatDrivers) {
-		const list = driversByHeat.get(row.heat_id) ?? [];
-		list.push(row.driver_name);
-		driversByHeat.set(row.heat_id, list);
+		const names = driversByHeat.get(row.heat_id) ?? [];
+		names.push(row.driver_name);
+		driversByHeat.set(row.heat_id, names);
+
+		const entries = driverEntriesByHeat.get(row.heat_id) ?? [];
+		entries.push({ id: row.driver_id, name: row.driver_name });
+		driverEntriesByHeat.set(row.heat_id, entries);
 	}
 
 	const activeHeat = heats.find((h) => h.started_at !== null && h.closed_at === null) ?? null;
@@ -78,7 +83,8 @@ export async function GET(): Promise<Response> {
 			required_laps: h.required_laps,
 			started_at: h.started_at !== null ? Number(h.started_at) : null,
 			closed_at: h.closed_at !== null ? Number(h.closed_at) : null,
-			drivers: driversByHeat.get(h.id) ?? []
+			drivers: driversByHeat.get(h.id) ?? [],
+			driver_entries: driverEntriesByHeat.get(h.id) ?? []
 		})),
 		active_heat: activeHeat
 			? {

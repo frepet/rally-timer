@@ -291,7 +291,14 @@ export const sv = {
   rxHeatCount: (n: number) => `${n} heat${n !== 1 ? 's' : ''}`,
   rxSubmitModal: 'Skicka rallycross till mästerskap',
   rxSubmitted: 'Rallycross inskickat!',
-  rxSubmitFailed: 'Inskickning misslyckades: '
+  rxSubmitFailed: 'Inskickning misslyckades: ',
+  // Rallycross - manual finish order
+  rxManualOrder: 'Manuell ordning',
+  rxManualOrderTitle: 'Manuell målgångsordning',
+  rxManualOrderHint: 'Ordna förarna i den ordning de korsade mållinjen. Överst = 1:a plats.',
+  rxSaveOrder: 'Spara ordning',
+  rxSavingOrder: 'Sparar…',
+  rxManualCloseFailed: 'Kunde inte spara ordning: '
 };
 
 export const en: typeof sv = {
@@ -586,5 +593,12 @@ export const en: typeof sv = {
   rxHeatCount: (n: number) => `${n} heat${n !== 1 ? 's' : ''}`,
   rxSubmitModal: 'Submit rallycross to championship',
   rxSubmitted: 'Rallycross submitted!',
-  rxSubmitFailed: 'Submit failed: '
+  rxSubmitFailed: 'Submit failed: ',
+  // Rallycross - manual finish order
+  rxManualOrder: 'Manual order',
+  rxManualOrderTitle: 'Manual finish order',
+  rxManualOrderHint: 'Arrange drivers in the order they crossed the finish line. Top = 1st place.',
+  rxSaveOrder: 'Save order',
+  rxSavingOrder: 'Saving…',
+  rxManualCloseFailed: 'Could not save order: '
 };

@@ -11,6 +11,7 @@ import {
 	computeHeatPoints,
 	suggestNextHeatGroups,
 	buildRallycrossSubmission,
+	type HeatEntry,
 	type HeatResult
 } from './rallycross';
 
@@ -122,7 +123,7 @@ describe('buildRallycrossLeaderboard', () => {
 // ---------------------------------------------------------------------------
 
 describe('computeHeatResult', () => {
-	const entry = {
+	const entry: HeatEntry = {
 		driver_id: 1,
 		driver_name: 'Anna',
 		class_id: 1,
@@ -131,7 +132,8 @@ describe('computeHeatResult', () => {
 		ts_ms: 1000,
 		dnf: false,
 		dnf_time_ms: null,
-		passes: [1500, 3000, 4500]
+		passes: [1500, 3000, 4500],
+		manual_position: null
 	};
 
 	it('computes laps and marks finished when required laps reached', () => {
@@ -160,6 +162,47 @@ describe('computeHeatResult', () => {
 	});
 });
 
+describe('computeHeatResult with manual_position', () => {
+	const entry: HeatEntry = {
+		driver_id: 1,
+		driver_name: 'Anna',
+		class_id: 1,
+		class_name: 'Group A',
+		tag: 'A1',
+		ts_ms: 1000,
+		dnf: false,
+		dnf_time_ms: null,
+		passes: [1500, 3000, 4500],
+		manual_position: null
+	};
+
+	it('when manual_position is set, marks finished with no timing data', () => {
+		const r = computeHeatResult({ ...entry, manual_position: 1, passes: [] }, 1, 3, 500);
+		expect(r.finished).toBe(true);
+		expect(r.total_ms).toBeNull();
+		expect(r.laps).toEqual([]);
+		expect(r.lap_count).toBe(0);
+		expect(r.best_lap_ms).toBeNull();
+		expect(r.dnf).toBe(false);
+		expect(r.manual_position).toBe(1);
+	});
+
+	it('ignores passes when manual_position is set', () => {
+		const r = computeHeatResult({ ...entry, manual_position: 2 }, 1, 3, 500);
+		expect(r.finished).toBe(true);
+		expect(r.total_ms).toBeNull();
+		expect(r.lap_count).toBe(0);
+		expect(r.manual_position).toBe(2);
+	});
+
+	it('null manual_position falls through to normal timed result', () => {
+		const r = computeHeatResult(entry, 1, 3, 500);
+		expect(r.manual_position).toBeNull();
+		expect(r.finished).toBe(true);
+		expect(r.total_ms).toBe(3500);
+	});
+});
+
 describe('computeDnfTime', () => {
 	it('returns null when no finishers', () => {
 		expect(computeDnfTime([])).toBeNull();
@@ -183,7 +226,13 @@ describe('computeDnfTime', () => {
 });
 
 describe('buildHeatLeaderboard', () => {
-	const mkEntry = (name: string, passes: number[], dnf = false, dnf_time_ms: number | null = null) => ({
+	const mkEntry = (
+		name: string,
+		passes: number[],
+		dnf = false,
+		dnf_time_ms: number | null = null,
+		manual_position: number | null = null
+	): HeatEntry => ({
 		driver_id: name.charCodeAt(0),
 		driver_name: name,
 		class_id: 1,
@@ -192,7 +241,8 @@ describe('buildHeatLeaderboard', () => {
 		ts_ms: 0,
 		dnf,
 		dnf_time_ms,
-		passes
+		passes,
+		manual_position
 	});
 
 	it('finishers ranked by total_ms, then DNF by dnf_time_ms, then unfinished last', () => {
@@ -213,11 +263,63 @@ describe('buildHeatLeaderboard', () => {
 	});
 });
 
+describe('buildHeatLeaderboard with manual positions', () => {
+	const mkManualEntry = (name: string, pos: number): HeatEntry => ({
+		driver_id: name.charCodeAt(0),
+		driver_name: name,
+		class_id: 1,
+		class_name: 'A',
+		tag: name,
+		ts_ms: 0,
+		dnf: false,
+		dnf_time_ms: null,
+		passes: [],
+		manual_position: pos
+	});
+
+	it('sorts by manual_position ascending', () => {
+		const entries = [
+			mkManualEntry('Third',  3),
+			mkManualEntry('First',  1),
+			mkManualEntry('Second', 2)
+		];
+		const board = buildHeatLeaderboard(entries, 1, 3, 500);
+		expect(board.map((r) => r.driver_name)).toEqual(['First', 'Second', 'Third']);
+		expect(board.every((r) => r.finished)).toBe(true);
+		expect(board.every((r) => r.total_ms === null)).toBe(true);
+	});
+
+	it('manual finishers rank above DNF', () => {
+		const entries = [
+			{ driver_id: 1, driver_name: 'DNF', class_id: 1, class_name: 'A', tag: 'DNF',
+			  ts_ms: 0, dnf: true, dnf_time_ms: 130000, passes: [], manual_position: null },
+			mkManualEntry('Second', 2),
+			mkManualEntry('First',  1)
+		];
+		const board = buildHeatLeaderboard(entries, 1, 3, 500);
+		expect(board.map((r) => r.driver_name)).toEqual(['First', 'Second', 'DNF']);
+	});
+
+	it('manual finishers have manual_position in result', () => {
+		const board = buildHeatLeaderboard([mkManualEntry('Alice', 1)], 1, 3, 500);
+		expect(board[0].manual_position).toBe(1);
+	});
+});
+
 describe('computeHeatPoints', () => {
-	const mkResult = (driver_id: number, driver_name: string, class_id: number, total_ms: number | null, finished: boolean, lap_count = 1) => ({
+	const mkResult = (
+		driver_id: number,
+		driver_name: string,
+		class_id: number,
+		total_ms: number | null,
+		finished: boolean,
+		lap_count = 1,
+		manual_position: number | null = null
+	): HeatResult => ({
 		driver_id, driver_name, class_id, class_name: `C${class_id}`, tag: driver_name,
-		heat_number: 1, laps: [], lap_count, total_ms, best_lap_ms: null, finished, dnf: false, dnf_time_ms: null
-	} as HeatResult);
+		heat_number: 1, laps: [], lap_count, total_ms, best_lap_ms: null, finished, dnf: false, dnf_time_ms: null,
+		manual_position
+	});
 
 	it('1st of 3 gets 3 pts, last gets 1 pt', () => {
 		const pts = computeHeatPoints([
@@ -241,6 +343,17 @@ describe('computeHeatPoints', () => {
 		expect(pts.get(3)).toBe(2);
 		expect(pts.get(2)).toBe(1);
 	});
+
+	it('awards points by manual_position order', () => {
+		const pts = computeHeatPoints([
+			mkResult(1, 'Third',  1, null, true, 0, 3),
+			mkResult(2, 'First',  1, null, true, 0, 1),
+			mkResult(3, 'Second', 1, null, true, 0, 2)
+		]);
+		expect(pts.get(2)).toBe(3); // 1st place
+		expect(pts.get(3)).toBe(2); // 2nd place
+		expect(pts.get(1)).toBe(1); // 3rd place
+	});
 });
 
 describe('buildOverallLeaderboard', () => {
@@ -250,8 +363,9 @@ describe('buildOverallLeaderboard', () => {
 		heat_number: number,
 		total_ms: number | null,
 		finished: boolean,
-		class_id = 1
-	) => ({
+		class_id = 1,
+		manual_position: number | null = null
+	): HeatResult => ({
 		driver_id,
 		driver_name,
 		class_id,
@@ -264,7 +378,8 @@ describe('buildOverallLeaderboard', () => {
 		best_lap_ms: total_ms ? total_ms / 3 : null,
 		finished,
 		dnf: false,
-		dnf_time_ms: null
+		dnf_time_ms: null,
+		manual_position
 	});
 
 	it('picks best total_ms across heats per driver', () => {
@@ -316,6 +431,30 @@ describe('buildOverallLeaderboard', () => {
 		];
 		const board = buildOverallLeaderboard(heatResults);
 		expect(board[0].driver_name).toBe('Finisher');
+	});
+
+	it('accumulates points from manual heats; best_total_ms stays null', () => {
+		const heatResults = [
+			mkResult(1, 'Alice', 1, null, true, 1, 1),  // 1st manual → 2 pts
+			mkResult(2, 'Bob',   1, null, true, 1, 2)   // 2nd manual → 1 pt
+		];
+		const board = buildOverallLeaderboard(heatResults);
+		expect(board[0].driver_name).toBe('Alice');
+		expect(board[0].total_points).toBe(2);
+		expect(board[0].best_total_ms).toBeNull();
+		expect(board[1].total_points).toBe(1);
+	});
+
+	it('timed best_total_ms beats null in tiebreak', () => {
+		// Alice: 1st in timed heat (total 150000ms) → 2 pts
+		// Bob:   1st in manual heat (no time)       → 2 pts
+		// Tie on points; Alice has best_total_ms so she wins tiebreak
+		const heatResults = [
+			mkResult(1, 'Alice', 1, 150000, true, 3, null),
+			mkResult(2, 'Bob',   2, null,   true, 1, 1)
+		];
+		const board = buildOverallLeaderboard(heatResults);
+		expect(board[0].driver_name).toBe('Alice');
 	});
 });
 

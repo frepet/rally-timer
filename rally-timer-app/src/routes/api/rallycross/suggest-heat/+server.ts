@@ -83,7 +83,8 @@ export async function GET(): Promise<Response> {
 								ts_ms: Number(e.ts_ms),
 								dnf: e.dnf,
 								dnf_time_ms: e.dnf_time_ms !== null ? Number(e.dnf_time_ms) : null,
-								passes: passes.map((p) => Number(p.timestamp))
+								passes: passes.map((p) => Number(p.timestamp)),
+								manual_position: null
 							};
 						})
 					);

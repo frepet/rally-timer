@@ -11,6 +11,7 @@ type EntryRow = {
 	ts_ms: number | null;
 	dnf: boolean;
 	dnf_time_ms: number | null;
+	manual_position: number | null;
 };
 
 export async function GET(event: RequestEvent): Promise<Response> {
@@ -31,7 +32,8 @@ export async function GET(event: RequestEvent): Promise<Response> {
 			d.tag,
 			rhe.ts_ms,
 			rhe.dnf,
-			rhe.dnf_time_ms
+			rhe.dnf_time_ms,
+			rhe.manual_position
 		FROM rallycross_heat_entries rhe
 		JOIN drivers d ON d.id  = rhe.driver_id
 		JOIN classes c ON c.id  = d.class_id
@@ -53,7 +55,8 @@ export async function GET(event: RequestEvent): Promise<Response> {
 			tag: e.tag,
 			ts_ms: e.ts_ms !== null ? Number(e.ts_ms) : null,
 			dnf: e.dnf,
-			dnf_time_ms: e.dnf_time_ms !== null ? Number(e.dnf_time_ms) : null
+			dnf_time_ms: e.dnf_time_ms !== null ? Number(e.dnf_time_ms) : null,
+			manual_position: e.manual_position !== null ? Number(e.manual_position) : null
 		}))
 	});
 }

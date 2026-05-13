@@ -111,6 +111,10 @@ export const heatCreateSchema = z.object({
 	driver_ids: z.array(z.number().int().positive()).min(1)
 });
 
+export const heatManualCloseSchema = z.object({
+	finish_order: z.array(z.number().int().positive()).min(1)
+});
+
 export type DriverCreateInput = z.infer<typeof driverCreateSchema>;
 export type DriverActiveInput = z.infer<typeof driverActiveSchema>;
 export type GateRegisterInput = z.infer<typeof gateRegisterSchema>;

@@ -42,6 +42,7 @@ export type HeatEntry = {
 	dnf: boolean;
 	dnf_time_ms: number | null;
 	passes: number[];
+	manual_position: number | null;
 };
 
 export type HeatResult = {
@@ -58,6 +59,7 @@ export type HeatResult = {
 	finished: boolean;
 	dnf: boolean;
 	dnf_time_ms: number | null;
+	manual_position: number | null;
 };
 
 export type OverallResult = {
@@ -175,6 +177,24 @@ export function computeHeatResult(
 	requiredLaps: number,
 	cooldownMs: number
 ): HeatResult {
+	if (entry.manual_position !== null) {
+		return {
+			driver_id: entry.driver_id,
+			driver_name: entry.driver_name,
+			class_id: entry.class_id,
+			class_name: entry.class_name,
+			tag: entry.tag,
+			heat_number: heatNumber,
+			laps: [],
+			lap_count: 0,
+			total_ms: null,
+			best_lap_ms: null,
+			finished: true,
+			dnf: false,
+			dnf_time_ms: null,
+			manual_position: entry.manual_position
+		};
+	}
 	const laps = computeLaps(entry.passes, entry.ts_ms, cooldownMs);
 	const finished = laps.length >= requiredLaps;
 	const total = finished ? laps.slice(0, requiredLaps).reduce((a, b) => a + b, 0) : null;
@@ -192,7 +212,8 @@ export function computeHeatResult(
 		best_lap_ms: best,
 		finished,
 		dnf: entry.dnf,
-		dnf_time_ms: entry.dnf_time_ms
+		dnf_time_ms: entry.dnf_time_ms,
+		manual_position: null
 	};
 }
 
@@ -204,6 +225,26 @@ export function computeDnfTime(
 	return Math.max(...finisherTimes) + 30_000;
 }
 
+export function heatResultComparator(a: HeatResult, b: HeatResult): number {
+	// 1. Finishers first
+	if (a.finished && b.finished) {
+		if (a.manual_position !== null && b.manual_position !== null)
+			return a.manual_position - b.manual_position;
+		return (a.total_ms ?? 0) - (b.total_ms ?? 0);
+	}
+	if (a.finished) return -1;
+	if (b.finished) return 1;
+
+	// 2. DNF by dnf_time_ms asc
+	if (a.dnf && b.dnf) return (a.dnf_time_ms ?? 0) - (b.dnf_time_ms ?? 0);
+	if (a.dnf) return -1;
+	if (b.dnf) return 1;
+
+	// 3. Unfinished by lap_count desc, then name
+	if (a.lap_count !== b.lap_count) return b.lap_count - a.lap_count;
+	return a.driver_name.localeCompare(b.driver_name);
+}
+
 export function buildHeatLeaderboard(
 	entries: HeatEntry[],
 	heatNumber: number,
@@ -211,40 +252,12 @@ export function buildHeatLeaderboard(
 	cooldownMs: number
 ): HeatResult[] {
 	const results = entries.map((e) => computeHeatResult(e, heatNumber, requiredLaps, cooldownMs));
-	return results.sort((a, b) => {
-		const aFinished = a.finished;
-		const bFinished = b.finished;
-		const aDnf = a.dnf;
-		const bDnf = b.dnf;
-
-		// 1. Finishers first (by total_ms asc)
-		if (aFinished && bFinished) return (a.total_ms ?? 0) - (b.total_ms ?? 0);
-		if (aFinished) return -1;
-		if (bFinished) return 1;
-
-		// 2. DNF entries (by dnf_time_ms asc)
-		if (aDnf && bDnf) return (a.dnf_time_ms ?? 0) - (b.dnf_time_ms ?? 0);
-		if (aDnf) return -1;
-		if (bDnf) return 1;
-
-		// 3. Unfinished (by lap_count desc, then name)
-		if (a.lap_count !== b.lap_count) return b.lap_count - a.lap_count;
-		return a.driver_name.localeCompare(b.driver_name);
-	});
+	return results.sort(heatResultComparator);
 }
 
 /** Returns driver_id → points for one heat, ranked overall (all classes together). */
 export function computeHeatPoints(heatResults: HeatResult[]): Map<number, number> {
-	const sorted = [...heatResults].sort((a, b) => {
-		if (a.finished && b.finished) return (a.total_ms ?? 0) - (b.total_ms ?? 0);
-		if (a.finished) return -1;
-		if (b.finished) return 1;
-		if (a.dnf && b.dnf) return (a.dnf_time_ms ?? 0) - (b.dnf_time_ms ?? 0);
-		if (a.dnf) return -1;
-		if (b.dnf) return 1;
-		if (a.lap_count !== b.lap_count) return b.lap_count - a.lap_count;
-		return a.driver_name.localeCompare(b.driver_name);
-	});
+	const sorted = [...heatResults].sort(heatResultComparator);
 	const n = sorted.length;
 	const points = new Map<number, number>();
 	sorted.forEach((r, i) => points.set(r.driver_id, positionToPoints(i + 1, n)));
