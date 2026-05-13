@@ -1,12 +1,12 @@
 <script lang="ts">
-	import { Card, Button, Input, Select, Badge, Modal, Toggle } from 'flowbite-svelte';
-	import { RefreshOutline } from 'flowbite-svelte-icons';
+	import { Card, Button, Input, Select, Badge, Modal, Toggle, Checkbox } from 'flowbite-svelte';
+	import { RefreshOutline, AwardOutline, PlayOutline, StopOutline, TrashBinOutline } from 'flowbite-svelte-icons';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { kcFetch } from '../../lib/kcFetch';
 	import { isAdmin } from '../../lib/stores/auth';
 	import { formatMs } from '../../lib/results';
 	import { t } from '../../lib/stores/locale.svelte';
-	import type { OverallResult } from '../../lib/domain/rallycross';
+	import type { OverallResult, HeatResult } from '../../lib/domain/rallycross';
 
 	type Gate = { id: string; name: string | null; last_seen: number; stage_id: number | null };
 	type HeatRow = {
@@ -33,6 +33,16 @@
 			closed_at: null;
 		} | null;
 	};
+	type Driver = { id: number; name: string; class_name: string | null; active: boolean };
+	type DriverStanding = {
+		driver_id: number;
+		driver_name: string;
+		class_id: number;
+		class_name: string;
+		best_total_ms: number | null;
+		heat_count: number;
+	};
+	type Championship = { id: string; name: string };
 
 	let rx = $state<RallycrossState>({
 		gate_id: null,
@@ -44,21 +54,27 @@
 		heats: [],
 		active_heat: null
 	});
-	type Driver = { id: number; name: string; class_name: string | null; active: boolean };
-	type Championship = { id: string; name: string };
-
 	let gates = $state<Gate[]>([]);
 	let leaderboard = $state<OverallResult[]>([]);
 	let allDrivers = $state<Driver[]>([]);
 	let championships = $state<Championship[]>([]);
+	let standings = $state<DriverStanding[]>([]);
+	let suggestedGroups = $state<number[][]>([]);
 
+	// Config form
 	let cooldownSecondsInput = $state(10);
 	let maxPerHeatInput = $state(4);
 	let requiredLapsInput = $state(3);
 	let selectedGateId = $state('');
-	let saving = $state(false);
 	let clearing = $state(false);
 	let clearModalOpen = $state(false);
+
+	// Heat management
+	let selectedDriverIds = $state(new Set<number>());
+	let closeModalOpen = $state(false);
+	let creating = $state(false);
+	let starting = $state(false);
+	let closing = $state(false);
 
 	// Active drivers modal
 	let driversModalOpen = $state(false);
@@ -79,6 +95,41 @@
 
 	const eligibleGates = $derived(gates.filter((g) => g.stage_id === null));
 
+	const heatResultsByHeat = $derived.by(() => {
+		const map = new Map<number, HeatResult[]>();
+		for (const r of leaderboard) {
+			for (const hr of r.heat_results) {
+				const arr = map.get(hr.heat_number) ?? [];
+				arr.push(hr);
+				map.set(hr.heat_number, arr);
+			}
+		}
+		for (const results of map.values()) {
+			results.sort((a, b) => {
+				if (a.finished !== b.finished) return a.finished ? -1 : 1;
+				if (a.finished && b.finished) return (a.total_ms ?? 0) - (b.total_ms ?? 0);
+				if (a.dnf !== b.dnf) return a.dnf ? -1 : 1;
+				return b.lap_count - a.lap_count;
+			});
+		}
+		return map;
+	});
+
+	const activeHeatResults = $derived<HeatResult[]>(
+		rx.active_heat
+			? leaderboard
+					.flatMap((d) => d.heat_results)
+					.filter((r) => r.heat_number === rx.active_heat!.number)
+					.sort((a, b) => {
+						if (a.finished !== b.finished) return a.finished ? -1 : 1;
+						if (a.finished && b.finished) return (a.total_ms ?? 0) - (b.total_ms ?? 0);
+						return b.lap_count - a.lap_count;
+					})
+			: []
+	);
+
+	const tooManySelected = $derived(selectedDriverIds.size > rx.max_per_heat);
+
 	async function loadState(syncForm = false) {
 		const res = await fetch('/api/rallycross');
 		if (!res.ok) return;
@@ -95,6 +146,14 @@
 		const res = await fetch('/api/rallycross/leaderboard');
 		if (!res.ok) return;
 		leaderboard = await res.json();
+	}
+
+	async function loadSuggest() {
+		const res = await fetch('/api/rallycross/suggest-heat');
+		if (!res.ok) return;
+		const data = await res.json();
+		suggestedGroups = data.groups ?? [];
+		standings = data.standings ?? [];
 	}
 
 	async function loadGates() {
@@ -153,7 +212,6 @@
 	}
 
 	async function saveConfig() {
-		saving = true;
 		try {
 			const cooldown_ms = Math.max(0, Math.round(cooldownSecondsInput * 1000));
 			const gate_id = selectedGateId || null;
@@ -171,8 +229,6 @@
 			await Promise.all([loadState(true), loadGates()]);
 		} catch (e) {
 			alert(t.rxSaveFailed + (e as Error).message);
-		} finally {
-			saving = false;
 		}
 	}
 
@@ -182,11 +238,79 @@
 			const res = await kcFetch('/api/rallycross', { method: 'DELETE' });
 			if (!res.ok) throw new Error(await res.text());
 			clearModalOpen = false;
-			await Promise.all([loadState(true), loadLeaderboard()]);
+			await Promise.all([loadState(true), loadLeaderboard(), loadSuggest()]);
 		} catch (e) {
 			alert(t.rxClearFailed + (e as Error).message);
 		} finally {
 			clearing = false;
+		}
+	}
+
+	function selectGroup(group: number[]) {
+		selectedDriverIds = new Set(group);
+	}
+
+	function toggleDriverSelection(id: number) {
+		const next = new Set(selectedDriverIds);
+		if (next.has(id)) next.delete(id);
+		else next.add(id);
+		selectedDriverIds = next;
+	}
+
+	async function createHeat() {
+		if (selectedDriverIds.size === 0) return;
+		creating = true;
+		try {
+			const res = await kcFetch('/api/rallycross/heat', {
+				method: 'POST',
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify({ driver_ids: [...selectedDriverIds] })
+			});
+			if (!res.ok) throw new Error(await res.text());
+			selectedDriverIds = new Set();
+			await Promise.all([loadState(), loadLeaderboard(), loadSuggest()]);
+		} catch (e) {
+			alert(t.rxCreateFailed + (e as Error).message);
+		} finally {
+			creating = false;
+		}
+	}
+
+	async function startHeat(heatId: number) {
+		starting = true;
+		try {
+			const res = await kcFetch(`/api/rallycross/heat/${heatId}/start`, { method: 'POST' });
+			if (!res.ok) throw new Error(await res.text());
+			await Promise.all([loadState(), loadLeaderboard()]);
+		} catch (e) {
+			alert(t.rxStartFailed + (e as Error).message);
+		} finally {
+			starting = false;
+		}
+	}
+
+	async function deleteHeat(heatId: number, heatNumber: number) {
+		if (!confirm(t.rxDeleteHeatConfirm(heatNumber))) return;
+		try {
+			const res = await kcFetch(`/api/rallycross/heat/${heatId}`, { method: 'DELETE' });
+			if (!res.ok) throw new Error(await res.text());
+			await Promise.all([loadState(), loadLeaderboard(), loadSuggest()]);
+		} catch (e) {
+			alert(t.rxDeleteHeatFailed + (e as Error).message);
+		}
+	}
+
+	async function closeHeat(heatId: number) {
+		closing = true;
+		try {
+			const res = await kcFetch(`/api/rallycross/heat/${heatId}/close`, { method: 'POST' });
+			if (!res.ok) throw new Error(await res.text());
+			closeModalOpen = false;
+			await Promise.all([loadState(), loadLeaderboard(), loadSuggest()]);
+		} catch (e) {
+			alert(t.rxCloseFailed + (e as Error).message);
+		} finally {
+			closing = false;
 		}
 	}
 
@@ -195,9 +319,11 @@
 		loadGates();
 		loadLeaderboard();
 		loadAllDrivers();
+		loadSuggest();
 		const timer = setInterval(() => {
 			loadState();
 			loadLeaderboard();
+			loadSuggest();
 		}, 2000);
 		return () => clearInterval(timer);
 	});
@@ -225,7 +351,7 @@
 			<div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
 				<div>
 					<label for="rxGate" class="mb-1 block text-sm font-medium">{t.rxFinishGate}</label>
-					<Select id="rxGate" bind:value={selectedGateId}>
+					<Select id="rxGate" bind:value={selectedGateId} onchange={saveConfig}>
 						<option value="">{t.rxChooseGate}</option>
 						{#each eligibleGates as g (g.id)}
 							<option value={g.id}>{g.name ?? g.id.slice(0, 8)}</option>
@@ -240,30 +366,26 @@
 						min="0"
 						step="0.1"
 						bind:value={cooldownSecondsInput}
+						onchange={saveConfig}
 					/>
 				</div>
 				<div>
 					<label for="rxMax" class="mb-1 block text-sm font-medium">{t.rxMaxPerHeat}</label>
-					<Input id="rxMax" type="number" min="1" step="1" bind:value={maxPerHeatInput} />
+					<Input id="rxMax" type="number" min="1" step="1" bind:value={maxPerHeatInput} onchange={saveConfig} />
 				</div>
 				<div>
 					<label for="rxLaps" class="mb-1 block text-sm font-medium">{t.rxLapsLabel}</label>
-					<Input id="rxLaps" type="number" min="1" step="1" bind:value={requiredLapsInput} />
+					<Input id="rxLaps" type="number" min="1" step="1" bind:value={requiredLapsInput} onchange={saveConfig} />
 				</div>
 			</div>
 
 			<div class="mt-4 flex flex-wrap items-center gap-2 border-t border-gray-200 pt-4 dark:border-gray-700">
-				<Button onclick={saveConfig} disabled={saving}>
-					{saving ? t.saving : t.rxSaveSettings}
-				</Button>
 				<Button color="alternative" onclick={() => (driversModalOpen = true)}>
 					{t.activeDriversButton}
 				</Button>
-				<a href="/rallycross/start">
-					<Button color="green" disabled={!rx.gate_id}>{t.rxManageHeats}</Button>
-				</a>
 				{#if leaderboard.length}
-					<Button color="blue" onclick={openSubmitModal}>
+					<Button color="alternative" onclick={openSubmitModal}>
+						<AwardOutline size="sm" class="mr-1" />
 						{t.submitToChampionshipButton}
 					</Button>
 				{/if}
@@ -292,6 +414,145 @@
 		{/if}
 	</Card>
 
+	<!-- Active heat -->
+	{#if rx.active_heat}
+		<Card class="max-w-none p-4">
+			<div class="mb-3 flex items-center justify-between gap-2">
+				<div class="flex items-center gap-2">
+					<p class="font-semibold">{t.rxHeatLabel(rx.active_heat.number)}</p>
+					<Badge color="green">{t.rxStatusInProgress}</Badge>
+				</div>
+				{#if $isAdmin}
+					<Button color="red" size="sm" onclick={() => (closeModalOpen = true)} disabled={closing}>
+						<StopOutline size="sm" class="mr-1" /> {t.rxCloseHeat}
+					</Button>
+				{/if}
+			</div>
+			<p class="mb-3 text-sm text-gray-500">{t.rxRequiredLaps(rx.active_heat.required_laps)}</p>
+			{#if activeHeatResults.length}
+				<div class="overflow-x-auto">
+					<table class="w-full text-sm">
+						<thead>
+							<tr class="border-b border-gray-200 text-left text-xs text-gray-500 dark:border-gray-700">
+								<th class="pb-1 pr-4">#</th>
+								<th class="pb-1 pr-4">{t.driverHeader}</th>
+								<th class="pb-1 pr-4 text-right">{t.rxLapsColumn}</th>
+								<th class="pb-1 pr-4 text-right">{t.rxBestLap}</th>
+								<th class="pb-1 text-right">{t.totalLabel}</th>
+							</tr>
+						</thead>
+						<tbody>
+							{#each activeHeatResults as r, i (r.driver_id)}
+								<tr
+									class="border-b border-gray-100 dark:border-gray-800 {r.finished
+										? 'text-gray-900 dark:text-white'
+										: 'text-gray-500 dark:text-gray-400'}"
+								>
+									<td class="py-1.5 pr-4 font-mono">{r.finished ? i + 1 : '—'}</td>
+									<td class="py-1.5 pr-4">
+										<span class="font-medium">{r.driver_name}</span>
+										<span class="ml-1 text-xs opacity-60">{r.class_name}</span>
+										{#if r.dnf}<Badge color="red" class="ml-1 text-xs">DNF</Badge>{/if}
+									</td>
+									<td class="py-1.5 pr-4 text-right font-mono">
+										{r.lap_count}/{rx.active_heat.required_laps}
+									</td>
+									<td class="py-1.5 pr-4 text-right font-mono">{formatMs(r.best_lap_ms)}</td>
+									<td class="py-1.5 text-right font-mono">{formatMs(r.total_ms)}</td>
+								</tr>
+							{/each}
+						</tbody>
+					</table>
+				</div>
+			{:else}
+				<p class="text-sm text-gray-500">{t.rxWaitingForDrivers}</p>
+			{/if}
+		</Card>
+	{:else}
+		{@const pendingHeat = rx.heats.find((h) => h.started_at === null)}
+		{#if pendingHeat}
+			<!-- Pending heat waiting to start -->
+			<Card class="max-w-none p-4">
+				<div class="flex items-center justify-between gap-2">
+					<div class="flex items-center gap-2">
+						<p class="font-semibold">{t.rxHeatLabel(pendingHeat.number)}</p>
+						<Badge color="yellow">{t.rxStatusNotStarted}</Badge>
+					</div>
+					{#if $isAdmin}
+						<Button
+							size="sm"
+							onclick={() => startHeat(pendingHeat.id)}
+							disabled={starting || !rx.gate_id}
+						>
+							<PlayOutline size="sm" class="mr-1" />
+							{starting ? t.rxStartingHeat : t.rxStartHeat}
+						</Button>
+					{/if}
+				</div>
+				{#if !rx.gate_id}
+					<p class="mt-2 text-sm text-yellow-600">{t.rxAssignGateBeforeStart}</p>
+				{/if}
+			</Card>
+		{:else if $isAdmin}
+			<!-- Create next heat -->
+			<Card class="max-w-none p-4">
+				<p class="mb-3 font-semibold">{t.rxCreateNextHeat}</p>
+
+				{#if suggestedGroups.length}
+					<div class="mb-4">
+						<p class="mb-2 text-sm text-gray-500">{t.rxSuggestedGroups}</p>
+						<div class="flex flex-wrap gap-2">
+							{#each suggestedGroups as group, gi}
+								<Button
+									size="xs"
+									color={[...selectedDriverIds].sort().join() ===
+									[...group].sort((a, b) => a - b).join()
+										? 'blue'
+										: 'alternative'}
+									onclick={() => selectGroup(group)}
+								>
+									{t.rxGroupLabel(gi + 1)}
+									({group.map((id) => standings.find((s) => s.driver_id === id)?.driver_name ?? id).join(', ')})
+								</Button>
+							{/each}
+						</div>
+					</div>
+				{/if}
+
+				<div class="mb-4">
+					<p class="mb-2 text-sm text-gray-500">
+						{t.rxSelectDrivers(selectedDriverIds.size, rx.max_per_heat)}
+					</p>
+					<div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
+						{#each standings as s (s.driver_id)}
+							<div class="flex items-center gap-2">
+								<Checkbox
+									checked={selectedDriverIds.has(s.driver_id)}
+									onchange={() => toggleDriverSelection(s.driver_id)}
+								/>
+								<div>
+									<span class="text-sm font-medium">{s.driver_name}</span>
+									<span class="ml-1 text-xs text-gray-500">{s.class_name}</span>
+									<span class="ml-1 text-xs text-gray-400">· {t.rxHeatCount(s.heat_count)}</span>
+								</div>
+							</div>
+						{/each}
+					</div>
+					{#if tooManySelected}
+						<p class="mt-2 text-sm text-yellow-600">{t.rxTooManyDrivers(rx.max_per_heat)}</p>
+					{/if}
+				</div>
+
+				<Button
+					onclick={createHeat}
+					disabled={creating || selectedDriverIds.size === 0 || tooManySelected}
+				>
+					{creating ? t.creating : t.rxCreateHeat(selectedDriverIds.size)}
+				</Button>
+			</Card>
+		{/if}
+	{/if}
+
 	<!-- Heat list -->
 	{#if rx.heats.length}
 		<Card class="max-w-none p-4">
@@ -300,16 +561,34 @@
 				{#each rx.heats as h (h.id)}
 					<div class="rounded px-2 py-1.5 text-sm odd:bg-gray-50 dark:odd:bg-gray-700/30">
 						<div class="flex items-center justify-between">
-							<span class="font-medium">{t.rxHeatLabel(h.number)}</span>
-							{#if h.closed_at !== null}
-								<Badge color="gray">{t.rxStatusDone}</Badge>
-							{:else if h.started_at !== null}
-								<Badge color="green">{t.rxStatusInProgress}</Badge>
-							{:else}
-								<Badge color="yellow">{t.rxStatusNotStarted}</Badge>
+							<div class="flex items-center gap-2">
+								<span class="font-medium">{t.rxHeatLabel(h.number)}</span>
+								{#if h.closed_at !== null}
+									<Badge color="gray">{t.rxStatusDone}</Badge>
+								{:else if h.started_at !== null}
+									<Badge color="green">{t.rxStatusInProgress}</Badge>
+								{:else}
+									<Badge color="yellow">{t.rxStatusNotStarted}</Badge>
+								{/if}
+							</div>
+							{#if $isAdmin}
+								<button
+									type="button"
+									class="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-red-500 dark:hover:bg-gray-700 dark:hover:text-red-400"
+									onclick={() => deleteHeat(h.id, h.number)}
+								>
+									<TrashBinOutline size="xs" />
+								</button>
 							{/if}
 						</div>
-						{#if h.drivers.length}
+						{#if h.closed_at !== null}
+							{@const results = heatResultsByHeat.get(h.number) ?? []}
+							{#if results.length}
+								<p class="mt-0.5 text-xs text-gray-400">
+									{results.map((r, i) => `${i + 1}. ${r.driver_name}: ${formatMs(r.total_ms)}`).join(' · ')}
+								</p>
+							{/if}
+						{:else if h.drivers.length}
 							<p class="mt-0.5 text-xs text-gray-400">{h.drivers.join(', ')}</p>
 						{/if}
 					</div>
@@ -328,8 +607,8 @@
 						<tr class="border-b border-gray-200 text-left text-xs text-gray-500 dark:border-gray-700">
 							<th class="pb-1 pr-4">#</th>
 							<th class="pb-1 pr-4">{t.driverHeader}</th>
-							<th class="pb-1 pr-4 text-right">{t.rxBestTime}</th>
-							<th class="pb-1 text-right">{t.rxHeatColumn}</th>
+							<th class="pb-1 pr-4 text-right">{t.rxPoints}</th>
+							<th class="pb-1 text-right">{t.rxBestTime}</th>
 						</tr>
 					</thead>
 					<tbody>
@@ -346,10 +625,8 @@
 									<span class="font-medium">{r.driver_name}</span>
 									<span class="ml-1 text-xs opacity-60">{r.class_name}</span>
 								</td>
-								<td class="py-1.5 pr-4 text-right font-mono">{formatMs(r.best_total_ms)}</td>
-								<td class="py-1.5 text-right text-xs text-gray-500">
-									{r.best_heat_number !== null ? t.rxHeatLabel(r.best_heat_number) : '—'}
-								</td>
+								<td class="py-1.5 pr-4 text-right font-mono font-semibold">{r.total_points}</td>
+								<td class="py-1.5 text-right font-mono text-xs text-gray-500">{formatMs(r.best_total_ms)}</td>
 							</tr>
 						{/each}
 					</tbody>
@@ -444,6 +721,7 @@
 	{/if}
 </Modal>
 
+<!-- Clear Modal -->
 <Modal title={t.rxClearHeading} bind:open={clearModalOpen} size="sm" autoclose={false}>
 	<div class="space-y-4">
 		<p class="text-gray-700 dark:text-gray-300">{t.rxClearDescription}</p>
@@ -451,6 +729,25 @@
 			<Button color="alternative" onclick={() => (clearModalOpen = false)}>{t.cancel}</Button>
 			<Button color="red" onclick={clearSession} disabled={clearing}>
 				{clearing ? t.clearing : t.clearAction}
+			</Button>
+		</div>
+	</div>
+</Modal>
+
+<!-- Close Heat Modal -->
+<Modal title={t.rxCloseHeatTitle} bind:open={closeModalOpen} size="sm" autoclose={false}>
+	<div class="space-y-4">
+		<p class="text-gray-700 dark:text-gray-300">
+			{t.rxCloseHeatDescription(rx.active_heat?.required_laps ?? 0)}
+		</p>
+		<div class="flex justify-end gap-2 border-t pt-3">
+			<Button color="alternative" onclick={() => (closeModalOpen = false)}>{t.cancel}</Button>
+			<Button
+				color="red"
+				onclick={() => rx.active_heat && closeHeat(rx.active_heat.id)}
+				disabled={closing}
+			>
+				{closing ? t.rxClosingHeat : t.rxCloseHeat}
 			</Button>
 		</div>
 	</div>

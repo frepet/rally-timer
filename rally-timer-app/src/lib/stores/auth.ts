@@ -1,6 +1,7 @@
 // src/lib/stores/auth.ts
 import { writable, derived } from 'svelte/store';
 import Keycloak from 'keycloak-js';
+import { env } from '$env/dynamic/public';
 
 export const keycloak = new Keycloak({
 	url: 'https://keycloak.peteri.se',
@@ -33,6 +34,11 @@ function clearStorage() {
 }
 
 export async function initKeycloak() {
+	if (env.PUBLIC_SKIP_AUTH === 'true') {
+		isAuthenticated.set(true);
+		clientRoles.set(['admin']);
+		return;
+	}
 	try {
 		const storedToken = localStorage.getItem(KC_TOKEN_KEY) ?? undefined;
 		const storedRefreshToken = localStorage.getItem(KC_REFRESH_KEY) ?? undefined;

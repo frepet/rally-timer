@@ -8,6 +8,7 @@ import {
 	computeDnfTime,
 	buildHeatLeaderboard,
 	buildOverallLeaderboard,
+	computeHeatPoints,
 	suggestNextHeatGroups,
 	buildRallycrossSubmission,
 	type HeatResult
@@ -212,18 +213,49 @@ describe('buildHeatLeaderboard', () => {
 	});
 });
 
+describe('computeHeatPoints', () => {
+	const mkResult = (driver_id: number, driver_name: string, class_id: number, total_ms: number | null, finished: boolean, lap_count = 1) => ({
+		driver_id, driver_name, class_id, class_name: `C${class_id}`, tag: driver_name,
+		heat_number: 1, laps: [], lap_count, total_ms, best_lap_ms: null, finished, dnf: false, dnf_time_ms: null
+	} as HeatResult);
+
+	it('1st of 3 gets 3 pts, last gets 1 pt', () => {
+		const pts = computeHeatPoints([
+			mkResult(1, 'Fast', 1, 100000, true),
+			mkResult(2, 'Mid',  1, 120000, true),
+			mkResult(3, 'Slow', 1, 140000, true)
+		]);
+		expect(pts.get(1)).toBe(3);
+		expect(pts.get(2)).toBe(2);
+		expect(pts.get(3)).toBe(1);
+	});
+
+	it('points are overall across all classes', () => {
+		// 3 drivers from different classes race together
+		const pts = computeHeatPoints([
+			mkResult(1, 'A1', 1, 100000, true),  // 1st overall → 3 pts
+			mkResult(2, 'B1', 2, 200000, true),  // 3rd overall → 1 pt
+			mkResult(3, 'C1', 3, 150000, true)   // 2nd overall → 2 pts
+		]);
+		expect(pts.get(1)).toBe(3);
+		expect(pts.get(3)).toBe(2);
+		expect(pts.get(2)).toBe(1);
+	});
+});
+
 describe('buildOverallLeaderboard', () => {
 	const mkResult = (
 		driver_id: number,
 		driver_name: string,
 		heat_number: number,
 		total_ms: number | null,
-		finished: boolean
+		finished: boolean,
+		class_id = 1
 	) => ({
 		driver_id,
 		driver_name,
-		class_id: 1,
-		class_name: 'A',
+		class_id,
+		class_name: `C${class_id}`,
 		tag: driver_name,
 		heat_number,
 		laps: [],
@@ -247,16 +279,8 @@ describe('buildOverallLeaderboard', () => {
 		expect(alice.best_heat_number).toBe(2);
 	});
 
-	it('drivers with finished heats rank above those without', () => {
-		const heatResults = [
-			mkResult(1, 'Partial', 1, null, false),
-			mkResult(2, 'Finisher', 1, 180000, true)
-		];
-		const board = buildOverallLeaderboard(heatResults);
-		expect(board[0].driver_name).toBe('Finisher');
-	});
-
-	it('sorts finishers by best_total_ms ascending', () => {
+	it('ranks by total_points descending', () => {
+		// Single heat, 3 drivers same class: Fast=3pts, Mid=2pts, Slow=1pt
 		const heatResults = [
 			mkResult(1, 'Slow',  1, 200000, true),
 			mkResult(2, 'Fast',  1, 150000, true),
@@ -264,6 +288,34 @@ describe('buildOverallLeaderboard', () => {
 		];
 		const board = buildOverallLeaderboard(heatResults);
 		expect(board.map((r) => r.driver_name)).toEqual(['Fast', 'Mid', 'Slow']);
+		expect(board[0].total_points).toBe(3);
+		expect(board[2].total_points).toBe(1);
+	});
+
+	it('accumulates points across multiple heats', () => {
+		// Heat 1: Alice 1st (2pts), Bob 2nd (1pt)
+		// Heat 2: Bob 1st (2pts), Alice 2nd (1pt)
+		// Total: Alice=3, Bob=3 → tie broken by best_total_ms
+		const heatResults = [
+			mkResult(1, 'Alice', 1, 100000, true),
+			mkResult(2, 'Bob',   1, 120000, true),
+			mkResult(2, 'Bob',   2,  90000, true),
+			mkResult(1, 'Alice', 2, 110000, true)
+		];
+		const board = buildOverallLeaderboard(heatResults);
+		expect(board[0].total_points).toBe(3);
+		expect(board[1].total_points).toBe(3);
+		// Both have 3 pts; best_total_ms: Alice=100000, Bob=90000 → Bob wins tiebreaker
+		expect(board[0].driver_name).toBe('Bob');
+	});
+
+	it('drivers with finished heats rank above those without', () => {
+		const heatResults = [
+			mkResult(1, 'Partial',  1, null,   false),
+			mkResult(2, 'Finisher', 1, 180000, true)
+		];
+		const board = buildOverallLeaderboard(heatResults);
+		expect(board[0].driver_name).toBe('Finisher');
 	});
 });
 
@@ -336,6 +388,7 @@ describe('buildRallycrossSubmission', () => {
 				driver_name: 'Alice',
 				class_id: 1,
 				class_name: 'Group A',
+				total_points: 2,
 				best_total_ms: 160000,
 				best_heat_number: 2,
 				heat_results: [],
@@ -346,6 +399,7 @@ describe('buildRallycrossSubmission', () => {
 				driver_name: 'Bob',
 				class_id: 2,
 				class_name: 'Group B',
+				total_points: 0,
 				best_total_ms: null,
 				best_heat_number: null,
 				heat_results: [],
@@ -370,7 +424,7 @@ describe('buildRallycrossSubmission', () => {
 	it('excludes drivers with no finished heat', () => {
 		const rows = buildRallycrossSubmission([
 			{ driver_id: 1, driver_name: 'X', class_id: 1, class_name: 'A',
-			  best_total_ms: null, best_heat_number: null, heat_results: [], driver_uuid: 'u1' }
+			  total_points: 0, best_total_ms: null, best_heat_number: null, heat_results: [], driver_uuid: 'u1' }
 		]);
 		expect(rows).toHaveLength(0);
 	});

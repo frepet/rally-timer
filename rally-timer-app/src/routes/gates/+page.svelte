@@ -24,6 +24,7 @@
 		stage_id: number | null;
 		stage_name: string | null;
 		rally_name: string | null;
+		is_rallycross: boolean;
 		created_at: number;
 	};
 
@@ -279,7 +280,9 @@
 								<div class="font-mono text-xs opacity-60">{gate.id}</div>
 							</TableBodyCell>
 							<TableBodyCell>
-								{#if gate.stage_id && gate.stage_name}
+								{#if gate.is_rallycross}
+									<Badge color="purple">{t.rxHeading}</Badge>
+								{:else if gate.stage_id && gate.stage_name}
 									<Badge color="blue">{gate.stage_name}</Badge>
 									{#if gate.rally_name}
 										<P class="text-xs opacity-60">{gate.rally_name}</P>

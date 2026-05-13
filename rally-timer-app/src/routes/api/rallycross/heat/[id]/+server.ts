@@ -1,5 +1,6 @@
 import { json, error, type RequestEvent } from '@sveltejs/kit';
 import { sql } from '../../../../../lib/server/db';
+import { throwIfNotAdmin } from '../../../../../lib/server/keycloak';
 
 type EntryRow = {
 	driver_id: number;
@@ -55,4 +56,20 @@ export async function GET(event: RequestEvent): Promise<Response> {
 			dnf_time_ms: e.dnf_time_ms !== null ? Number(e.dnf_time_ms) : null
 		}))
 	});
+}
+
+export async function DELETE(event: RequestEvent): Promise<Response> {
+	await throwIfNotAdmin(event);
+	const heatId = Number(event.params.id);
+	if (!heatId) throw error(400, 'Invalid heat id');
+
+	const [heat] = await sql<{ id: number }[]>`
+		SELECT id FROM rallycross_heats WHERE id = ${heatId}
+	`;
+	if (!heat) throw error(404, 'Värmelopp hittades inte');
+
+	await sql`DELETE FROM rallycross_heat_entries WHERE heat_id = ${heatId}`;
+	await sql`DELETE FROM rallycross_heats WHERE id = ${heatId}`;
+
+	return json({ deleted: true });
 }

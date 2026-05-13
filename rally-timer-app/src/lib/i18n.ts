@@ -245,7 +245,6 @@ export const sv = {
   rxMaxPerHeat: 'Max per heat',
   rxLapsLabel: 'Varv',
   rxSaveSettings: 'Spara inställningar',
-  rxManageHeats: 'Hantera heat →',
   rxAssignGateFirst: 'Tilldela en grind för att hantera heat.',
   rxConfigSummary: (gate: string, cooldown: number, max: number, laps: number) =>
     `Grind: ${gate} · Cooldown: ${cooldown}s · Max per heat: ${max} · Varv: ${laps}`,
@@ -253,6 +252,7 @@ export const sv = {
   // Rallycross - leaderboard / heat list
   rxHeatsHeading: 'Heat',
   rxOverallStandings: 'Sammanlagd ställning',
+  rxPoints: 'Poäng',
   rxBestTime: 'Bästa tid',
   rxBestLap: 'Bästa varv',
   rxHeatColumn: 'Heat',
@@ -264,9 +264,7 @@ export const sv = {
   rxSaveFailed: 'Kunde inte spara: ',
   rxClearFailed: 'Kunde inte rensa: ',
 
-  // Rallycross - heat management page (start/)
-  rxBack: 'Tillbaka',
-  rxManageHeatsHeading: 'Hantera heat',
+  // Rallycross - heat management
   rxCloseHeat: 'Stäng heat',
   rxClosingHeat: 'Stänger…',
   rxRequiredLaps: (n: number) => `Krav: ${n} varv`,
@@ -288,6 +286,8 @@ export const sv = {
   rxCreateFailed: 'Kunde inte skapa heat: ',
   rxStartFailed: 'Kunde inte starta heat: ',
   rxCloseFailed: 'Kunde inte stänga heat: ',
+  rxDeleteHeatConfirm: (n: number) => `Ta bort Heat ${n}? Detta går inte att ångra.`,
+  rxDeleteHeatFailed: 'Kunde inte ta bort heat: ',
   rxHeatCount: (n: number) => `${n} heat${n !== 1 ? 's' : ''}`,
   rxSubmitModal: 'Skicka rallycross till mästerskap',
   rxSubmitted: 'Rallycross inskickat!',
@@ -540,7 +540,6 @@ export const en: typeof sv = {
   rxMaxPerHeat: 'Max per heat',
   rxLapsLabel: 'Laps',
   rxSaveSettings: 'Save settings',
-  rxManageHeats: 'Manage heats →',
   rxAssignGateFirst: 'Assign a gate to manage heats.',
   rxConfigSummary: (gate: string, cooldown: number, max: number, laps: number) =>
     `Gate: ${gate} · Cooldown: ${cooldown}s · Max per heat: ${max} · Laps: ${laps}`,
@@ -548,6 +547,7 @@ export const en: typeof sv = {
   // Rallycross - leaderboard / heat list
   rxHeatsHeading: 'Heats',
   rxOverallStandings: 'Overall standings',
+  rxPoints: 'Points',
   rxBestTime: 'Best time',
   rxBestLap: 'Best lap',
   rxHeatColumn: 'Heat',
@@ -559,9 +559,7 @@ export const en: typeof sv = {
   rxSaveFailed: 'Could not save: ',
   rxClearFailed: 'Could not clear: ',
 
-  // Rallycross - heat management page (start/)
-  rxBack: 'Back',
-  rxManageHeatsHeading: 'Manage heats',
+  // Rallycross - heat management
   rxCloseHeat: 'Close heat',
   rxClosingHeat: 'Closing…',
   rxRequiredLaps: (n: number) => `Required: ${n} lap${n === 1 ? '' : 's'}`,
@@ -583,6 +581,8 @@ export const en: typeof sv = {
   rxCreateFailed: 'Could not create heat: ',
   rxStartFailed: 'Could not start heat: ',
   rxCloseFailed: 'Could not close heat: ',
+  rxDeleteHeatConfirm: (n: number) => `Delete Heat ${n}? This cannot be undone.`,
+  rxDeleteHeatFailed: 'Could not delete heat: ',
   rxHeatCount: (n: number) => `${n} heat${n !== 1 ? 's' : ''}`,
   rxSubmitModal: 'Submit rallycross to championship',
   rxSubmitted: 'Rallycross submitted!',

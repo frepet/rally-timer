@@ -1,3 +1,5 @@
+import { positionToPoints } from './scoring';
+
 // ---------------------------------------------------------------------------
 // Shared input/output types
 // ---------------------------------------------------------------------------
@@ -64,6 +66,7 @@ export type OverallResult = {
 	class_id: number;
 	class_name: string;
 	driver_uuid: string;
+	total_points: number;
 	best_total_ms: number | null;
 	best_heat_number: number | null;
 	heat_results: HeatResult[];
@@ -230,6 +233,24 @@ export function buildHeatLeaderboard(
 	});
 }
 
+/** Returns driver_id → points for one heat, ranked overall (all classes together). */
+export function computeHeatPoints(heatResults: HeatResult[]): Map<number, number> {
+	const sorted = [...heatResults].sort((a, b) => {
+		if (a.finished && b.finished) return (a.total_ms ?? 0) - (b.total_ms ?? 0);
+		if (a.finished) return -1;
+		if (b.finished) return 1;
+		if (a.dnf && b.dnf) return (a.dnf_time_ms ?? 0) - (b.dnf_time_ms ?? 0);
+		if (a.dnf) return -1;
+		if (b.dnf) return 1;
+		if (a.lap_count !== b.lap_count) return b.lap_count - a.lap_count;
+		return a.driver_name.localeCompare(b.driver_name);
+	});
+	const n = sorted.length;
+	const points = new Map<number, number>();
+	sorted.forEach((r, i) => points.set(r.driver_id, positionToPoints(i + 1, n)));
+	return points;
+}
+
 export function buildOverallLeaderboard(allHeatResults: HeatResult[]): OverallResult[] {
 	const map = new Map<number, OverallResult>();
 
@@ -241,6 +262,7 @@ export function buildOverallLeaderboard(allHeatResults: HeatResult[]): OverallRe
 				class_id: r.class_id,
 				class_name: r.class_name,
 				driver_uuid: '',
+				total_points: 0,
 				best_total_ms: null,
 				best_heat_number: null,
 				heat_results: []
@@ -257,16 +279,27 @@ export function buildOverallLeaderboard(allHeatResults: HeatResult[]): OverallRe
 		}
 	}
 
+	// Accumulate per-class points across heats
+	const byHeat = new Map<number, HeatResult[]>();
+	for (const r of allHeatResults) {
+		const bucket = byHeat.get(r.heat_number) ?? [];
+		bucket.push(r);
+		byHeat.set(r.heat_number, bucket);
+	}
+	for (const heatResults of byHeat.values()) {
+		for (const [driverId, pts] of computeHeatPoints(heatResults)) {
+			const entry = map.get(driverId);
+			if (entry) entry.total_points += pts;
+		}
+	}
+
 	return [...map.values()].sort((a, b) => {
+		if (a.total_points !== b.total_points) return b.total_points - a.total_points;
 		const aMs = a.best_total_ms;
 		const bMs = b.best_total_ms;
 		if (aMs !== null && bMs !== null) return aMs - bMs;
 		if (aMs !== null) return -1;
 		if (bMs !== null) return 1;
-		// Both unfinished — sort by most laps in any heat
-		const aLaps = Math.max(0, ...a.heat_results.map((r) => r.lap_count));
-		const bLaps = Math.max(0, ...b.heat_results.map((r) => r.lap_count));
-		if (aLaps !== bLaps) return bLaps - aLaps;
 		return a.driver_name.localeCompare(b.driver_name);
 	});
 }

@@ -72,30 +72,25 @@
 							<tr class="border-b border-gray-200 bg-gray-50 text-left text-xs text-gray-500 dark:border-gray-700 dark:bg-gray-800">
 								<th class="px-3 py-2">#</th>
 								<th class="px-3 py-2">{t.driverHeader}</th>
+								<th class="px-3 py-2 text-right">{t.rxPoints}</th>
 								<th class="px-3 py-2 text-right">{t.rxBestTime}</th>
-								<th class="px-3 py-2 text-right">{t.rxBestLap}</th>
-								<th class="px-3 py-2 text-right">{t.rxHeatColumn}</th>
 							</tr>
 						</thead>
 						<tbody>
 							{#each rxLeaderboard as r, i (r.driver_id)}
-								{@const bestHeat = r.heat_results.find((h) => h.heat_number === r.best_heat_number)}
 								<tr class="border-b border-gray-100 dark:border-gray-800 {i % 2 === 0 ? 'bg-white dark:bg-gray-900' : 'bg-gray-50 dark:bg-gray-800/50'}">
 									<td class="px-3 py-2 font-mono font-semibold text-gray-900 dark:text-white">
-										{r.best_total_ms !== null ? i + 1 : '—'}
+										{i + 1}
 									</td>
 									<td class="px-3 py-2">
 										<span class="font-medium text-gray-900 dark:text-white">{r.driver_name}</span>
 										<span class="ml-1 text-xs text-gray-400">{r.class_name}</span>
 									</td>
-									<td class="px-3 py-2 text-right font-mono text-gray-900 dark:text-white">
+									<td class="px-3 py-2 text-right font-mono font-semibold text-gray-900 dark:text-white">
+										{r.total_points}
+									</td>
+									<td class="px-3 py-2 text-right font-mono text-xs text-gray-500">
 										{formatMs(r.best_total_ms)}
-									</td>
-									<td class="px-3 py-2 text-right font-mono text-gray-500">
-										{formatMs(bestHeat?.best_lap_ms ?? null)}
-									</td>
-									<td class="px-3 py-2 text-right text-xs text-gray-400">
-										{r.best_heat_number !== null ? t.rxHeatLabel(r.best_heat_number) : '—'}
 									</td>
 								</tr>
 							{/each}

@@ -112,6 +112,7 @@ export async function GET(): Promise<Response> {
 			class_id: d.class_id,
 			class_name: d.class_name,
 			driver_uuid: d.driver_uuid,
+			total_points: 0,
 			best_total_ms: null,
 			best_heat_number: null,
 			heat_results: []
