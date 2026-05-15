@@ -3,9 +3,11 @@
 	import { kcFetch } from '../lib/kcFetch';
 	import type { BundleResponse } from '../lib/types';
 	import RallyResults from '../lib/RallyResults.svelte';
-	import { type DisplayRallyRow, type StageData, formatMs } from '../lib/results';
+	import RallycrossLeaderboard from '../lib/RallycrossLeaderboard.svelte';
+	import { type DisplayRallyRow, type StageData } from '../lib/results';
 	import { buildStageData, buildRallyRows } from '../lib/domain/summary';
 	import type { OverallResult } from '../lib/domain/rallycross';
+	import { buildRxDisplay } from '../lib/domain/rallycrossDisplay';
 	import { t } from '../lib/stores/locale.svelte';
 
 	type RallycrossConfig = {
@@ -39,6 +41,7 @@
 	}
 
 	const showRallycross = $derived(rxConfig.heats.length > 0);
+	const rxDisplay = $derived(buildRxDisplay(rxLeaderboard));
 
 	let poller: number | null = null;
 
@@ -66,37 +69,7 @@
 			</div>
 
 			{#if rxLeaderboard.length}
-				<div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
-					<table class="w-full text-sm">
-						<thead>
-							<tr class="border-b border-gray-200 bg-gray-50 text-left text-xs text-gray-500 dark:border-gray-700 dark:bg-gray-800">
-								<th class="px-3 py-2">#</th>
-								<th class="px-3 py-2">{t.driverHeader}</th>
-								<th class="px-3 py-2 text-right">{t.rxPoints}</th>
-								<th class="px-3 py-2 text-right">{t.rxBestTime}</th>
-							</tr>
-						</thead>
-						<tbody>
-							{#each rxLeaderboard as r, i (r.driver_id)}
-								<tr class="border-b border-gray-100 dark:border-gray-800 {i % 2 === 0 ? 'bg-white dark:bg-gray-900' : 'bg-gray-50 dark:bg-gray-800/50'}">
-									<td class="px-3 py-2 font-mono font-semibold text-gray-900 dark:text-white">
-										{i + 1}
-									</td>
-									<td class="px-3 py-2">
-										<span class="font-medium text-gray-900 dark:text-white">{r.driver_name}</span>
-										<span class="ml-1 text-xs text-gray-400">{r.class_name}</span>
-									</td>
-									<td class="px-3 py-2 text-right font-mono font-semibold text-gray-900 dark:text-white">
-										{r.total_points}
-									</td>
-									<td class="px-3 py-2 text-right font-mono text-xs text-gray-500">
-										{formatMs(r.best_total_ms)}
-									</td>
-								</tr>
-							{/each}
-						</tbody>
-					</table>
-				</div>
+				<RallycrossLeaderboard standings={rxDisplay.standings} heats={rxDisplay.heats} />
 			{:else}
 				<p class="text-sm text-gray-500">{t.rxWaitingForHeats}</p>
 			{/if}

@@ -1,8 +1,10 @@
 <script lang="ts">
 	import { Badge, P } from 'flowbite-svelte';
 	import RallyResults from '../../../lib/RallyResults.svelte';
+	import RallycrossLeaderboard from '../../../lib/RallycrossLeaderboard.svelte';
 	import { buildStageData } from '../../../lib/domain/submittedRally';
 	import { buildRallyRows } from '../../../lib/domain/summary';
+	import { isRallycrossSubmission, buildRxDisplayFromSubmission } from '../../../lib/domain/rallycrossDisplay';
 
 	type Championship = { id: string; name: string };
 	type RallyDetail = {
@@ -20,8 +22,10 @@
 
 	let { data }: { data: RallyDetail } = $props();
 
-	const stages = $derived(buildStageData(data.results));
-	const rallyRows = $derived(buildRallyRows(stages));
+	const isRx = $derived(isRallycrossSubmission(data.results));
+	const rxDisplay = $derived(isRx ? buildRxDisplayFromSubmission(data.results) : null);
+	const stages = $derived(isRx ? [] : buildStageData(data.results));
+	const rallyRows = $derived(isRx ? [] : buildRallyRows(stages));
 
 	function fmtDate(ms: number): string {
 		return new Date(ms).toLocaleDateString('sv-SE');
@@ -45,5 +49,9 @@
 		</div>
 	</div>
 
-	<RallyResults {rallyRows} {stages} />
+	{#if isRx && rxDisplay}
+		<RallycrossLeaderboard standings={rxDisplay.standings} heats={rxDisplay.heats} />
+	{:else}
+		<RallyResults {rallyRows} {stages} />
+	{/if}
 </div>

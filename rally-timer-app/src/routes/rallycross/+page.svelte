@@ -8,6 +8,8 @@
 	import { formatMs } from '../../lib/results';
 	import { t } from '../../lib/stores/locale.svelte';
 	import { heatResultComparator, type OverallResult, type HeatResult } from '../../lib/domain/rallycross';
+	import { buildRxDisplay } from '../../lib/domain/rallycrossDisplay';
+	import RallycrossLeaderboard from '../../lib/RallycrossLeaderboard.svelte';
 
 	type Gate = { id: string; name: string | null; last_seen: number; stage_id: number | null };
 	type HeatRow = {
@@ -118,6 +120,8 @@
 		}
 		return map;
 	});
+
+	const rxDisplay = $derived(buildRxDisplay(leaderboard));
 
 	const activeHeatResults = $derived<HeatResult[]>(
 		rx.active_heat
@@ -637,14 +641,7 @@
 								</button>
 							{/if}
 						</div>
-						{#if h.closed_at !== null}
-							{@const results = heatResultsByHeat.get(h.number) ?? []}
-							{#if results.length}
-								<p class="mt-0.5 text-xs text-gray-400">
-									{results.map((r, i) => `${i + 1}. ${r.driver_name}: ${formatMs(r.total_ms)}`).join(' · ')}
-								</p>
-							{/if}
-						{:else if h.drivers.length}
+						{#if h.closed_at === null && h.drivers.length}
 							<p class="mt-0.5 text-xs text-gray-400">{h.drivers.join(', ')}</p>
 						{/if}
 					</div>
@@ -653,42 +650,9 @@
 		</Card>
 	{/if}
 
-	<!-- Overall leaderboard -->
-	{#if leaderboard.length}
-		<Card class="max-w-none p-4">
-			<p class="mb-3 font-semibold">{t.rxOverallStandings}</p>
-			<div class="overflow-x-auto">
-				<table class="w-full text-sm">
-					<thead>
-						<tr class="border-b border-gray-200 text-left text-xs text-gray-500 dark:border-gray-700">
-							<th class="pb-1 pr-4">#</th>
-							<th class="pb-1 pr-4">{t.driverHeader}</th>
-							<th class="pb-1 pr-4 text-right">{t.rxPoints}</th>
-							<th class="pb-1 text-right">{t.rxBestTime}</th>
-						</tr>
-					</thead>
-					<tbody>
-						{#each leaderboard as r, i (r.driver_id)}
-							<tr
-								class="border-b border-gray-100 dark:border-gray-800 {r.best_total_ms !== null
-									? 'text-gray-900 dark:text-white'
-									: 'text-gray-400 dark:text-gray-500'}"
-							>
-								<td class="py-1.5 pr-4 font-mono font-semibold">
-									{r.best_total_ms !== null ? i + 1 : '—'}
-								</td>
-								<td class="py-1.5 pr-4">
-									<span class="font-medium">{r.driver_name}</span>
-									<span class="ml-1 text-xs opacity-60">{r.class_name}</span>
-								</td>
-								<td class="py-1.5 pr-4 text-right font-mono font-semibold">{r.total_points}</td>
-								<td class="py-1.5 text-right font-mono text-xs text-gray-500">{formatMs(r.best_total_ms)}</td>
-							</tr>
-						{/each}
-					</tbody>
-				</table>
-			</div>
-		</Card>
+	<!-- Per-heat results + overall standings -->
+	{#if rxDisplay.heats.length || rxDisplay.standings.length}
+		<RallycrossLeaderboard standings={rxDisplay.standings} heats={rxDisplay.heats} />
 	{/if}
 </div>
 
