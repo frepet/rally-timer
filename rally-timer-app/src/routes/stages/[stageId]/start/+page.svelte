@@ -17,6 +17,7 @@
 	import { kcFetch } from '../../../../lib/kcFetch';
 	import type { BundleResponse } from '../../../../lib/types';
 	import { t } from '../../../../lib/stores/locale.svelte';
+	import { playBeep, primeAudio, getAudioCurrentTime, scheduleBeepAt, closeAudio } from '../../../../lib/beep';
 
 	type Driver = { id: number; name: string; class_name?: string; tag: string };
 	type Gate = { id: string; name: string | null; stage_id: number | null };
@@ -36,11 +37,37 @@
 	let timer: ReturnType<typeof setInterval> | undefined;
 	let gatePoller: ReturnType<typeof setInterval> | undefined;
 
-	let utters = new Map<string, SpeechSynthesisUtterance>();
+	// Wall-clock timing: remainingMs is derived from targetTime each tick,
+	// so the countdown never drifts regardless of setInterval jitter.
+	let targetTime: number | null = null;
+	let pausedRemaining: number | null = null;
+	let lastWhole = -1;
+
+	// Beeps are scheduled via Web Audio API (sample-accurate) rather than
+	// detected from the poll loop, so they are always evenly spaced.
+	let pendingOscs: OscillatorNode[] = [];
+
+	function cancelBeeps() {
+		for (const osc of pendingOscs) {
+			try { osc.stop(0); } catch { /* already stopped */ }
+		}
+		pendingOscs = [];
+	}
+
+	function scheduleCountdown(gapSec: number) {
+		cancelBeeps();
+		const t0 = getAudioCurrentTime();
+		for (let i = 5; i >= 1; i--) {
+			if (gapSec >= i) {
+				pendingOscs.push(scheduleBeepAt(t0 + gapSec - i, 880, 0.35));
+			}
+		}
+		pendingOscs.push(scheduleBeepAt(t0 + gapSec, 1000, 0.6, 0.6));
+	}
 
 	function createUtterance(text: string) {
-		let utter = new SpeechSynthesisUtterance(text);
-		let svVoice = speechSynthesis.getVoices().find((voice) => voice.lang === 'sv-SE');
+		const utter = new SpeechSynthesisUtterance(text);
+		const svVoice = speechSynthesis.getVoices().find((v) => v.lang === 'sv-SE');
 		if (svVoice) utter.voice = svVoice;
 		utter.rate = 1;
 		utter.pitch = 1.0;
@@ -49,13 +76,11 @@
 
 	async function loadQueue() {
 		stageId = Number($page.params.stageId);
-
 		const [bundleRes, orderRes] = await Promise.all([
 			kcFetch('/api/bundle'),
 			kcFetch(`/api/stage/${stageId}/start-order`)
 		]);
 		if (!bundleRes.ok || !orderRes.ok) return;
-
 		const bundle = (await bundleRes.json()) as BundleResponse;
 		const ordered = (await orderRes.json()) as {
 			id: number;
@@ -64,7 +89,6 @@
 			class_id: number;
 			class_name: string;
 		}[];
-
 		const stage = bundle.stages.find((s) => s.id === stageId);
 		stageName = stage?.name ?? `#${stageId}`;
 		drivers = ordered.map((d) => ({
@@ -93,7 +117,7 @@
 			leds.fill(3);
 			return;
 		}
-		if (step == 0) {
+		if (step === 0) {
 			leds.fill(2);
 			return;
 		}
@@ -107,16 +131,12 @@
 	async function launchCurrentDriver() {
 		if (!drivers[idx]) return;
 		const launchedClass = drivers[idx].class_name;
-		speechSynthesis.cancel();
-		speechSynthesis.speak(utters.get('go')!);
-
 		let count = 1;
 		if (startWholeClass) {
 			while (idx + count < drivers.length && drivers[idx + count].class_name === launchedClass) {
-				count += 1;
+				count++;
 			}
 		}
-
 		const body =
 			count > 1
 				? { driver_ids: drivers.slice(idx, idx + count).map((d) => d.id) }
@@ -142,42 +162,48 @@
 	}
 
 	function tick() {
-		if (!running || paused) return;
-		const prevWhole = Math.ceil(remainingMs / 1000);
-		remainingMs = Math.max(0, remainingMs - 100);
-		const whole = Math.ceil(remainingMs / 1000);
-		if (whole !== prevWhole) {
-			if (whole < 6 && whole > 0) {
+		if (!running || paused || targetTime === null) return;
+
+		const now = Date.now();
+		const remaining = targetTime - now;
+		remainingMs = Math.max(0, remaining);
+
+		const whole = Math.ceil(remaining / 1000);
+		if (whole !== lastWhole) {
+			lastWhole = whole;
+			if (whole >= 1 && whole <= 5) {
 				setLED(whole);
-				speechSynthesis.cancel();
-				speechSynthesis.speak(utters.get(whole.toString())!);
-			} else if (whole === 0) {
-				setLED(whole);
-				launchCurrentDriver().then(() => {
-					if (idx >= drivers.length) {
-						stop();
-						setTimeout(() => {
-							setLED(6);
-						}, 2000);
-						return;
-					}
-					remainingMs = gapSeconds * 1000;
-					setTimeout(() => {
-						setLED(6);
-					}, 2000);
-				});
 			}
+		}
+
+		if (remaining <= 0) {
+			targetTime = null;
+			setLED(0); // all green
+			pendingOscs = []; // GO beep is now playing; release refs so cancelBeeps() can't cut it off
+
+			launchCurrentDriver().then(() => {
+				if (!running) return;
+				if (idx < drivers.length) {
+					// Brief green flash, then start next countdown
+					setTimeout(() => {
+						if (!running || paused) return;
+						targetTime = Date.now() + gapSeconds * 1000;
+						lastWhole = -1;
+						setLED(6);
+						scheduleCountdown(gapSeconds);
+					}, 1500);
+				} else {
+					stop();
+					setTimeout(() => setLED(6), 2000);
+				}
+			});
 		}
 	}
 
-	function start() {
-		if (!drivers.length) return;
-		running = true;
-		paused = false;
-		remainingMs = gapSeconds * 1000;
-		setLED(6);
-		if (timer) clearInterval(timer);
-		timer = setInterval(tick, 100);
+	async function start() {
+		if (!drivers.length || running) return;
+		// Speak synchronously within the user gesture — Chrome blocks speech synthesis
+		// if the first call comes after an await.
 		if (startWholeClass && drivers[idx]) {
 			speechSynthesis.speak(
 				createUtterance(t.speechNextClass(drivers[idx].class_name ?? '', remainingInClass))
@@ -185,40 +211,62 @@
 		} else {
 			speechSynthesis.speak(createUtterance(t.speechNextDriver(drivers[idx].name)));
 		}
+		await primeAudio();
+		running = true;
+		paused = false;
+		targetTime = Date.now() + gapSeconds * 1000;
+		lastWhole = -1;
+		setLED(6);
+		if (timer) clearInterval(timer);
+		timer = setInterval(tick, 50);
+		scheduleCountdown(gapSeconds);
 	}
 
 	function pause() {
-		if (running) paused = true;
+		if (running && !paused && targetTime !== null) {
+			pausedRemaining = Math.max(0, targetTime - Date.now());
+			targetTime = null;
+			paused = true;
+			cancelBeeps();
+		}
 	}
+
 	function resume() {
-		if (running) paused = false;
+		if (running && paused && pausedRemaining !== null) {
+			const remaining = pausedRemaining;
+			targetTime = Date.now() + remaining;
+			pausedRemaining = null;
+			lastWhole = -1;
+			paused = false;
+			scheduleCountdown(remaining / 1000);
+		}
 	}
+
 	function restart() {
+		cancelBeeps();
 		running = false;
 		paused = false;
 		idx = 0;
+		targetTime = null;
+		pausedRemaining = null;
 		remainingMs = 0;
+		lastWhole = -1;
 		setLED(6);
 		if (timer) clearInterval(timer);
 		timer = undefined;
+		speechSynthesis.cancel();
 	}
 
 	function stop() {
+		cancelBeeps();
 		running = false;
 		paused = false;
+		targetTime = null;
 		if (timer) clearInterval(timer);
 		timer = undefined;
 	}
 
 	onMount(() => {
-		utters = new Map([
-			['1', createUtterance('1')],
-			['2', createUtterance('2')],
-			['3', createUtterance('3')],
-			['4', createUtterance('4')],
-			['5', createUtterance('5')],
-			['go', createUtterance(t.speechGo)]
-		]);
 		loadQueue();
 		loadGates();
 		gatePoller = setInterval(loadGates, 5000);
@@ -226,6 +274,8 @@
 
 	onDestroy(() => {
 		if (gatePoller) clearInterval(gatePoller);
+		if (timer) clearInterval(timer);
+		closeAudio();
 	});
 </script>
 

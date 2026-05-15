@@ -16,6 +16,7 @@
 	import { kcFetch } from '../../lib/kcFetch';
 	import { isAdmin } from '../../lib/stores/auth';
 	import { t } from '../../lib/stores/locale.svelte';
+	import { playBeep, closeAudio } from '../../lib/beep';
 
 	type Gate = {
 		id: string;
@@ -140,22 +141,8 @@
 		}, 2000);
 	}
 
-	let audioCtx: AudioContext | null = null;
-
 	function beep() {
-		if (!audioCtx) audioCtx = new AudioContext();
-		audioCtx.resume().then(() => {
-			const ctx = audioCtx!;
-			const osc = ctx.createOscillator();
-			const gain = ctx.createGain();
-			osc.connect(gain);
-			gain.connect(ctx.destination);
-			osc.frequency.value = 880;
-			gain.gain.setValueAtTime(0.3, ctx.currentTime);
-			gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
-			osc.start(ctx.currentTime);
-			osc.stop(ctx.currentTime + 0.3);
-		});
+		playBeep(880, 0.3, 0.3);
 	}
 
 	let poller: number | null = null;
@@ -201,7 +188,7 @@
 	onDestroy(() => {
 		if (poller) clearInterval(poller);
 		if (eventSource) eventSource.close();
-		audioCtx?.close();
+		closeAudio();
 	});
 
 	const menuItemClass =

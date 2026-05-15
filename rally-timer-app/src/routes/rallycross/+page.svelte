@@ -3,6 +3,7 @@
 	import { RefreshOutline, AwardOutline, PlayOutline, StopOutline, TrashBinOutline } from 'flowbite-svelte-icons';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { kcFetch } from '../../lib/kcFetch';
+	import { primeAudio, getAudioCurrentTime, scheduleBeepAt } from '../../lib/beep';
 	import { isAdmin } from '../../lib/stores/auth';
 	import { formatMs } from '../../lib/results';
 	import { t } from '../../lib/stores/locale.svelte';
@@ -76,6 +77,7 @@
 	let creating = $state(false);
 	let starting = $state(false);
 	let closing = $state(false);
+	let startCountdown = $state<number | null>(null);
 
 	// Manual finish order
 	let manualOrderModalOpen = $state(false);
@@ -275,6 +277,19 @@
 	}
 
 	async function startHeat(heatId: number) {
+		await primeAudio();
+		const t0 = getAudioCurrentTime();
+		for (let i = 5; i >= 1; i--) {
+			scheduleBeepAt(t0 + (5 - i), 880, 0.35);
+		}
+		scheduleBeepAt(t0 + 5, 1000, 0.6, 0.6);
+
+		for (let i = 5; i >= 1; i--) {
+			startCountdown = i;
+			await new Promise<void>((r) => setTimeout(r, 1000));
+		}
+		startCountdown = null;
+
 		starting = true;
 		try {
 			const res = await kcFetch(`/api/rallycross/heat/${heatId}/start`, { method: 'POST' });
@@ -515,16 +530,17 @@
 								color="alternative"
 								size="sm"
 								onclick={() => openManualOrder(pendingHeat)}
+								disabled={startCountdown !== null || starting}
 							>
 								{t.rxManualOrder}
 							</Button>
 							<Button
 								size="sm"
 								onclick={() => startHeat(pendingHeat.id)}
-								disabled={starting || !rx.gate_id}
+								disabled={startCountdown !== null || starting || !rx.gate_id}
 							>
 								<PlayOutline size="sm" class="mr-1" />
-								{starting ? t.rxStartingHeat : t.rxStartHeat}
+								{startCountdown !== null ? startCountdown : starting ? t.rxStartingHeat : t.rxStartHeat}
 							</Button>
 						</div>
 					{/if}
