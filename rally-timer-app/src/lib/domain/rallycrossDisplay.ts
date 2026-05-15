@@ -20,6 +20,7 @@ export type RxStandingDisplay = {
 	class_name: string;
 	total_points: number;
 	best_total_ms: number | null;
+	best_lap_ms: number | null;
 };
 
 export type RxDisplay = {
@@ -32,7 +33,8 @@ export function buildRxDisplay(leaderboard: OverallResult[]): RxDisplay {
 		driver_name: r.driver_name,
 		class_name: r.class_name,
 		total_points: r.total_points,
-		best_total_ms: r.best_total_ms
+		best_total_ms: r.best_total_ms,
+		best_lap_ms: r.best_lap_ms
 	}));
 
 	const heatMap = new Map<number, Array<{ result: HeatResult; driver_name: string; class_name: string }>>();
@@ -125,7 +127,8 @@ export function buildRxDisplayFromSubmission(
 			driver_name,
 			class_name,
 			total_points: points,
-			best_total_ms: null
+			best_total_ms: null,
+			best_lap_ms: null
 		}))
 		.sort((a, b) => b.total_points - a.total_points);
 

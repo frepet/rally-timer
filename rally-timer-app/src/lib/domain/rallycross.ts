@@ -70,6 +70,7 @@ export type OverallResult = {
 	driver_uuid: string;
 	total_points: number;
 	best_total_ms: number | null;
+	best_lap_ms: number | null;
 	best_heat_number: number | null;
 	heat_results: HeatResult[];
 };
@@ -198,7 +199,8 @@ export function computeHeatResult(
 	const laps = computeLaps(entry.passes, entry.ts_ms, cooldownMs);
 	const finished = laps.length >= requiredLaps;
 	const total = finished ? laps.slice(0, requiredLaps).reduce((a, b) => a + b, 0) : null;
-	const best = laps.length ? Math.min(...laps) : null;
+	// Exclude the first lap (out lap) from best_lap_ms
+	const best = laps.length > 1 ? Math.min(...laps.slice(1)) : null;
 	return {
 		driver_id: entry.driver_id,
 		driver_name: entry.driver_name,
@@ -277,6 +279,7 @@ export function buildOverallLeaderboard(allHeatResults: HeatResult[]): OverallRe
 				driver_uuid: '',
 				total_points: 0,
 				best_total_ms: null,
+				best_lap_ms: null,
 				best_heat_number: null,
 				heat_results: []
 			});
@@ -288,6 +291,12 @@ export function buildOverallLeaderboard(allHeatResults: HeatResult[]): OverallRe
 			if (entry.best_total_ms === null || r.total_ms < entry.best_total_ms) {
 				entry.best_total_ms = r.total_ms;
 				entry.best_heat_number = r.heat_number;
+			}
+		}
+
+		if (r.best_lap_ms !== null) {
+			if (entry.best_lap_ms === null || r.best_lap_ms < entry.best_lap_ms) {
+				entry.best_lap_ms = r.best_lap_ms;
 			}
 		}
 	}

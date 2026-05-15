@@ -59,6 +59,7 @@ export async function GET(): Promise<Response> {
 										SELECT timestamp FROM gate_events
 										WHERE gate_id = ${cfg.gate_id!} AND tag = ${e.tag}
 										  AND timestamp >= ${Number(e.ts_ms)}
+										  AND timestamp <= ${Number(heat.closed_at!)}
 										ORDER BY timestamp
 									`
 								: [];

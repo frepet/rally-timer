@@ -141,7 +141,8 @@ describe('computeHeatResult', () => {
 		expect(r.lap_count).toBe(3);
 		expect(r.laps).toEqual([500, 1500, 1500]);
 		expect(r.total_ms).toBe(3500);
-		expect(r.best_lap_ms).toBe(500);
+		// First lap (500ms) is the out lap and is excluded from best_lap_ms
+		expect(r.best_lap_ms).toBe(1500);
 		expect(r.finished).toBe(true);
 		expect(r.dnf).toBe(false);
 		expect(r.heat_number).toBe(1);
@@ -159,6 +160,39 @@ describe('computeHeatResult', () => {
 		expect(r.dnf_time_ms).toBe(99000);
 		expect(r.finished).toBe(false);
 		expect(r.lap_count).toBe(0);
+	});
+});
+
+describe('computeHeatResult — best_lap_ms excludes out lap', () => {
+	const base: HeatEntry = {
+		driver_id: 1, driver_name: 'Anna', class_id: 1, class_name: 'Group A',
+		tag: 'A1', ts_ms: 1000, dnf: false, dnf_time_ms: null, passes: [], manual_position: null
+	};
+
+	it('returns null when no laps completed', () => {
+		const r = computeHeatResult(base, 1, 3, 500);
+		expect(r.best_lap_ms).toBeNull();
+	});
+
+	it('returns null when only the out lap completed (1 lap total)', () => {
+		// passes=[2000] → laps=[1000]; only the out lap, no timed laps
+		const r = computeHeatResult({ ...base, passes: [2000] }, 1, 3, 500);
+		expect(r.lap_count).toBe(1);
+		expect(r.best_lap_ms).toBeNull();
+	});
+
+	it('excludes out lap and picks minimum of remaining laps', () => {
+		// ts_ms=1000, passes=[1500,3000,4500] → laps=[500,1500,1500]
+		// out lap=500ms, best of laps[1+]=min(1500,1500)=1500
+		const r = computeHeatResult({ ...base, passes: [1500, 3000, 4500] }, 1, 3, 500);
+		expect(r.best_lap_ms).toBe(1500);
+	});
+
+	it('picks the fastest non-out lap when laps differ', () => {
+		// ts_ms=1000, passes=[2000,3200,4600] → laps=[1000,1200,1400]
+		// out lap=1000ms, best of laps[1+]=min(1200,1400)=1200
+		const r = computeHeatResult({ ...base, passes: [2000, 3200, 4600] }, 1, 3, 500);
+		expect(r.best_lap_ms).toBe(1200);
 	});
 });
 
@@ -455,6 +489,27 @@ describe('buildOverallLeaderboard', () => {
 		];
 		const board = buildOverallLeaderboard(heatResults);
 		expect(board[0].driver_name).toBe('Alice');
+	});
+
+	it('best_lap_ms is the minimum best_lap_ms across all heats', () => {
+		// mkResult sets best_lap_ms = total_ms / 3
+		// Alice heat 1: total=180000 → best_lap_ms=60000
+		// Alice heat 2: total=150000 → best_lap_ms=50000  ← better
+		// Bob heat 1:   total=170000 → best_lap_ms≈56667
+		const heatResults = [
+			mkResult(1, 'Alice', 1, 180000, true),
+			mkResult(1, 'Alice', 2, 150000, true),
+			mkResult(2, 'Bob',   1, 170000, true)
+		];
+		const board = buildOverallLeaderboard(heatResults);
+		const alice = board.find((r) => r.driver_name === 'Alice')!;
+		expect(alice.best_lap_ms).toBe(50000); // 150000 / 3
+	});
+
+	it('best_lap_ms is null when no heat has timing data', () => {
+		const heatResults = [mkResult(1, 'Alice', 1, null, true, 1, 1)];
+		const board = buildOverallLeaderboard(heatResults);
+		expect(board[0].best_lap_ms).toBeNull();
 	});
 });
 

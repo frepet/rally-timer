@@ -73,6 +73,7 @@
 							<th class="pb-1 pr-4">#</th>
 							<th class="pb-1 pr-4">{t.driverHeader}</th>
 							<th class="pb-1 pr-4 text-right">{t.rxPoints}</th>
+							<th class="pb-1 pr-4 text-right">{t.rxBestLap}</th>
 							<th class="pb-1 text-right">{t.rxBestTime}</th>
 						</tr>
 					</thead>
@@ -89,6 +90,9 @@
 									<span class="ml-1 text-xs opacity-60">{r.class_name}</span>
 								</td>
 								<td class="py-1.5 pr-4 text-right font-mono font-semibold">{r.total_points}</td>
+								<td class="py-1.5 pr-4 text-right font-mono text-xs text-gray-500"
+									>{formatMs(r.best_lap_ms)}</td
+								>
 								<td class="py-1.5 text-right font-mono text-xs text-gray-500"
 									>{formatMs(r.best_total_ms)}</td
 								>
