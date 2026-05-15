@@ -520,51 +520,41 @@ describe('suggestNextHeatGroups', () => {
 });
 
 describe('buildRallycrossSubmission', () => {
-	it('maps best heat per driver to rally_results shape', () => {
-		const overallResults = [
-			{
-				driver_id: 1,
-				driver_name: 'Alice',
-				class_id: 1,
-				class_name: 'Group A',
-				total_points: 2,
-				best_total_ms: 160000,
-				best_heat_number: 2,
-				heat_results: [],
-				driver_uuid: 'uuid-alice'
-			},
-			{
-				driver_id: 2,
-				driver_name: 'Bob',
-				class_id: 2,
-				class_name: 'Group B',
-				total_points: 0,
-				best_total_ms: null,
-				best_heat_number: null,
-				heat_results: [],
-				driver_uuid: 'uuid-bob'
-			}
-		];
-
-		const rows = buildRallycrossSubmission(overallResults);
-		// Only drivers with a finished heat are included
-		expect(rows).toHaveLength(1);
-		expect(rows[0]).toMatchObject({
-			driver_uuid: 'uuid-alice',
-			driver_name: 'Alice',
-			class_id: 1,
-			class_name: 'Group A',
-			stage_name: 'Rallycross heat 2',
-			elapsed_ms: 160000,
-			dnf: false
-		});
+	const mkHeatResult = (
+		driver_id: number, driver_name: string, heat_number: number,
+		finished: boolean, total_ms: number | null, dnf = false
+	) => ({
+		driver_id, driver_name, class_id: 1, class_name: 'Group A',
+		tag: `tag${driver_id}`, heat_number, laps: [], lap_count: 0,
+		total_ms, best_lap_ms: null, finished, dnf, dnf_time_ms: null,
+		manual_position: null, driver_uuid: `uuid-${driver_name.toLowerCase()}`
 	});
 
-	it('excludes drivers with no finished heat', () => {
+	it('emits one row per driver per heat', () => {
+		const results = [
+			mkHeatResult(1, 'Alice', 1, true, 30000),
+			mkHeatResult(2, 'Bob',   1, true, 32000),
+			mkHeatResult(1, 'Alice', 2, true, 29000),
+			mkHeatResult(2, 'Bob',   2, false, null, true)
+		];
+		const rows = buildRallycrossSubmission(results);
+		expect(rows).toHaveLength(4);
+		expect(rows[0]).toMatchObject({ stage_name: 'Rallycross heat 1', driver_name: 'Alice', elapsed_ms: 30000, dnf: false });
+		expect(rows[1]).toMatchObject({ stage_name: 'Rallycross heat 1', driver_name: 'Bob',   elapsed_ms: 32000, dnf: false });
+		expect(rows[2]).toMatchObject({ stage_name: 'Rallycross heat 2', driver_name: 'Alice', elapsed_ms: 29000, dnf: false });
+		expect(rows[3]).toMatchObject({ stage_name: 'Rallycross heat 2', driver_name: 'Bob',   elapsed_ms: null,  dnf: true  });
+	});
+
+	it('marks unfinished non-DNF entries as dnf', () => {
 		const rows = buildRallycrossSubmission([
-			{ driver_id: 1, driver_name: 'X', class_id: 1, class_name: 'A',
-			  total_points: 0, best_total_ms: null, best_heat_number: null, heat_results: [], driver_uuid: 'u1' }
+			mkHeatResult(1, 'Alice', 1, false, null, false)
 		]);
-		expect(rows).toHaveLength(0);
+		expect(rows[0]).toMatchObject({ dnf: true, elapsed_ms: null });
+	});
+
+	it('sets elapsed_ms null for finished entries with no time (manual position)', () => {
+		const result = { ...mkHeatResult(1, 'Alice', 1, true, null), manual_position: 1 };
+		const rows = buildRallycrossSubmission([result]);
+		expect(rows[0]).toMatchObject({ dnf: false, elapsed_ms: null });
 	});
 });

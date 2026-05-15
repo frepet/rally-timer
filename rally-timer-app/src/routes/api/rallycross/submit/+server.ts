@@ -4,7 +4,6 @@ import { throwIfNotAdmin } from '../../../../lib/server/keycloak';
 import { submitRallySchema } from '../../../../lib/server/schemas';
 import {
 	buildHeatLeaderboard,
-	buildOverallLeaderboard,
 	buildRallycrossSubmission,
 	type HeatEntry
 } from '../../../../lib/domain/rallycross';
@@ -46,7 +45,7 @@ export async function POST(event: RequestEvent): Promise<Response> {
 	const allHeatResults = (
 		await Promise.all(
 			heats
-				.filter((h) => h.started_at !== null)
+				.filter((h) => h.closed_at !== null)
 				.map(async (heat) => {
 					const entries = await sql<{
 						driver_id: number;
@@ -58,9 +57,11 @@ export async function POST(event: RequestEvent): Promise<Response> {
 						ts_ms: number;
 						dnf: boolean;
 						dnf_time_ms: number | null;
+						manual_position: number | null;
 					}[]>`
 						SELECT rhe.driver_id, d.name AS driver_name, d.class_id, c.name AS class_name,
-						       d.uuid::text AS driver_uuid, d.tag, rhe.ts_ms, rhe.dnf, rhe.dnf_time_ms
+						       d.uuid::text AS driver_uuid, d.tag, rhe.ts_ms, rhe.dnf, rhe.dnf_time_ms,
+						       rhe.manual_position
 						FROM rallycross_heat_entries rhe
 						JOIN drivers d ON d.id  = rhe.driver_id
 						JOIN classes c ON c.id  = d.class_id
@@ -69,11 +70,12 @@ export async function POST(event: RequestEvent): Promise<Response> {
 
 					const heatEntries: (HeatEntry & { driver_uuid: string })[] = await Promise.all(
 						entries.map(async (e) => {
-							const passes = cfg.gate_id
+							const passes = cfg.gate_id && e.manual_position === null
 								? await sql<{ timestamp: number }[]>`
 										SELECT timestamp FROM gate_events
 										WHERE gate_id = ${cfg.gate_id} AND tag = ${e.tag}
 										  AND timestamp >= ${Number(e.ts_ms)}
+										  AND timestamp <= ${Number(heat.closed_at)}
 										ORDER BY timestamp
 									`
 								: ([] as { timestamp: number }[]);
@@ -88,7 +90,7 @@ export async function POST(event: RequestEvent): Promise<Response> {
 								dnf: e.dnf,
 								dnf_time_ms: e.dnf_time_ms !== null ? Number(e.dnf_time_ms) : null,
 								passes: passes.map((p) => Number(p.timestamp)),
-								manual_position: null
+								manual_position: e.manual_position
 							};
 						})
 					);
@@ -106,17 +108,7 @@ export async function POST(event: RequestEvent): Promise<Response> {
 		)
 	).flat();
 
-	const overall = buildOverallLeaderboard(allHeatResults);
-	const uuidMap = new Map<number, string>();
-	for (const r of allHeatResults) {
-		if (!uuidMap.has(r.driver_id)) uuidMap.set(r.driver_id, (r as { driver_uuid?: string }).driver_uuid ?? '');
-	}
-	const overallWithUuid = overall.map((r) => ({
-		...r,
-		driver_uuid: uuidMap.get(r.driver_id) ?? ''
-	}));
-
-	const stageTimes = buildRallycrossSubmission(overallWithUuid);
+	const stageTimes = buildRallycrossSubmission(allHeatResults);
 
 	if (stageTimes.length === 0) throw error(422, 'Inga färdiga resultat att skicka in');
 

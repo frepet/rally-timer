@@ -80,7 +80,7 @@ export type SubmissionRow = {
 	class_id: number;
 	class_name: string;
 	stage_name: string;
-	elapsed_ms: number;
+	elapsed_ms: number | null;
 	dnf: boolean;
 };
 
@@ -337,18 +337,19 @@ export function suggestNextHeatGroups(
 	return groups;
 }
 
+// Converts per-heat results into championship submission rows — one row per
+// driver per heat. The championship scores each heat as a separate stage and
+// sums points across heats to produce standings, mirroring the /rallycross view.
 export function buildRallycrossSubmission(
-	overallResults: OverallResult[]
+	heatResults: Array<HeatResult & { driver_uuid: string }>
 ): SubmissionRow[] {
-	return overallResults
-		.filter((r) => r.best_total_ms !== null && r.best_heat_number !== null)
-		.map((r) => ({
-			driver_uuid: r.driver_uuid,
-			driver_name: r.driver_name,
-			class_id: r.class_id,
-			class_name: r.class_name,
-			stage_name: `Rallycross heat ${r.best_heat_number}`,
-			elapsed_ms: r.best_total_ms as number,
-			dnf: false
-		}));
+	return heatResults.map((r) => ({
+		driver_uuid: r.driver_uuid,
+		driver_name: r.driver_name,
+		class_id: r.class_id,
+		class_name: r.class_name,
+		stage_name: `Rallycross heat ${r.heat_number}`,
+		elapsed_ms: r.finished ? (r.total_ms ?? null) : null,
+		dnf: r.dnf || !r.finished
+	}));
 }
