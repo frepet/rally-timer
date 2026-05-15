@@ -338,18 +338,34 @@ export function suggestNextHeatGroups(
 }
 
 // Converts per-heat results into championship submission rows — one row per
-// driver per heat. The championship scores each heat as a separate stage and
-// sums points across heats to produce standings, mirroring the /rallycross view.
+// driver per heat. elapsed_ms encodes finish position within the heat
+// (1st = 1000ms, 2nd = 2000ms, …) so the championship ranks by heat points,
+// not by raw lap time. Results must be pre-sorted by heatResultComparator
+// within each heat (as buildHeatLeaderboard returns them).
 export function buildRallycrossSubmission(
 	heatResults: Array<HeatResult & { driver_uuid: string }>
 ): SubmissionRow[] {
-	return heatResults.map((r) => ({
-		driver_uuid: r.driver_uuid,
-		driver_name: r.driver_name,
-		class_id: r.class_id,
-		class_name: r.class_name,
-		stage_name: `Rallycross heat ${r.heat_number}`,
-		elapsed_ms: r.finished ? (r.total_ms ?? null) : null,
-		dnf: r.dnf || !r.finished
-	}));
+	// Group by heat, preserving order (each group is already sorted by comparator)
+	const byHeat = new Map<number, Array<HeatResult & { driver_uuid: string }>>();
+	for (const r of heatResults) {
+		const arr = byHeat.get(r.heat_number) ?? [];
+		arr.push(r);
+		byHeat.set(r.heat_number, arr);
+	}
+
+	const rows: SubmissionRow[] = [];
+	for (const results of byHeat.values()) {
+		results.forEach((r, i) => {
+			rows.push({
+				driver_uuid: r.driver_uuid,
+				driver_name: r.driver_name,
+				class_id: r.class_id,
+				class_name: r.class_name,
+				stage_name: `Rallycross heat ${r.heat_number}`,
+				elapsed_ms: r.dnf ? null : (i + 1) * 1000,
+				dnf: r.dnf
+			});
+		});
+	}
+	return rows;
 }
