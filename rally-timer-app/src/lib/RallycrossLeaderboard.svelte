@@ -15,10 +15,53 @@
 	function hasTimes(heat: RxHeatDisplay): boolean {
 		return heat.entries.some((e) => e.total_ms !== null);
 	}
+
+	const heatsReversed = $derived([...heats].sort((a, b) => b.number - a.number));
 </script>
 
 <div class="space-y-4">
-	{#each heats as heat (heat.number)}
+	{#if standings.length}
+		<Card class="max-w-none p-4">
+			<p class="mb-3 font-semibold">{t.rxOverallStandings}</p>
+			<div class="overflow-x-auto">
+				<table class="w-full text-sm">
+					<thead>
+						<tr class="border-b border-gray-200 text-left text-xs text-gray-500 dark:border-gray-700">
+							<th class="pb-1 pr-4">#</th>
+							<th class="pb-1 pr-4">{t.driverHeader}</th>
+							<th class="pb-1 pr-4 text-right">{t.rxPoints}</th>
+							<th class="pb-1 pr-4 text-right">{t.rxBestLap}</th>
+							<th class="pb-1 text-right">{t.rxBestTime}</th>
+						</tr>
+					</thead>
+					<tbody>
+						{#each standings as r, i (r.driver_name)}
+							<tr
+								class="border-b border-gray-100 dark:border-gray-800 {r.best_total_ms !== null
+									? 'text-gray-900 dark:text-white'
+									: 'text-gray-400 dark:text-gray-500'}"
+							>
+								<td class="py-1.5 pr-4 font-mono font-semibold">{i + 1}</td>
+								<td class="py-1.5 pr-4">
+									<span class="font-medium">{r.driver_name}</span>
+									<span class="ml-1 text-xs opacity-60">{r.class_name}</span>
+								</td>
+								<td class="py-1.5 pr-4 text-right font-mono font-semibold">{r.total_points}</td>
+								<td class="py-1.5 pr-4 text-right font-mono text-xs text-gray-500"
+									>{formatMs(r.best_lap_ms)}</td
+								>
+								<td class="py-1.5 text-right font-mono text-xs text-gray-500"
+									>{formatMs(r.best_total_ms)}</td
+								>
+							</tr>
+						{/each}
+					</tbody>
+				</table>
+			</div>
+		</Card>
+	{/if}
+
+	{#each heatsReversed as heat (heat.number)}
 		<Card class="max-w-none p-4">
 			<div class="mb-2 flex items-center gap-2">
 				<span class="font-semibold">{t.rxHeatLabel(heat.number)}</span>
@@ -62,45 +105,4 @@
 			</div>
 		</Card>
 	{/each}
-
-	{#if standings.length}
-		<Card class="max-w-none p-4">
-			<p class="mb-3 font-semibold">{t.rxOverallStandings}</p>
-			<div class="overflow-x-auto">
-				<table class="w-full text-sm">
-					<thead>
-						<tr class="border-b border-gray-200 text-left text-xs text-gray-500 dark:border-gray-700">
-							<th class="pb-1 pr-4">#</th>
-							<th class="pb-1 pr-4">{t.driverHeader}</th>
-							<th class="pb-1 pr-4 text-right">{t.rxPoints}</th>
-							<th class="pb-1 pr-4 text-right">{t.rxBestLap}</th>
-							<th class="pb-1 text-right">{t.rxBestTime}</th>
-						</tr>
-					</thead>
-					<tbody>
-						{#each standings as r, i (r.driver_name)}
-							<tr
-								class="border-b border-gray-100 dark:border-gray-800 {r.best_total_ms !== null
-									? 'text-gray-900 dark:text-white'
-									: 'text-gray-400 dark:text-gray-500'}"
-							>
-								<td class="py-1.5 pr-4 font-mono font-semibold">{i + 1}</td>
-								<td class="py-1.5 pr-4">
-									<span class="font-medium">{r.driver_name}</span>
-									<span class="ml-1 text-xs opacity-60">{r.class_name}</span>
-								</td>
-								<td class="py-1.5 pr-4 text-right font-mono font-semibold">{r.total_points}</td>
-								<td class="py-1.5 pr-4 text-right font-mono text-xs text-gray-500"
-									>{formatMs(r.best_lap_ms)}</td
-								>
-								<td class="py-1.5 text-right font-mono text-xs text-gray-500"
-									>{formatMs(r.best_total_ms)}</td
-								>
-							</tr>
-						{/each}
-					</tbody>
-				</table>
-			</div>
-		</Card>
-	{/if}
 </div>
