@@ -111,12 +111,13 @@ class UHFGate:
         logger.info(f"TAG  {ts_str}  EPC: {epc} → {short_id}  RSSI: {rssi}")
 
         # Push to queue
-        self.queue.push(self.api.gate_uuid, epc, int(now), rssi)
+        event_id = self.queue.push(self.api.gate_uuid, epc, int(now), rssi)
 
         # Try immediate sync
         if self.api.ensure_registered():
             success = self.api.post_event(epc, int(now), rssi)
             if success:
+                self.queue.mark_synced([event_id])
                 logger.debug(f"Immediate sync successful")
 
     def run(self):

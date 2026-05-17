@@ -5,7 +5,8 @@
 		AwardOutline,
 		PlayOutline,
 		StopOutline,
-		TrashBinOutline
+		TrashBinOutline,
+		EyeOutline
 	} from 'flowbite-svelte-icons';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { kcFetch } from '../../lib/kcFetch';
@@ -644,15 +645,25 @@
 									<Badge color="yellow">{t.rxStatusNotStarted}</Badge>
 								{/if}
 							</div>
-							{#if $isAdmin}
-								<button
-									type="button"
-									class="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-red-500 dark:hover:bg-gray-700 dark:hover:text-red-400"
-									onclick={() => deleteHeat(h.id, h.number)}
+							<div class="flex items-center gap-1">
+								<a
+									href="/rallycross/heat/{h.id}"
+									data-sveltekit-reload
+									class="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-gray-300"
+									title={t.rxViewEvents}
 								>
-									<TrashBinOutline size="xs" />
-								</button>
-							{/if}
+									<EyeOutline size="xs" />
+								</a>
+								{#if $isAdmin}
+									<button
+										type="button"
+										class="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-red-500 dark:hover:bg-gray-700 dark:hover:text-red-400"
+										onclick={() => deleteHeat(h.id, h.number)}
+									>
+										<TrashBinOutline size="xs" />
+									</button>
+								{/if}
+							</div>
 						</div>
 						{#if h.closed_at === null && h.drivers.length}
 							<p class="mt-0.5 text-xs text-gray-400">{h.drivers.join(', ')}</p>

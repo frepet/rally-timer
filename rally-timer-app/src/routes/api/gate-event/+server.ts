@@ -23,10 +23,13 @@ export async function POST(event: RequestEvent): Promise<Response> {
 	const [row] = await sql`
 		INSERT INTO gate_events (gate_id, tag, timestamp, rssi, synced_at)
 		VALUES (${gate_id}, ${tag}, ${timestamp_ms}, ${rssi ?? null}, ${now})
+		ON CONFLICT (gate_id, tag, timestamp) DO NOTHING
 		RETURNING id
 	`;
 
 	await sql`UPDATE gates SET last_seen = ${now} WHERE id = ${gate_id}`;
+
+	if (!row) return json({ stored: false, duplicate: true }, { status: 200 });
 
 	if (gate.stage_id) {
 		await sql`

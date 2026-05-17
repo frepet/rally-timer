@@ -30,10 +30,13 @@ export async function POST(event: RequestEvent): Promise<Response> {
 				continue;
 			}
 
-			await sql`
+			const [row] = await sql`
 				INSERT INTO gate_events (gate_id, tag, timestamp, rssi, synced_at)
 				VALUES (${evt.gate_id}, ${evt.tag}, ${evt.timestamp_ms}, ${evt.rssi ?? null}, ${now})
+				ON CONFLICT (gate_id, tag, timestamp) DO NOTHING
+				RETURNING id
 			`;
+			if (!row) continue;
 			results.stored++;
 
 			// Always add to finish_events (store all passes)

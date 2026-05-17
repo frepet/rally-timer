@@ -20,6 +20,8 @@ import { runMigration as run006 } from './migrations/006_finish_events_penalty';
 import { runMigration as run007 } from './migrations/007_rallycross';
 import { runMigration as run008 } from './migrations/008_rallycross_heats';
 import { runMigration as run009 } from './migrations/009_rallycross_manual_position';
+import { runMigration as run010 } from './migrations/010_rx_best_lap_in_submission';
+import { runMigration as run011 } from './migrations/011_gate_events_unique_timestamp';
 
 export async function runMigrations() {
 	await run000();
@@ -32,6 +34,8 @@ export async function runMigrations() {
 	await run007();
 	await run008();
 	await run009();
+	await run010();
+	await run011();
 }
 
 export const migrationsReady = runMigrations().catch((e) => {

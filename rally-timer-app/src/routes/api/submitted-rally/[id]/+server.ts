@@ -17,7 +17,7 @@ export async function GET(event: RequestEvent): Promise<Response> {
 			ORDER BY c.name
 		`,
 		sql`
-			SELECT driver_uuid, driver_name, class_id, class_name, stage_name, elapsed_ms, dnf
+			SELECT driver_uuid, driver_name, class_id, class_name, stage_name, elapsed_ms, best_lap_ms, dnf
 			FROM rally_results
 			WHERE rally_id = ${id}::uuid
 			ORDER BY driver_name, stage_name
@@ -30,7 +30,8 @@ export async function GET(event: RequestEvent): Promise<Response> {
 		championships,
 		results: results.map((r) => ({
 			...r,
-			elapsed_ms: r.elapsed_ms != null ? Number(r.elapsed_ms) : null
+			elapsed_ms: r.elapsed_ms != null ? Number(r.elapsed_ms) : null,
+			best_lap_ms: r.best_lap_ms != null ? Number(r.best_lap_ms) : null
 		}))
 	});
 }

@@ -81,6 +81,7 @@ export function buildRxDisplayFromSubmission(
 		driver_name: string;
 		class_name: string;
 		elapsed_ms: number | null;
+		best_lap_ms: number | null;
 		dnf: boolean;
 	}[]
 ): RxDisplay {
@@ -94,7 +95,10 @@ export function buildRxDisplayFromSubmission(
 		heatMap.set(num, arr);
 	}
 
-	const pointsByDriver = new Map<string, { points: number; class_name: string }>();
+	const driverMap = new Map<
+		string,
+		{ points: number; class_name: string; best_total_ms: number | null; best_lap_ms: number | null }
+	>();
 
 	const heats: RxHeatDisplay[] = [...heatMap.entries()]
 		.sort(([a], [b]) => b - a)
@@ -111,30 +115,47 @@ export function buildRxDisplayFromSubmission(
 				entries: sorted.map((e, i) => {
 					const position = i + 1;
 					const pts = e.dnf ? 0 : positionToPoints(position, total);
-					const prev = pointsByDriver.get(e.driver_name) ?? { points: 0, class_name: e.class_name };
-					pointsByDriver.set(e.driver_name, {
+					const prev = driverMap.get(e.driver_name) ?? {
+						points: 0,
+						class_name: e.class_name,
+						best_total_ms: null,
+						best_lap_ms: null
+					};
+					const newBestTotal =
+						e.elapsed_ms !== null &&
+						(prev.best_total_ms === null || e.elapsed_ms < prev.best_total_ms)
+							? e.elapsed_ms
+							: prev.best_total_ms;
+					const newBestLap =
+						e.best_lap_ms !== null &&
+						(prev.best_lap_ms === null || e.best_lap_ms < prev.best_lap_ms)
+							? e.best_lap_ms
+							: prev.best_lap_ms;
+					driverMap.set(e.driver_name, {
 						points: prev.points + pts,
-						class_name: e.class_name
+						class_name: e.class_name,
+						best_total_ms: newBestTotal,
+						best_lap_ms: newBestLap
 					});
 					return {
 						driver_name: e.driver_name,
 						class_name: e.class_name,
 						position,
 						dnf: e.dnf,
-						total_ms: null,
-						best_lap_ms: null
+						total_ms: e.elapsed_ms,
+						best_lap_ms: e.best_lap_ms
 					};
 				})
 			};
 		});
 
-	const standings: RxStandingDisplay[] = [...pointsByDriver.entries()]
-		.map(([driver_name, { points, class_name }]) => ({
+	const standings: RxStandingDisplay[] = [...driverMap.entries()]
+		.map(([driver_name, { points, class_name, best_total_ms, best_lap_ms }]) => ({
 			driver_name,
 			class_name,
 			total_points: points,
-			best_total_ms: null,
-			best_lap_ms: null
+			best_total_ms,
+			best_lap_ms
 		}))
 		.sort((a, b) => b.total_points - a.total_points);
 

@@ -298,7 +298,20 @@ export const sv = {
 	rxManualOrderHint: 'Ordna förarna i den ordning de korsade mållinjen. Överst = 1:a plats.',
 	rxSaveOrder: 'Spara ordning',
 	rxSavingOrder: 'Sparar…',
-	rxManualCloseFailed: 'Kunde inte spara ordning: '
+	rxManualCloseFailed: 'Kunde inte spara ordning: ',
+	// Rallycross - gate events detail page
+	rxViewEvents: 'Händelser',
+	rxEventsPageTitle: (n: number) => `Heat ${n} — händelser`,
+	rxEventsBack: '← Rallycross',
+	rxPassesHeading: 'Passager',
+	rxPassTime: 'Klockslag',
+	rxPassFromStart: 'Från start',
+	rxPassDelta: 'Delta',
+	rxPassCounted: 'Räknad',
+	rxPassFiltered: 'Cooldown',
+	rxNoEvents: 'Inga passager registrerade',
+	rxHeatNeverStarted: 'Heat ej startat — inga händelser att visa',
+	rxNoGateConfigured: 'Ingen grind konfigurerad'
 };
 
 export const en: typeof sv = {
@@ -600,5 +613,18 @@ export const en: typeof sv = {
 	rxManualOrderHint: 'Arrange drivers in the order they crossed the finish line. Top = 1st place.',
 	rxSaveOrder: 'Save order',
 	rxSavingOrder: 'Saving…',
-	rxManualCloseFailed: 'Could not save order: '
+	rxManualCloseFailed: 'Could not save order: ',
+	// Rallycross - gate events detail page
+	rxViewEvents: 'Events',
+	rxEventsPageTitle: (n: number) => `Heat ${n} — events`,
+	rxEventsBack: '← Rallycross',
+	rxPassesHeading: 'Passes',
+	rxPassTime: 'Clock',
+	rxPassFromStart: 'From start',
+	rxPassDelta: 'Delta',
+	rxPassCounted: 'Counted',
+	rxPassFiltered: 'Cooldown',
+	rxNoEvents: 'No passes recorded',
+	rxHeatNeverStarted: 'Heat not started — no events to show',
+	rxNoGateConfigured: 'No gate configured'
 };

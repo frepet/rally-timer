@@ -82,6 +82,7 @@ export type SubmissionRow = {
 	class_name: string;
 	stage_name: string;
 	elapsed_ms: number | null;
+	best_lap_ms: number | null;
 	dnf: boolean;
 };
 
@@ -374,14 +375,15 @@ export function buildRallycrossSubmission(
 
 	const rows: SubmissionRow[] = [];
 	for (const results of byHeat.values()) {
-		results.forEach((r, i) => {
+		results.forEach((r) => {
 			rows.push({
 				driver_uuid: r.driver_uuid,
 				driver_name: r.driver_name,
 				class_id: r.class_id,
 				class_name: r.class_name,
 				stage_name: `Rallycross heat ${r.heat_number}`,
-				elapsed_ms: r.dnf ? null : (i + 1) * 1000,
+				elapsed_ms: r.finished ? r.total_ms : null,
+				best_lap_ms: r.best_lap_ms,
 				dnf: r.dnf
 			});
 		});
