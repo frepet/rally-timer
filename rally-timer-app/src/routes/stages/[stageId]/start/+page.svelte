@@ -17,7 +17,13 @@
 	import { kcFetch } from '../../../../lib/kcFetch';
 	import type { BundleResponse } from '../../../../lib/types';
 	import { t } from '../../../../lib/stores/locale.svelte';
-	import { playBeep, primeAudio, getAudioCurrentTime, scheduleBeepAt, closeAudio } from '../../../../lib/beep';
+	import {
+		playBeep,
+		primeAudio,
+		getAudioCurrentTime,
+		scheduleBeepAt,
+		closeAudio
+	} from '../../../../lib/beep';
 
 	type Driver = { id: number; name: string; class_name?: string; tag: string };
 	type Gate = { id: string; name: string | null; stage_id: number | null };
@@ -49,7 +55,11 @@
 
 	function cancelBeeps() {
 		for (const osc of pendingOscs) {
-			try { osc.stop(0); } catch { /* already stopped */ }
+			try {
+				osc.stop(0);
+			} catch {
+				/* already stopped */
+			}
 		}
 		pendingOscs = [];
 	}

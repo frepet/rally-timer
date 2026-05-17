@@ -1,22 +1,65 @@
-# AGENTS.md
+# AGENTS.md — rally-timer-app
 
-1. Install deps: `npm install` (app). Rust gate (not readable in sandbox) use `cargo build` in `finish-gate-server`.
-2. Dev server: `npm run dev`; Build: `npm run build`; Preview: `npm run preview`.
-3. Type check: `npm run check`; Lint: `npm run lint`; Format: `npm run format` (tabs, single quotes, width 100, no trailing commas).
-4. Tests: No JS test framework configured; add `vitest` if needed. Rust: `cargo test` / `cargo test name` (assumed).
-5. Run a single (future) vitest: `npx vitest run path/to/file.test.ts -t "case"`.
-6. Imports: Node/Svelte/3rd party first, then internal `$lib/...`, then relative; keep groups separated by one blank line; no unused imports.
-7. Use strict TypeScript; explicit return types for exported functions, endpoints, and reusable utilities; prefer `const` and narrow types.
-8. Validation: Use `zod` schemas at API boundaries; never trust client input.
-9. Error handling: Fail fast; wrap DB / external calls in try/catch; return proper HTTP status or `throw error(code, message)` from `@sveltejs/kit`.
-10. Never silently swallow errors; log unexpected ones with minimal sensitive data.
-11. Avoid `any`; prefer generics or `unknown` + refinement; enable incremental refactors preserving strict mode.
-12. State: Use Svelte stores in `src/lib/stores`; keep derived/computed logic pure.
-13. Naming: kebab-case for files/routes; PascalCase for components; camelCase for functions/variables; UPPER_SNAKE for constants/env vars.
-14. Side effects only in entrypoints (`+server.ts`, `hooks`, `main.rs`); keep modules pure for testability.
-15. Database access centralized (see `lib/server/db.ts`); do not duplicate query logic in routes.
-16. Auth: Use `keycloak.ts` helpers; never embed raw tokens in logs.
-17. Networking: Use `kcFetch` wrapper for authenticated requests; prefer async/await over promise chains.
-18. Formatting/ESLint: Prettier is source of truth; do not override stylistic rules; disable lint rules only with justification.
-19. Performance: Avoid unnecessary reactive `$:` blocks; memoize expensive derivations; batch DOM updates.
-20. Add missing tests before complex refactors; update this file if build/lint/test scripts change.
+## Commands
+
+```bash
+npm install          # install deps
+npm run dev          # dev server (needs DATABASE_URL)
+npm run dev:noauth   # dev server with SKIP_AUTH=true
+npm run build        # production build
+npm run check        # svelte-check (TypeScript + Svelte)
+npm run lint         # Prettier + ESLint check
+npm run format       # auto-format (tabs, single quotes, width 100, no trailing commas)
+npm test             # vitest unit tests (run after every change)
+npx vitest run src/lib/domain/foo.test.ts   # run a single test file
+```
+
+## Architecture: strict layer separation
+
+### Domain layer — `src/lib/domain/`
+
+All business logic lives here and nowhere else. Domain modules are pure TypeScript with no imports from SvelteKit, database, or UI code.
+
+**Rules:**
+
+- SQL queries fetch raw rows only — no `GROUP BY`, `SUM`, `COUNT`, `CASE`, or other logic that encodes business rules. The database is a dumb store.
+- Svelte components display data only — no sorting, ranking, scoring, or aggregation in `.svelte` files or `+page.ts` load functions.
+- If the same computation is needed in two views, extract it into a domain function and import it from both. Never duplicate the logic.
+
+**Canonical example:** `rallyResults.ts` exports `aggregateRallyResults` (replaces SQL GROUP BY) and `compareRallyDrivers` (single sort comparator used by both the championship standings and the rally results page).
+
+### Infrastructure layer — `src/lib/server/`
+
+Database access, auth, migrations, SSE. These modules may import domain modules but not vice versa.
+
+### Route layer — `src/routes/`
+
+`+server.ts` endpoints: fetch raw rows from DB → call domain functions → return JSON.
+`+page.svelte` / `+page.ts`: call API or server load → pass data to domain functions → render.
+
+## Test-driven development
+
+Domain modules have co-located test files (`foo.ts` / `foo.test.ts`). The workflow is:
+
+1. Write failing tests that describe the intended behaviour.
+2. Implement until tests pass.
+3. Run `npm test` — all 177+ tests must stay green.
+4. Run `npm run check` — zero TypeScript errors.
+
+**Tests are not optional.** Any new domain function must have tests before or alongside the implementation. Refactors of existing domain functions must keep all existing tests passing.
+
+## Naming and imports
+
+- Files/routes: kebab-case. Components: PascalCase. Functions/variables: camelCase. Constants: UPPER_SNAKE.
+- Import order: Node/Svelte/3rd-party → `$lib/...` → relative. Groups separated by one blank line. No unused imports.
+- Explicit return types on all exported functions and API endpoints.
+
+## Other rules
+
+- Zod schemas at every API boundary (`src/lib/server/schemas.ts`). Never trust client input.
+- `sql\`...\`` tagged templates only — never string-concatenate SQL.
+- All timestamps are `BIGINT` milliseconds.
+- Auth via `keycloak.ts` helpers. Use `kcFetch` for authenticated browser requests.
+- Migrations in `src/lib/server/migrations/` — numbered sequentially, idempotent (`IF NOT EXISTS` / `ON CONFLICT`).
+- Every user-visible string in `src/lib/i18n.ts` — never hardcode text in `.svelte` files.
+- Svelte 5 runes (`$state`, `$derived`, `$effect`, `$props`) — not Svelte 4 stores.

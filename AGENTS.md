@@ -16,6 +16,15 @@ rally-timing/
 - Timestamps are always `BIGINT` milliseconds — never `INTEGER` (32-bit overflow at ~2.1B ms ≈ year 2038).
 - SQL uses `postgres.js` tagged templates. Never string-concatenate SQL.
 
+## Domain-layer policy (rally-timer-app)
+
+All business logic belongs in `src/lib/domain/`. SQL queries and Svelte components must not contain business logic.
+
+- **SQL = raw data only.** No `GROUP BY` aggregations, `CASE` expressions, `SUM`/`COUNT` that encode scoring or ranking rules. Fetch rows; let domain code compute.
+- **Svelte = display only.** No sorting, ranking, scoring, or aggregation in `.svelte` files or page load functions.
+- **One implementation per concept.** If two views need the same computation, extract a shared domain function — never duplicate logic across files.
+- **Test-driven.** Every domain function has a co-located `*.test.ts` file. Write tests before or alongside the implementation. `npm test` must stay green (currently 177 tests).
+
 ## Deploying app changes
 
 1. Push commits to the `main` branch — GitHub Actions builds and pushes a new image to `ghcr.io/frepet/rally-timer:dev-<sha>`.

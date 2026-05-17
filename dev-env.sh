@@ -13,4 +13,4 @@ trap cleanup EXIT
 docker compose -f "$SCRIPT_DIR/docker-compose.yml" up -d
 
 cd "$SCRIPT_DIR/rally-timer-app"
-npm run dev:noauth
+npm run dev:noauth -- --host 0.0.0.0

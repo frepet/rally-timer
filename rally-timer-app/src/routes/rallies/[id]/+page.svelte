@@ -4,7 +4,10 @@
 	import RallycrossLeaderboard from '../../../lib/RallycrossLeaderboard.svelte';
 	import { buildStageData } from '../../../lib/domain/submittedRally';
 	import { buildRallyRows } from '../../../lib/domain/summary';
-	import { isRallycrossSubmission, buildRxDisplayFromSubmission } from '../../../lib/domain/rallycrossDisplay';
+	import {
+		isRallycrossSubmission,
+		buildRxDisplayFromSubmission
+	} from '../../../lib/domain/rallycrossDisplay';
 
 	type Championship = { id: string; name: string };
 	type RallyDetail = {

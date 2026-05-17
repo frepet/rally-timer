@@ -18,7 +18,15 @@ export async function GET(event: RequestEvent): Promise<Response> {
 	const heatId = Number(event.params.id);
 	if (!heatId) throw error(400, 'Invalid heat id');
 
-	const [heat] = await sql<{ id: number; number: number; required_laps: number; started_at: number | null; closed_at: number | null }[]>`
+	const [heat] = await sql<
+		{
+			id: number;
+			number: number;
+			required_laps: number;
+			started_at: number | null;
+			closed_at: number | null;
+		}[]
+	>`
 		SELECT id, number, required_laps, started_at, closed_at FROM rallycross_heats WHERE id = ${heatId}
 	`;
 	if (!heat) throw error(404, 'Värmelopp hittades inte');

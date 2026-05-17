@@ -1,13 +1,15 @@
 import { describe, it, expect } from 'vitest';
-import { rankRallyResultsByClass, type RallyClassResult } from './championshipRanking';
+import { rankRallyResultsByClass } from './championshipRanking';
+import { type RallyDriverResult } from './rallyResults';
 
-function row(overrides: Partial<RallyClassResult> & { driver_name: string }): RallyClassResult {
+function row(overrides: Partial<RallyDriverResult> & { driver_name: string }): RallyDriverResult {
 	return {
 		rally_id: 'r1',
 		rally_name: 'Norway',
 		driver_uuid: `uuid-${overrides.driver_name}`,
 		class_id: 1,
 		class_name: 'A',
+		finished_stages: 1,
 		total_ms: 0,
 		is_dnf: false,
 		...overrides
@@ -19,25 +21,31 @@ describe('rankRallyResultsByClass', () => {
 		expect(rankRallyResultsByClass([])).toEqual([]);
 	});
 
-	it('assigns position 1 to the only finisher in a class', () => {
+	it('assigns position 1 to the only driver in a class', () => {
 		const result = rankRallyResultsByClass([row({ driver_name: 'Alice', total_ms: 423000 })]);
 		expect(result[0].position).toBe(1);
 	});
 
-	it('orders finishers by total_ms ascending within a class', () => {
+	it('orders by finished_stages desc then total_ms asc within a class', () => {
 		const result = rankRallyResultsByClass([
-			row({ driver_name: 'Bob', total_ms: 440000 }),
-			row({ driver_name: 'Alice', total_ms: 423000 }),
-			row({ driver_name: 'Carol', total_ms: 510000 })
+			row({ driver_name: 'Bob', finished_stages: 2, total_ms: 440000 }),
+			row({ driver_name: 'Alice', finished_stages: 3, total_ms: 423000 }),
+			row({ driver_name: 'Carol', finished_stages: 2, total_ms: 510000 })
 		]);
-		expect(result.map((r) => [r.driver_name, r.position])).toEqual([
-			['Alice', 1],
-			['Bob', 2],
-			['Carol', 3]
-		]);
+		const byPosition = [...result].sort((a, b) => a.position - b.position);
+		expect(byPosition.map((r) => r.driver_name)).toEqual(['Alice', 'Bob', 'Carol']);
 	});
 
-	it('places DNF drivers after all finishers', () => {
+	it('driver with more finished stages ranks above one with fewer even if total_ms is higher', () => {
+		const result = rankRallyResultsByClass([
+			row({ driver_name: 'Bob', finished_stages: 2, total_ms: 23606 }),
+			row({ driver_name: 'Alice', finished_stages: 3, total_ms: 34726 })
+		]);
+		const byPosition = [...result].sort((a, b) => a.position - b.position);
+		expect(byPosition.map((r) => r.driver_name)).toEqual(['Alice', 'Bob']);
+	});
+
+	it('places DNF drivers after all non-DNF drivers', () => {
 		const result = rankRallyResultsByClass([
 			row({ driver_name: 'Bob', total_ms: 440000 }),
 			row({ driver_name: 'Diana', total_ms: 999999, is_dnf: true }),
@@ -73,7 +81,7 @@ describe('rankRallyResultsByClass', () => {
 		expect(byPosition.map((r) => r.driver_name)).toEqual(['Alice', 'Bob']);
 	});
 
-	it('multiple DNF drivers in the same class share trailing positions in name order', () => {
+	it('multiple DNF drivers share trailing positions in name order', () => {
 		const result = rankRallyResultsByClass([
 			row({ driver_name: 'Alice', total_ms: 423000 }),
 			row({ driver_name: 'Charlie', total_ms: 0, is_dnf: true }),
@@ -84,7 +92,7 @@ describe('rankRallyResultsByClass', () => {
 	});
 
 	it('does not mutate the input array', () => {
-		const input: RallyClassResult[] = [
+		const input: RallyDriverResult[] = [
 			row({ driver_name: 'Bob', total_ms: 440000 }),
 			row({ driver_name: 'Alice', total_ms: 423000 })
 		];

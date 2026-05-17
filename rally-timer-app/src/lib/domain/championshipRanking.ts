@@ -1,23 +1,15 @@
-export type RallyClassResult = {
-	rally_id: string;
-	rally_name: string;
-	driver_uuid: string;
-	driver_name: string;
-	class_id: number;
-	class_name: string;
-	total_ms: number;
-	is_dnf: boolean;
-};
+import { compareRallyDrivers, type RallyDriverResult } from './rallyResults';
 
-export type RankedRallyClassResult = RallyClassResult & { position: number };
+export type { RallyDriverResult };
+
+export type RankedRallyDriverResult = RallyDriverResult & { position: number };
 
 /**
- * Within each (rally_id, class_id), assigns positions: finishers first
- * (sorted by total_ms ascending), DNF drivers last. Ties on total_ms
- * are broken by driver_name ascending so positions are deterministic.
+ * Within each (rally_id, class_id), assigns positions using the canonical rally ranking order.
+ * Input must already be aggregated per driver (one entry per driver per rally per class).
  */
-export function rankRallyResultsByClass(rows: RallyClassResult[]): RankedRallyClassResult[] {
-	const groups = new Map<string, RallyClassResult[]>();
+export function rankRallyResultsByClass(rows: RallyDriverResult[]): RankedRallyDriverResult[] {
+	const groups = new Map<string, RallyDriverResult[]>();
 	for (const row of rows) {
 		const key = `${row.rally_id}:${row.class_id}`;
 		const bucket = groups.get(key) ?? [];
@@ -25,13 +17,9 @@ export function rankRallyResultsByClass(rows: RallyClassResult[]): RankedRallyCl
 		groups.set(key, bucket);
 	}
 
-	const ranked: RankedRallyClassResult[] = [];
+	const ranked: RankedRallyDriverResult[] = [];
 	for (const bucket of groups.values()) {
-		const sorted = [...bucket].sort((a, b) => {
-			if (a.is_dnf !== b.is_dnf) return a.is_dnf ? 1 : -1;
-			if (a.total_ms !== b.total_ms) return a.total_ms - b.total_ms;
-			return a.driver_name.localeCompare(b.driver_name);
-		});
+		const sorted = [...bucket].sort(compareRallyDrivers);
 		sorted.forEach((row, i) => ranked.push({ ...row, position: i + 1 }));
 	}
 	return ranked;

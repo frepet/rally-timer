@@ -1,6 +1,52 @@
 import { describe, it, expect } from 'vitest';
-import { calculateStandings } from './standings';
+import { calculateStandings, groupStandingsByClass, type DriverStanding } from './standings';
 import { positionToPoints } from './scoring';
+
+const standing = (driver_name: string, class_name: string, total_points = 0): DriverStanding => ({
+	driver_uuid: `uuid-${driver_name}`,
+	driver_name,
+	class_id: class_name === 'A' ? 1 : 2,
+	class_name,
+	total_points,
+	rally_points: []
+});
+
+describe('groupStandingsByClass', () => {
+	it('returns empty object for no standings', () => {
+		expect(groupStandingsByClass([])).toEqual({});
+	});
+
+	it('groups drivers by class_name', () => {
+		const result = groupStandingsByClass([
+			standing('Alice', 'A'),
+			standing('Bob', 'B'),
+			standing('Carol', 'A')
+		]);
+		expect(result['A']).toHaveLength(2);
+		expect(result['B']).toHaveLength(1);
+	});
+
+	it('returns class names sorted alphabetically', () => {
+		const result = groupStandingsByClass([
+			standing('Alice', 'Z'),
+			standing('Bob', 'A'),
+			standing('Carol', 'M')
+		]);
+		expect(Object.keys(result)).toEqual(['A', 'M', 'Z']);
+	});
+
+	it('preserves the order of drivers within each class', () => {
+		const drivers = [standing('Alice', 'A'), standing('Bob', 'A'), standing('Carol', 'A')];
+		const result = groupStandingsByClass(drivers);
+		expect(result['A'].map((d) => d.driver_name)).toEqual(['Alice', 'Bob', 'Carol']);
+	});
+
+	it('handles a single class', () => {
+		const result = groupStandingsByClass([standing('Alice', 'A'), standing('Bob', 'A')]);
+		expect(Object.keys(result)).toEqual(['A']);
+		expect(result['A']).toHaveLength(2);
+	});
+});
 
 const ranked = (
 	driver_uuid: string,

@@ -222,7 +222,9 @@ export function computeHeatResult(
 export function computeDnfTime(
 	results: Pick<HeatResult, 'total_ms' | 'finished'>[]
 ): number | null {
-	const finisherTimes = results.filter((r) => r.finished && r.total_ms !== null).map((r) => r.total_ms as number);
+	const finisherTimes = results
+		.filter((r) => r.finished && r.total_ms !== null)
+		.map((r) => r.total_ms as number);
 	if (finisherTimes.length === 0) return null;
 	return Math.max(...finisherTimes) + 30_000;
 }
@@ -344,6 +346,14 @@ export function suggestNextHeatGroups(
 		groups.push(sorted.slice(i, i + maxPerHeat).map((s) => s.driver_id));
 	}
 	return groups;
+}
+
+/** Returns all HeatResults for one heat number, collected from the leaderboard and sorted. */
+export function getHeatResults(leaderboard: OverallResult[], heatNumber: number): HeatResult[] {
+	return leaderboard
+		.flatMap((d) => d.heat_results)
+		.filter((r) => r.heat_number === heatNumber)
+		.sort(heatResultComparator);
 }
 
 // Converts per-heat results into championship submission rows — one row per

@@ -1,13 +1,19 @@
 <script lang="ts">
 	import { Card, Button, Input, Select, Badge, Modal, Toggle, Checkbox } from 'flowbite-svelte';
-	import { RefreshOutline, AwardOutline, PlayOutline, StopOutline, TrashBinOutline } from 'flowbite-svelte-icons';
+	import {
+		RefreshOutline,
+		AwardOutline,
+		PlayOutline,
+		StopOutline,
+		TrashBinOutline
+	} from 'flowbite-svelte-icons';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { kcFetch } from '../../lib/kcFetch';
 	import { primeAudio, getAudioCurrentTime, scheduleBeepAt } from '../../lib/beep';
 	import { isAdmin } from '../../lib/stores/auth';
 	import { formatMs } from '../../lib/results';
 	import { t } from '../../lib/stores/locale.svelte';
-	import { heatResultComparator, type OverallResult, type HeatResult } from '../../lib/domain/rallycross';
+	import { getHeatResults, type OverallResult, type HeatResult } from '../../lib/domain/rallycross';
 	import { buildRxDisplay } from '../../lib/domain/rallycrossDisplay';
 	import RallycrossLeaderboard from '../../lib/RallycrossLeaderboard.svelte';
 
@@ -93,7 +99,8 @@
 	const filteredDrivers = $derived.by(() => {
 		const q = driverSearch.trim().toLowerCase();
 		return allDrivers.filter(
-			(d) => !q || d.name.toLowerCase().includes(q) || (d.class_name ?? '').toLowerCase().includes(q)
+			(d) =>
+				!q || d.name.toLowerCase().includes(q) || (d.class_name ?? '').toLowerCase().includes(q)
 		);
 	});
 
@@ -106,30 +113,10 @@
 
 	const eligibleGates = $derived(gates.filter((g) => g.stage_id === null));
 
-	const heatResultsByHeat = $derived.by(() => {
-		const map = new Map<number, HeatResult[]>();
-		for (const r of leaderboard) {
-			for (const hr of r.heat_results) {
-				const arr = map.get(hr.heat_number) ?? [];
-				arr.push(hr);
-				map.set(hr.heat_number, arr);
-			}
-		}
-		for (const results of map.values()) {
-			results.sort(heatResultComparator);
-		}
-		return map;
-	});
-
 	const rxDisplay = $derived(buildRxDisplay(leaderboard));
 
 	const activeHeatResults = $derived<HeatResult[]>(
-		rx.active_heat
-			? leaderboard
-					.flatMap((d) => d.heat_results)
-					.filter((r) => r.heat_number === rx.active_heat!.number)
-					.sort(heatResultComparator)
-			: []
+		rx.active_heat ? getHeatResults(leaderboard, rx.active_heat.number) : []
 	);
 
 	const tooManySelected = $derived(selectedDriverIds.size > rx.max_per_heat);
@@ -421,15 +408,31 @@
 				</div>
 				<div>
 					<label for="rxMax" class="mb-1 block text-sm font-medium">{t.rxMaxPerHeat}</label>
-					<Input id="rxMax" type="number" min="1" step="1" bind:value={maxPerHeatInput} onchange={saveConfig} />
+					<Input
+						id="rxMax"
+						type="number"
+						min="1"
+						step="1"
+						bind:value={maxPerHeatInput}
+						onchange={saveConfig}
+					/>
 				</div>
 				<div>
 					<label for="rxLaps" class="mb-1 block text-sm font-medium">{t.rxLapsLabel}</label>
-					<Input id="rxLaps" type="number" min="1" step="1" bind:value={requiredLapsInput} onchange={saveConfig} />
+					<Input
+						id="rxLaps"
+						type="number"
+						min="1"
+						step="1"
+						bind:value={requiredLapsInput}
+						onchange={saveConfig}
+					/>
 				</div>
 			</div>
 
-			<div class="mt-4 flex flex-wrap items-center gap-2 border-t border-gray-200 pt-4 dark:border-gray-700">
+			<div
+				class="mt-4 flex flex-wrap items-center gap-2 border-t border-gray-200 pt-4 dark:border-gray-700"
+			>
 				<Button color="alternative" onclick={() => (driversModalOpen = true)}>
 					{t.activeDriversButton}
 				</Button>
@@ -448,7 +451,8 @@
 						class="ml-auto inline-flex items-center gap-1 rounded px-2 py-1 text-sm font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
 						onclick={() => (clearModalOpen = true)}
 					>
-						<RefreshOutline size="sm" /> {t.rxClearHeading}
+						<RefreshOutline size="sm" />
+						{t.rxClearHeading}
 					</button>
 				{/if}
 			</div>
@@ -474,7 +478,8 @@
 				</div>
 				{#if $isAdmin}
 					<Button color="red" size="sm" onclick={() => (closeModalOpen = true)} disabled={closing}>
-						<StopOutline size="sm" class="mr-1" /> {t.rxCloseHeat}
+						<StopOutline size="sm" class="mr-1" />
+						{t.rxCloseHeat}
 					</Button>
 				{/if}
 			</div>
@@ -483,11 +488,13 @@
 				<div class="overflow-x-auto">
 					<table class="w-full text-sm">
 						<thead>
-							<tr class="border-b border-gray-200 text-left text-xs text-gray-500 dark:border-gray-700">
-								<th class="pb-1 pr-4">#</th>
-								<th class="pb-1 pr-4">{t.driverHeader}</th>
-								<th class="pb-1 pr-4 text-right">{t.rxLapsColumn}</th>
-								<th class="pb-1 pr-4 text-right">{t.rxBestLap}</th>
+							<tr
+								class="border-b border-gray-200 text-left text-xs text-gray-500 dark:border-gray-700"
+							>
+								<th class="pr-4 pb-1">#</th>
+								<th class="pr-4 pb-1">{t.driverHeader}</th>
+								<th class="pr-4 pb-1 text-right">{t.rxLapsColumn}</th>
+								<th class="pr-4 pb-1 text-right">{t.rxBestLap}</th>
 								<th class="pb-1 text-right">{t.totalLabel}</th>
 							</tr>
 						</thead>
@@ -544,7 +551,11 @@
 								disabled={startCountdown !== null || starting || !rx.gate_id}
 							>
 								<PlayOutline size="sm" class="mr-1" />
-								{startCountdown !== null ? startCountdown : starting ? t.rxStartingHeat : t.rxStartHeat}
+								{startCountdown !== null
+									? startCountdown
+									: starting
+										? t.rxStartingHeat
+										: t.rxStartHeat}
 							</Button>
 						</div>
 					{/if}
@@ -572,7 +583,9 @@
 									onclick={() => selectGroup(group)}
 								>
 									{t.rxGroupLabel(gi + 1)}
-									({group.map((id) => standings.find((s) => s.driver_id === id)?.driver_name ?? id).join(', ')})
+									({group
+										.map((id) => standings.find((s) => s.driver_id === id)?.driver_name ?? id)
+										.join(', ')})
 								</Button>
 							{/each}
 						</div>
@@ -709,7 +722,9 @@
 					<ul class="max-h-48 space-y-1 overflow-y-auto">
 						{#each championships as c (c.id)}
 							<li>
-								<label class="flex cursor-pointer items-center gap-2 rounded p-2 hover:bg-gray-50 dark:hover:bg-gray-700">
+								<label
+									class="flex cursor-pointer items-center gap-2 rounded p-2 hover:bg-gray-50 dark:hover:bg-gray-700"
+								>
 									<input
 										type="checkbox"
 										checked={selectedChampIds.has(c.id)}
@@ -724,7 +739,9 @@
 				{:else}
 					<p class="text-sm text-gray-500 dark:text-gray-400">
 						{t.noChampionshipsYetCreate}
-						<a href="/championships" class="text-blue-600 hover:underline dark:text-blue-400">{t.createOne}</a>
+						<a href="/championships" class="text-blue-600 hover:underline dark:text-blue-400"
+							>{t.createOne}</a
+						>
 					</p>
 				{/if}
 			</div>
@@ -760,7 +777,9 @@
 		<p class="text-sm text-gray-500 dark:text-gray-400">{t.rxManualOrderHint}</p>
 		<ul class="space-y-2">
 			{#each manualOrderDrivers as driver, i (driver.id)}
-				<li class="flex items-center gap-2 rounded border border-gray-200 px-3 py-2 dark:border-gray-600">
+				<li
+					class="flex items-center gap-2 rounded border border-gray-200 px-3 py-2 dark:border-gray-600"
+				>
 					<span class="w-5 text-right font-mono text-sm font-semibold text-gray-500">{i + 1}.</span>
 					<span class="flex-1 text-sm font-medium">{driver.name}</span>
 					<div class="flex flex-col gap-0.5">
@@ -769,22 +788,25 @@
 							class="rounded px-1 text-xs text-gray-400 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-30 dark:hover:bg-gray-700"
 							disabled={i === 0}
 							onclick={() => moveDriver(i, -1)}
-							aria-label="Move up"
-						>▲</button>
+							aria-label="Move up">▲</button
+						>
 						<button
 							type="button"
 							class="rounded px-1 text-xs text-gray-400 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-30 dark:hover:bg-gray-700"
 							disabled={i === manualOrderDrivers.length - 1}
 							onclick={() => moveDriver(i, 1)}
-							aria-label="Move down"
-						>▼</button>
+							aria-label="Move down">▼</button
+						>
 					</div>
 				</li>
 			{/each}
 		</ul>
 		<div class="flex justify-end gap-2 border-t pt-3">
 			<Button color="alternative" onclick={() => (manualOrderModalOpen = false)}>{t.cancel}</Button>
-			<Button onclick={saveManualOrder} disabled={savingManualOrder || manualOrderDrivers.length === 0}>
+			<Button
+				onclick={saveManualOrder}
+				disabled={savingManualOrder || manualOrderDrivers.length === 0}
+			>
 				{savingManualOrder ? t.rxSavingOrder : t.rxSaveOrder}
 			</Button>
 		</div>

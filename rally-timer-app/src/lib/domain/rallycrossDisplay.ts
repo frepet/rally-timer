@@ -37,7 +37,10 @@ export function buildRxDisplay(leaderboard: OverallResult[]): RxDisplay {
 		best_lap_ms: r.best_lap_ms
 	}));
 
-	const heatMap = new Map<number, Array<{ result: HeatResult; driver_name: string; class_name: string }>>();
+	const heatMap = new Map<
+		number,
+		Array<{ result: HeatResult; driver_name: string; class_name: string }>
+	>();
 	for (const driver of leaderboard) {
 		for (const hr of driver.heat_results) {
 			const arr = heatMap.get(hr.heat_number) ?? [];
@@ -47,7 +50,7 @@ export function buildRxDisplay(leaderboard: OverallResult[]): RxDisplay {
 	}
 
 	const heats: RxHeatDisplay[] = [...heatMap.entries()]
-		.sort(([a], [b]) => a - b)
+		.sort(([a], [b]) => b - a)
 		.map(([number, entries]) => {
 			const sorted = [...entries].sort((a, b) => heatResultComparator(a.result, b.result));
 			return {
@@ -94,7 +97,7 @@ export function buildRxDisplayFromSubmission(
 	const pointsByDriver = new Map<string, { points: number; class_name: string }>();
 
 	const heats: RxHeatDisplay[] = [...heatMap.entries()]
-		.sort(([a], [b]) => a - b)
+		.sort(([a], [b]) => b - a)
 		.map(([number, entries]) => {
 			const sorted = [...entries].sort((a, b) => {
 				if (a.dnf && b.dnf) return 0;
@@ -109,7 +112,10 @@ export function buildRxDisplayFromSubmission(
 					const position = i + 1;
 					const pts = e.dnf ? 0 : positionToPoints(position, total);
 					const prev = pointsByDriver.get(e.driver_name) ?? { points: 0, class_name: e.class_name };
-					pointsByDriver.set(e.driver_name, { points: prev.points + pts, class_name: e.class_name });
+					pointsByDriver.set(e.driver_name, {
+						points: prev.points + pts,
+						class_name: e.class_name
+					});
 					return {
 						driver_name: e.driver_name,
 						class_name: e.class_name,

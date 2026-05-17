@@ -39,7 +39,16 @@ export function calculateStandings(
 	const map = new Map<string, DriverStanding>();
 
 	for (const row of ranked) {
-		const { driver_uuid, driver_name, class_id, class_name, rally_id, rally_name, position, total_ms } = row;
+		const {
+			driver_uuid,
+			driver_name,
+			class_id,
+			class_name,
+			rally_id,
+			rally_name,
+			position,
+			total_ms
+		} = row;
 		const totalDrivers = starterCounts.get(`${rally_id}:${class_id}`) ?? 0;
 		const points = getPoints(position, totalDrivers);
 
@@ -56,11 +65,20 @@ export function calculateStandings(
 
 		const standing = map.get(driver_uuid)!;
 		standing.total_points += points;
-		standing.rally_points.push({ rally_id, rally_name, points, position, total_ms: row.total_ms });
+		standing.rally_points.push({ rally_id, rally_name, points, position, total_ms });
 	}
 
 	return [...map.values()].sort((a, b) => {
 		if (a.class_name !== b.class_name) return a.class_name.localeCompare(b.class_name);
 		return b.total_points - a.total_points;
 	});
+}
+
+export function groupStandingsByClass(
+	standings: DriverStanding[]
+): Record<string, DriverStanding[]> {
+	const classes = [...new Set(standings.map((s) => s.class_name))].sort();
+	return Object.fromEntries(
+		classes.map((cls) => [cls, standings.filter((s) => s.class_name === cls)])
+	);
 }

@@ -1,4 +1,5 @@
 import { calculateStageTime } from './timing';
+import { compareRallyDrivers } from './rallyResults';
 import {
 	assignPositionsAndDeltas,
 	type DisplayRallyRow,
@@ -123,7 +124,7 @@ export function buildRallyRows(stageData: StageData[]): DisplayRallyRow[] {
 		dnf: v.dnf
 	}));
 
-	rows.sort((a, b) => b.finished_stages - a.finished_stages || a.total_ms - b.total_ms);
+	rows.sort((a, b) => compareRallyDrivers({ ...a, is_dnf: a.dnf }, { ...b, is_dnf: b.dnf }));
 	assignPositionsAndDeltas(rows, (r) => r.total_ms);
 	return rows;
 }

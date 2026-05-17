@@ -1,20 +1,26 @@
 import { json, error, type RequestEvent } from '@sveltejs/kit';
 import { sql } from '../../../../../../lib/server/db';
 import { throwIfNotAdmin } from '../../../../../../lib/server/keycloak';
-import { computeHeatResult, computeDnfTime, type HeatEntry } from '../../../../../../lib/domain/rallycross';
+import {
+	computeHeatResult,
+	computeDnfTime,
+	type HeatEntry
+} from '../../../../../../lib/domain/rallycross';
 
 export async function POST(event: RequestEvent): Promise<Response> {
 	await throwIfNotAdmin(event);
 	const heatId = Number(event.params.id);
 	if (!heatId) throw error(400, 'Invalid heat id');
 
-	const [heat] = await sql<{
-		id: number;
-		number: number;
-		required_laps: number;
-		started_at: number | null;
-		closed_at: number | null;
-	}[]>`
+	const [heat] = await sql<
+		{
+			id: number;
+			number: number;
+			required_laps: number;
+			started_at: number | null;
+			closed_at: number | null;
+		}[]
+	>`
 		SELECT id, number, required_laps, started_at, closed_at
 		FROM rallycross_heats WHERE id = ${heatId}
 	`;
@@ -26,16 +32,18 @@ export async function POST(event: RequestEvent): Promise<Response> {
 		SELECT gate_id, cooldown_ms FROM rallycross WHERE id = 1
 	`;
 
-	const entries = await sql<{
-		driver_id: number;
-		driver_name: string;
-		class_id: number;
-		class_name: string;
-		tag: string;
-		ts_ms: number | null;
-		dnf: boolean;
-		dnf_time_ms: number | null;
-	}[]>`
+	const entries = await sql<
+		{
+			driver_id: number;
+			driver_name: string;
+			class_id: number;
+			class_name: string;
+			tag: string;
+			ts_ms: number | null;
+			dnf: boolean;
+			dnf_time_ms: number | null;
+		}[]
+	>`
 		SELECT rhe.driver_id, d.name AS driver_name, d.class_id, c.name AS class_name,
 		       d.tag, rhe.ts_ms, rhe.dnf, rhe.dnf_time_ms
 		FROM rallycross_heat_entries rhe
@@ -47,14 +55,15 @@ export async function POST(event: RequestEvent): Promise<Response> {
 	// Fetch gate passes for each driver within this heat's window
 	const heatEntries: HeatEntry[] = await Promise.all(
 		entries.map(async (e) => {
-			const passes = cfg.gate_id && e.ts_ms
-				? await sql<{ timestamp: number }[]>`
+			const passes =
+				cfg.gate_id && e.ts_ms
+					? await sql<{ timestamp: number }[]>`
 						SELECT timestamp FROM gate_events
 						WHERE gate_id = ${cfg.gate_id} AND tag = ${e.tag}
 						  AND timestamp >= ${Number(e.ts_ms)}
 						ORDER BY timestamp
 					`
-				: [] as { timestamp: number }[];
+					: ([] as { timestamp: number }[]);
 			return {
 				driver_id: e.driver_id,
 				driver_name: e.driver_name,
@@ -74,7 +83,6 @@ export async function POST(event: RequestEvent): Promise<Response> {
 		computeHeatResult(e, heat.number, heat.required_laps, cfg.cooldown_ms)
 	);
 	const dnfTime = computeDnfTime(heatResults);
-	const now = Date.now();
 
 	// Mark unfinished entries as DNF
 	for (const result of heatResults) {
@@ -87,7 +95,12 @@ export async function POST(event: RequestEvent): Promise<Response> {
 		}
 	}
 
-	await sql`UPDATE rallycross_heats SET closed_at = ${now} WHERE id = ${heatId}`;
+	// Use the latest gate event timestamp so the leaderboard's upper-bound filter
+	// (timestamp <= closed_at) includes all events, even hardware-timestamped ones
+	// that appear to be in the future relative to server wall-clock time.
+	const allEventTs = heatEntries.flatMap((e) => e.passes);
+	const closedAt = allEventTs.length > 0 ? Math.max(Date.now(), ...allEventTs) : Date.now();
+	await sql`UPDATE rallycross_heats SET closed_at = ${closedAt} WHERE id = ${heatId}`;
 
-	return json({ closed_at: now });
+	return json({ closed_at: closedAt });
 }

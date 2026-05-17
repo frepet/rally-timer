@@ -2,7 +2,7 @@ import { json, error, type RequestEvent } from '@sveltejs/kit';
 import { sql } from '../../../lib/server/db';
 import { gateEventSchema } from '../../../lib/server/schemas';
 import { emitGateEvent } from '../../../lib/server/gateEvents';
-import { computeLaps, filterByCooldown } from '../../../lib/domain/rallycross';
+import { computeLaps } from '../../../lib/domain/rallycross';
 
 export async function POST(event: RequestEvent): Promise<Response> {
 	let body: unknown;
@@ -36,25 +36,27 @@ export async function POST(event: RequestEvent): Promise<Response> {
 	}
 
 	// Auto-close rallycross heat if all entries have finished required laps
-	await maybeAutoCloseHeat(gate_id);
+	await maybeAutoCloseHeat(gate_id, timestamp_ms);
 
 	await emitGateEvent({ gate_id, tag, rssi: rssi ?? null, timestamp_ms });
 
 	return json({ stored: true, event_id: row }, { status: 201 });
 }
 
-async function maybeAutoCloseHeat(gate_id: string): Promise<void> {
+async function maybeAutoCloseHeat(gate_id: string, timestamp_ms: number): Promise<void> {
 	// Is this gate the rallycross gate and is there an active heat?
 	const [rx] = await sql<{ gate_id: string | null; cooldown_ms: number }[]>`
 		SELECT gate_id, cooldown_ms FROM rallycross WHERE id = 1
 	`;
 	if (!rx?.gate_id || rx.gate_id !== gate_id) return;
 
-	const [heat] = await sql<{
-		id: number;
-		required_laps: number;
-		started_at: number;
-	}[]>`
+	const [heat] = await sql<
+		{
+			id: number;
+			required_laps: number;
+			started_at: number;
+		}[]
+	>`
 		SELECT id, required_laps, started_at
 		FROM rallycross_heats
 		WHERE started_at IS NOT NULL AND closed_at IS NULL
@@ -88,6 +90,6 @@ async function maybeAutoCloseHeat(gate_id: string): Promise<void> {
 	);
 
 	if (allDone.every(Boolean)) {
-		await sql`UPDATE rallycross_heats SET closed_at = ${Date.now()} WHERE id = ${heat.id}`;
+		await sql`UPDATE rallycross_heats SET closed_at = ${timestamp_ms} WHERE id = ${heat.id}`;
 	}
 }

@@ -15,8 +15,6 @@
 	function hasTimes(heat: RxHeatDisplay): boolean {
 		return heat.entries.some((e) => e.total_ms !== null);
 	}
-
-	const heatsReversed = $derived([...heats].sort((a, b) => b.number - a.number));
 </script>
 
 <div class="space-y-4">
@@ -26,11 +24,13 @@
 			<div class="overflow-x-auto">
 				<table class="w-full text-sm">
 					<thead>
-						<tr class="border-b border-gray-200 text-left text-xs text-gray-500 dark:border-gray-700">
-							<th class="pb-1 pr-4">#</th>
-							<th class="pb-1 pr-4">{t.driverHeader}</th>
-							<th class="pb-1 pr-4 text-right">{t.rxPoints}</th>
-							<th class="pb-1 pr-4 text-right">{t.rxBestLap}</th>
+						<tr
+							class="border-b border-gray-200 text-left text-xs text-gray-500 dark:border-gray-700"
+						>
+							<th class="pr-4 pb-1">#</th>
+							<th class="pr-4 pb-1">{t.driverHeader}</th>
+							<th class="pr-4 pb-1 text-right">{t.rxPoints}</th>
+							<th class="pr-4 pb-1 text-right">{t.rxBestLap}</th>
 							<th class="pb-1 text-right">{t.rxBestTime}</th>
 						</tr>
 					</thead>
@@ -61,7 +61,7 @@
 		</Card>
 	{/if}
 
-	{#each heatsReversed as heat (heat.number)}
+	{#each heats as heat (heat.number)}
 		<Card class="max-w-none p-4">
 			<div class="mb-2 flex items-center gap-2">
 				<span class="font-semibold">{t.rxHeatLabel(heat.number)}</span>
@@ -70,11 +70,13 @@
 			<div class="overflow-x-auto">
 				<table class="w-full text-sm">
 					<thead>
-						<tr class="border-b border-gray-200 text-left text-xs text-gray-500 dark:border-gray-700">
-							<th class="pb-1 pr-4">#</th>
-							<th class="pb-1 pr-4">{t.driverHeader}</th>
+						<tr
+							class="border-b border-gray-200 text-left text-xs text-gray-500 dark:border-gray-700"
+						>
+							<th class="pr-4 pb-1">#</th>
+							<th class="pr-4 pb-1">{t.driverHeader}</th>
 							{#if hasTimes(heat)}
-								<th class="pb-1 pr-4 text-right">{t.rxBestLap}</th>
+								<th class="pr-4 pb-1 text-right">{t.rxBestLap}</th>
 								<th class="pb-1 text-right">{t.totalLabel}</th>
 							{/if}
 						</tr>

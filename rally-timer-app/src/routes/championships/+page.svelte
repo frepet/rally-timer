@@ -22,6 +22,7 @@
 	import { isAdmin } from '../../lib/stores/auth';
 	import { t } from '../../lib/stores/locale.svelte';
 	import { formatMs } from '../../lib/results';
+	import { groupStandingsByClass } from '../../lib/domain/standings';
 
 	type Championship = { id: string; name: string; created_at: number };
 	type StandingRow = {
@@ -30,7 +31,13 @@
 		class_id: number;
 		class_name: string;
 		total_points: number;
-		rally_points: { rally_id: string; rally_name: string; points: number; position: number; total_ms: number | null }[];
+		rally_points: {
+			rally_id: string;
+			rally_name: string;
+			points: number;
+			position: number;
+			total_ms: number | null;
+		}[];
 	};
 	type SubmittedRally = { id: string; name: string; submitted_at: number };
 
@@ -148,11 +155,8 @@
 		}
 	}
 
-	// Group standings by class
-	const classes = $derived([...new Set(standings.map((s) => s.class_name))].sort());
-	const standingsByClass = $derived(
-		Object.fromEntries(classes.map((cls) => [cls, standings.filter((s) => s.class_name === cls)]))
-	);
+	const standingsByClass = $derived(groupStandingsByClass(standings));
+	const classes = $derived(Object.keys(standingsByClass));
 
 	function fmtDate(ms: number): string {
 		const dt = new Date(ms);
@@ -303,7 +307,9 @@
 																<div class="flex flex-col items-end leading-tight">
 																	<span title="P{rp.position}">{rp.points}</span>
 																	{#if rp.total_ms !== null}
-																		<span class="text-xs text-gray-400">{formatMs(rp.total_ms)}</span>
+																		<span class="text-xs text-gray-400"
+																			>{formatMs(rp.total_ms)}</span
+																		>
 																	{/if}
 																</div>
 															{:else}

@@ -62,7 +62,9 @@
 					{t.rxHeading}
 				</p>
 				{#if rxConfig.active_heat}
-					<span class="rounded bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900/40 dark:text-green-300">
+					<span
+						class="rounded bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900/40 dark:text-green-300"
+					>
 						{t.rxStatusHeatInProgress(rxConfig.active_heat.number)}
 					</span>
 				{/if}
