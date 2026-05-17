@@ -67,6 +67,8 @@ jobs:
         run: ./seed.sh http://localhost:3000
       - name: Run e2e assertions
         run: ./verify.sh http://localhost:3000
+      - name: Run rallycross e2e assertions
+        run: ./verify-rallycross.sh http://localhost:3000
 
   build:
     needs: [unit-test, e2e]
