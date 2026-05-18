@@ -47,8 +47,13 @@ class EventQueue:
                 ON events(synced, created_at)
             """)
     
+    MAX_TAG_LEN = 50
+
     def push(self, gate_id: str, tag: str, timestamp_ms: int, rssi: Optional[int] = None) -> int:
         """Add an event to the queue. Returns the event ID."""
+        if len(tag) > self.MAX_TAG_LEN:
+            logger.warning(f"Dropping oversized tag ({len(tag)} chars): {tag[:80]!r}")
+            return 0
         created_at = int(datetime.now().timestamp() * 1000)
         
         with sqlite3.connect(self.db_path) as conn:

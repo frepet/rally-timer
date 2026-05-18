@@ -91,14 +91,15 @@ class APIClient:
             logger.error(f"Event post error: {e}")
             return False
     
-    def sync_events(self, events: list[QueuedEvent]) -> tuple[int, int]:
+    def sync_events(self, events: list[QueuedEvent]) -> tuple[int, int] | None:
         """
         Sync multiple events in a batch.
-        Returns (successful_count, failed_count).
+        Returns (stored_count, error_count) on HTTP 200, or None on failure.
+        A 200 response means the server processed all events (stored or deduped).
         """
         if not events:
             return 0, 0
-        
+
         try:
             response = self.session.post(
                 self._url("/api/gate-sync"),
@@ -115,7 +116,7 @@ class APIClient:
                 },
                 timeout=self.timeout
             )
-            
+
             if response.status_code == 200:
                 data = response.json()
                 stored = data.get("stored", 0)
@@ -123,11 +124,11 @@ class APIClient:
                 return stored, errors
             else:
                 logger.error(f"Sync failed: {response.status_code} {response.text}")
-                return 0, len(events)
-                
+                return None
+
         except requests.RequestException as e:
             logger.error(f"Sync error: {e}")
-            return 0, len(events)
+            return None
     
     def ensure_registered(self) -> bool:
         """Ensure the gate is registered, re-registering if necessary."""

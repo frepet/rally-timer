@@ -66,12 +66,16 @@ class UHFGate:
                 if self.api.ensure_registered():
                     pending = self.queue.get_pending(limit=50)
                     if pending:
-                        stored, errors = self.api.sync_events(pending)
-                        if stored > 0:
-                            self.queue.mark_synced([e.id for e in pending[:stored]])
+                        result = self.api.sync_events(pending)
+                        if result is not None:
+                            stored, errors = result
+                            # Mark all events synced — server returned 200, meaning
+                            # each event was either stored or deduped (ON CONFLICT DO NOTHING)
+                            self.queue.mark_synced([e.id for e in pending])
                             self.synced_count += stored
                             logger.info(
-                                f"Synced {stored} events (queue: {self.queue.count_pending()})"
+                                f"Synced {stored} new, {len(pending) - stored} dupes"
+                                f" (queue: {self.queue.count_pending()})"
                             )
 
                 self.queue.purge_synced(max_age_hours=24)
