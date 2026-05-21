@@ -334,7 +334,15 @@ export const sv = {
 	trainingDeleteLapConfirm: 'Ta bort detta varv?',
 	trainingDeleteLapFailed: 'Kunde inte ta bort varv: ',
 	trainingSaveFailed: 'Kunde inte spara: ',
-	trainingClearFailed: 'Kunde inte rensa: '
+	trainingClearFailed: 'Kunde inte rensa: ',
+
+	// Landing page view picker
+	viewPickerLabel: 'Visa på startsidan',
+	viewAuto: 'Auto',
+	viewRally: 'Rally',
+	viewRallycross: 'Rallycross',
+	viewTraining: 'Träning',
+	viewAutoHint: (detected: string) => `Automatisk — visar ${detected}`
 };
 
 export const en: typeof sv = {
@@ -672,5 +680,13 @@ export const en: typeof sv = {
 	trainingDeleteLapConfirm: 'Delete this lap?',
 	trainingDeleteLapFailed: 'Failed to delete lap: ',
 	trainingSaveFailed: 'Failed to save: ',
-	trainingClearFailed: 'Failed to clear: '
+	trainingClearFailed: 'Failed to clear: ',
+
+	// Landing page view picker
+	viewPickerLabel: 'Show on home page',
+	viewAuto: 'Auto',
+	viewRally: 'Rally',
+	viewRallycross: 'Rallycross',
+	viewTraining: 'Training',
+	viewAutoHint: (detected: string) => `Auto — showing ${detected}`
 };

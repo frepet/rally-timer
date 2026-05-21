@@ -145,5 +145,10 @@ export const pageUpdateSchema = z.object({
 
 export type SubmitRallyInput = z.infer<typeof submitRallySchema>;
 export type PageUpdateInput = z.infer<typeof pageUpdateSchema>;
+export const settingsSchema = z.object({
+	pinned_view: z.enum(['rally', 'rallycross', 'training']).nullable()
+});
+
 export type RallycrossConfigInput = z.infer<typeof rallycrossConfigSchema>;
 export type TrainingConfigInput = z.infer<typeof trainingConfigSchema>;
+export type SettingsInput = z.infer<typeof settingsSchema>;
