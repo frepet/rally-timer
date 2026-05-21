@@ -59,10 +59,10 @@
 								<tr
 									class="border-b border-gray-200 text-left text-xs text-gray-500 dark:border-gray-700"
 								>
-									<th class="pb-1 pr-4">#</th>
-									<th class="pb-1 pr-4">{t.rxPassTime}</th>
-									<th class="pb-1 pr-4 text-right">{t.rxPassFromStart}</th>
-									<th class="pb-1 pr-4 text-right">{t.rxPassDelta}</th>
+									<th class="pr-4 pb-1">#</th>
+									<th class="pr-4 pb-1">{t.rxPassTime}</th>
+									<th class="pr-4 pb-1 text-right">{t.rxPassFromStart}</th>
+									<th class="pr-4 pb-1 text-right">{t.rxPassDelta}</th>
 									<th class="pb-1">{t.rxPassCounted}</th>
 								</tr>
 							</thead>
