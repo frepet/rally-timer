@@ -48,17 +48,31 @@
 		gates = await res.json();
 	}
 
-	async function saveConfig() {
+	async function saveGate() {
 		try {
-			const cooldown_ms = Math.max(0, Math.round(cooldownSecondsInput * 1000));
 			const gate_id = selectedGateId || null;
 			const res = await kcFetch('/api/training', {
 				method: 'PATCH',
 				headers: { 'content-type': 'application/json' },
-				body: JSON.stringify({ gate_id, cooldown_ms })
+				body: JSON.stringify({ gate_id })
 			});
 			if (!res.ok) throw new Error(await res.text());
 			await Promise.all([loadState(true), loadGates()]);
+		} catch (e) {
+			alert(t.trainingSaveFailed + (e as Error).message);
+		}
+	}
+
+	async function saveCooldown() {
+		try {
+			const cooldown_ms = Math.max(0, Math.round(cooldownSecondsInput * 1000));
+			const res = await kcFetch('/api/training', {
+				method: 'PATCH',
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify({ cooldown_ms })
+			});
+			if (!res.ok) throw new Error(await res.text());
+			await loadState(true);
 		} catch (e) {
 			alert(t.trainingSaveFailed + (e as Error).message);
 		}
@@ -120,7 +134,7 @@
 					<label for="trainingGate" class="mb-1 block text-sm font-medium"
 						>{t.trainingGateLabel}</label
 					>
-					<Select id="trainingGate" bind:value={selectedGateId} onchange={saveConfig}>
+					<Select id="trainingGate" bind:value={selectedGateId} onchange={saveGate}>
 						<option value="">{t.trainingChooseGate}</option>
 						{#each eligibleGates as g (g.id)}
 							<option value={g.id}>{g.name ?? g.id.slice(0, 8)}</option>
@@ -137,7 +151,7 @@
 						min="0"
 						step="0.1"
 						bind:value={cooldownSecondsInput}
-						onchange={saveConfig}
+						onchange={saveCooldown}
 					/>
 				</div>
 			</div>
@@ -181,7 +195,7 @@
 		<div class="flex justify-end gap-2 border-t pt-3">
 			<Button color="alternative" onclick={() => (clearModalOpen = false)}>{t.cancel}</Button>
 			<Button color="red" onclick={clearSession} disabled={clearing}>
-				{clearing ? t.clearing : t.clearAction}
+				{clearing ? t.clearing : t.trainingNewSessionConfirm}
 			</Button>
 		</div>
 	</div>

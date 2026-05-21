@@ -111,7 +111,7 @@
 		<div class="mx-auto flex w-full max-w-5xl items-center gap-3">
 			<span class="text-sm text-gray-500 dark:text-gray-400">{t.viewPickerLabel}:</span>
 			<div class="flex overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
-				{#each [null, 'rally', 'rallycross', 'training'] as const as v}
+				{#each [null, 'rally', 'rallycross', 'training'] as const as v (v ?? 'auto')}
 					{@const isActive = pinnedView === v}
 					{@const label =
 						v === null

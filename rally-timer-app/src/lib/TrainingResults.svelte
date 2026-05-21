@@ -70,9 +70,7 @@
 					{#each d.laps as lap, idx (lap.gate_event_id)}
 						{@const isBest = lap.lap_ms === d.best_lap_ms}
 						<li
-							class="flex items-center justify-between gap-2 rounded px-2 py-1 text-sm {isBest
-								? 'dark:bg-primary-950/40 bg-primary-50 text-primary-900 dark:text-primary-200'
-								: 'odd:bg-gray-50 dark:odd:bg-gray-700/30'}"
+							class="flex items-center justify-between gap-2 rounded px-2 py-1 text-sm odd:bg-gray-50 dark:odd:bg-gray-700/30"
 						>
 							<div class="flex items-center gap-3">
 								<span class="w-12 font-mono text-xs text-gray-500"

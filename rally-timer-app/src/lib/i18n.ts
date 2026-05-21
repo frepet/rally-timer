@@ -322,10 +322,10 @@ export const sv = {
 	trainingNoGate: 'Ingen grind vald — välj en grind för att börja samla in varv.',
 	trainingNoLapsYet: 'Inga varv ännu. Passera grinden för att starta klockan.',
 	trainingSessionStarted: (when: string) => `Pågående session startad ${when}`,
-	trainingClearHeading: 'Rensa träningssession',
+	trainingClearHeading: 'Starta ny session',
 	trainingClearDescription:
-		'Detta nollställer den pågående träningssessionen — alla varv försvinner från sidan. Rådata i databasen behålls.',
-	trainingClearButton: 'Rensa session',
+		'Startar en ny träningssession — varv från den nuvarande sessionen försvinner från sidan. Rådata i databasen behålls.',
+	trainingClearButton: 'Ny session',
 	trainingLapsColumn: 'Varv',
 	trainingBestLap: 'Bästa',
 	trainingMedianLap: 'Median',
@@ -334,7 +334,8 @@ export const sv = {
 	trainingDeleteLapConfirm: 'Ta bort detta varv?',
 	trainingDeleteLapFailed: 'Kunde inte ta bort varv: ',
 	trainingSaveFailed: 'Kunde inte spara: ',
-	trainingClearFailed: 'Kunde inte rensa: ',
+	trainingClearFailed: 'Kunde inte starta ny session: ',
+	trainingNewSessionConfirm: 'Starta ny session',
 
 	// Landing page view picker
 	viewPickerLabel: 'Visa på startsidan',
@@ -668,10 +669,10 @@ export const en: typeof sv = {
 	trainingNoGate: 'No gate selected — pick a gate to start collecting laps.',
 	trainingNoLapsYet: 'No laps yet. Pass the gate to start the clock.',
 	trainingSessionStarted: (when: string) => `Current session started ${when}`,
-	trainingClearHeading: 'Clear training session',
+	trainingClearHeading: 'Start new session',
 	trainingClearDescription:
-		'This resets the current training session — all laps disappear from the page. Raw data in the database is preserved.',
-	trainingClearButton: 'Clear session',
+		'Starts a new training session — laps from the current session disappear from the page. Raw data in the database is preserved.',
+	trainingClearButton: 'New session',
 	trainingLapsColumn: 'Laps',
 	trainingBestLap: 'Best',
 	trainingMedianLap: 'Median',
@@ -680,7 +681,8 @@ export const en: typeof sv = {
 	trainingDeleteLapConfirm: 'Delete this lap?',
 	trainingDeleteLapFailed: 'Failed to delete lap: ',
 	trainingSaveFailed: 'Failed to save: ',
-	trainingClearFailed: 'Failed to clear: ',
+	trainingClearFailed: 'Failed to start new session: ',
+	trainingNewSessionConfirm: 'Start new session',
 
 	// Landing page view picker
 	viewPickerLabel: 'Show on home page',

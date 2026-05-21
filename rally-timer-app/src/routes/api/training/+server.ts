@@ -50,13 +50,19 @@ export async function PATCH(event: RequestEvent): Promise<Response> {
 			`;
 			if (!g) throw error(404, 'Gate not found');
 		}
-		const now = Date.now();
-		await sql`
-			UPDATE training
-			SET gate_id = ${gate_id},
-			    started_at = ${gate_id === null ? null : now}
-			WHERE id = 1
-		`;
+		// Only auto-start when a gate is first assigned (started_at was null).
+		// Re-assigning to a different gate mid-session leaves started_at alone.
+		// Unassigning a gate clears started_at (no active session without a gate).
+		if (gate_id === null) {
+			await sql`UPDATE training SET gate_id = NULL, started_at = NULL WHERE id = 1`;
+		} else {
+			await sql`
+				UPDATE training
+				SET gate_id    = ${gate_id},
+				    started_at = COALESCE(started_at, ${Date.now()})
+				WHERE id = 1
+			`;
+		}
 	}
 	if (cooldown_ms !== undefined) {
 		await sql`UPDATE training SET cooldown_ms = ${cooldown_ms} WHERE id = 1`;
