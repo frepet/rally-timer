@@ -116,6 +116,16 @@ export const heatCreateSchema = z.object({
 	driver_ids: z.array(z.number().int().positive()).min(1)
 });
 
+export const trainingConfigSchema = z.object({
+	gate_id: z.string().uuid().nullable().optional(),
+	cooldown_ms: z
+		.number()
+		.int()
+		.nonnegative()
+		.max(10 * 60 * 1000)
+		.optional()
+});
+
 export const heatManualCloseSchema = z.object({
 	finish_order: z.array(z.number().int().positive()).min(1)
 });
@@ -136,3 +146,4 @@ export const pageUpdateSchema = z.object({
 export type SubmitRallyInput = z.infer<typeof submitRallySchema>;
 export type PageUpdateInput = z.infer<typeof pageUpdateSchema>;
 export type RallycrossConfigInput = z.infer<typeof rallycrossConfigSchema>;
+export type TrainingConfigInput = z.infer<typeof trainingConfigSchema>;

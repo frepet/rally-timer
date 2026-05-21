@@ -131,6 +131,7 @@
 			<NavLi>|</NavLi>
 			<NavLi href="/rallies" class={navClass('/rallies')}>{t.navRally}</NavLi>
 			<NavLi href="/rallycross" class={navClass('/rallycross')}>{t.navRallycross}</NavLi>
+			<NavLi href="/training" class={navClass('/training')}>{t.navTraining}</NavLi>
 			<NavLi href="/drivers" class={navClass('/drivers')}>{t.navDrivers}</NavLi>
 			<NavLi href="/classes" class={navClass('/classes')}>{t.navClasses}</NavLi>
 			<NavLi href="/gates" class={navClass('/gates')}>{t.navGates}</NavLi>

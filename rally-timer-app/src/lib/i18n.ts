@@ -38,6 +38,7 @@ export const sv = {
 	navChampionships: 'Mästerskap',
 	navRules: 'Regler',
 	navAbout: 'Om',
+	navTraining: 'Träning',
 	navDrivers: 'Förare',
 	navClasses: 'Klasser',
 	navGates: 'Grindar',
@@ -311,7 +312,29 @@ export const sv = {
 	rxPassFiltered: 'Cooldown',
 	rxNoEvents: 'Inga passager registrerade',
 	rxHeatNeverStarted: 'Heat ej startat — inga händelser att visa',
-	rxNoGateConfigured: 'Ingen grind konfigurerad'
+	rxNoGateConfigured: 'Ingen grind konfigurerad',
+
+	// Training mode
+	trainingHeading: 'Träning',
+	trainingGateLabel: 'Grind',
+	trainingChooseGate: 'Välj grind…',
+	trainingCooldownLabel: 'Cooldown (s)',
+	trainingNoGate: 'Ingen grind vald — välj en grind för att börja samla in varv.',
+	trainingNoLapsYet: 'Inga varv ännu. Passera grinden för att starta klockan.',
+	trainingSessionStarted: (when: string) => `Pågående session startad ${when}`,
+	trainingClearHeading: 'Rensa träningssession',
+	trainingClearDescription:
+		'Detta nollställer den pågående träningssessionen — alla varv försvinner från sidan. Rådata i databasen behålls.',
+	trainingClearButton: 'Rensa session',
+	trainingLapsColumn: 'Varv',
+	trainingBestLap: 'Bästa',
+	trainingMedianLap: 'Median',
+	trainingLastLap: 'Senaste',
+	trainingLapNumber: (n: number) => `Varv ${n}`,
+	trainingDeleteLapConfirm: 'Ta bort detta varv?',
+	trainingDeleteLapFailed: 'Kunde inte ta bort varv: ',
+	trainingSaveFailed: 'Kunde inte spara: ',
+	trainingClearFailed: 'Kunde inte rensa: '
 };
 
 export const en: typeof sv = {
@@ -354,6 +377,7 @@ export const en: typeof sv = {
 	navChampionships: 'Championships',
 	navRules: 'Rules',
 	navAbout: 'About',
+	navTraining: 'Training',
 	navDrivers: 'Drivers',
 	navClasses: 'Classes',
 	navGates: 'Gates',
@@ -626,5 +650,27 @@ export const en: typeof sv = {
 	rxPassFiltered: 'Cooldown',
 	rxNoEvents: 'No passes recorded',
 	rxHeatNeverStarted: 'Heat not started — no events to show',
-	rxNoGateConfigured: 'No gate configured'
+	rxNoGateConfigured: 'No gate configured',
+
+	// Training mode
+	trainingHeading: 'Training',
+	trainingGateLabel: 'Gate',
+	trainingChooseGate: 'Choose gate…',
+	trainingCooldownLabel: 'Cooldown (s)',
+	trainingNoGate: 'No gate selected — pick a gate to start collecting laps.',
+	trainingNoLapsYet: 'No laps yet. Pass the gate to start the clock.',
+	trainingSessionStarted: (when: string) => `Current session started ${when}`,
+	trainingClearHeading: 'Clear training session',
+	trainingClearDescription:
+		'This resets the current training session — all laps disappear from the page. Raw data in the database is preserved.',
+	trainingClearButton: 'Clear session',
+	trainingLapsColumn: 'Laps',
+	trainingBestLap: 'Best',
+	trainingMedianLap: 'Median',
+	trainingLastLap: 'Last',
+	trainingLapNumber: (n: number) => `Lap ${n}`,
+	trainingDeleteLapConfirm: 'Delete this lap?',
+	trainingDeleteLapFailed: 'Failed to delete lap: ',
+	trainingSaveFailed: 'Failed to save: ',
+	trainingClearFailed: 'Failed to clear: '
 };
