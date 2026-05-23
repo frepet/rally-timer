@@ -42,6 +42,7 @@
 	const leds = $state([0, 0, 0, 0, 0]);
 	let timer: ReturnType<typeof setInterval> | undefined;
 	let gatePoller: ReturnType<typeof setInterval> | undefined;
+	let eventSource: EventSource | null = null;
 
 	// Wall-clock timing: remainingMs is derived from targetTime each tick,
 	// so the countdown never drifts regardless of setInterval jitter.
@@ -280,11 +281,26 @@
 		loadQueue();
 		loadGates();
 		gatePoller = setInterval(loadGates, 5000);
+
+		eventSource = new EventSource('/api/gate-events/stream');
+		eventSource.onmessage = (e) => {
+			try {
+				const data = JSON.parse(e.data) as { gate_id?: string };
+				if (!data.gate_id) return;
+				const isForThisStage = gates.some(
+					(g) => g.id === data.gate_id && g.stage_id === stageId
+				);
+				if (isForThisStage) playBeep(1200, 0.4, 0.4);
+			} catch {
+				/* ignore */
+			}
+		};
 	});
 
 	onDestroy(() => {
 		if (gatePoller) clearInterval(gatePoller);
 		if (timer) clearInterval(timer);
+		if (eventSource) eventSource.close();
 		closeAudio();
 	});
 </script>
