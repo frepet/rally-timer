@@ -7,7 +7,14 @@ const r = (
 	class_name: string,
 	elapsed_ms: number | null,
 	dnf = false
-): SubmittedRallyResult => ({ stage_name, driver_name, class_name, elapsed_ms, dnf });
+): SubmittedRallyResult => ({
+	driver_uuid: `uuid-${driver_name}`,
+	stage_name,
+	driver_name,
+	class_name,
+	elapsed_ms,
+	dnf
+});
 
 describe('buildStageData (submitted rally)', () => {
 	it('returns empty array for no results', () => {

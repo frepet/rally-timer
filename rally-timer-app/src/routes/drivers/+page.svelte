@@ -25,6 +25,7 @@
 		class_id: number | null;
 		tag: string | null;
 		class_name?: string;
+		rating: number;
 	};
 	type ClassItem = { id: number; name: string };
 	type Gate = {
@@ -361,6 +362,7 @@
 				<TableHeadCell>{t.name}</TableHeadCell>
 				<TableHeadCell>{t.classLabel}</TableHeadCell>
 				<TableHeadCell>{t.tag}</TableHeadCell>
+				<TableHeadCell>{t.ratingLabel}</TableHeadCell>
 				<TableHeadCell class="flex justify-end">{t.actions}</TableHeadCell>
 			</TableHead>
 
@@ -406,6 +408,9 @@
 								{d.tag}
 							{/if}
 						</TableBodyCell>
+
+						<!-- Rating -->
+						<TableBodyCell class="font-mono">{d.rating}</TableBodyCell>
 
 						<!-- Actions -->
 						<TableBodyCell class="flex justify-end gap-2">

@@ -10,6 +10,7 @@ import {
 
 export type SummaryDriver = {
 	id: number;
+	uuid: string;
 	name: string;
 	class_name: string;
 	rfid_tag: string | number | null;
@@ -67,6 +68,7 @@ export function buildStageData(
 
 			return [
 				{
+					driver_uuid: driver.uuid,
 					driver_name: driver.name,
 					class_name: driver.class_name,
 					stage_ms: elapsed,
@@ -92,12 +94,13 @@ export function buildStageData(
 export function buildRallyRows(stageData: StageData[]): DisplayRallyRow[] {
 	const totals = new Map<
 		string,
-		{ class_name: string; total: number; penalty: number; finished: number; dnf: boolean }
+		{ driver_name: string; class_name: string; total: number; penalty: number; finished: number; dnf: boolean }
 	>();
 
 	for (const stage of stageData) {
 		for (const row of stage.rows) {
-			const existing = totals.get(row.driver_name) ?? {
+			const existing = totals.get(row.driver_uuid) ?? {
+				driver_name: row.driver_name,
 				class_name: row.class_name,
 				total: 0,
 				penalty: 0,
@@ -108,12 +111,13 @@ export function buildRallyRows(stageData: StageData[]): DisplayRallyRow[] {
 			existing.penalty += row.penalty_ms;
 			if (!row.dnf) existing.finished++;
 			if (row.dnf) existing.dnf = true;
-			totals.set(row.driver_name, existing);
+			totals.set(row.driver_uuid, existing);
 		}
 	}
 
-	const rows: DisplayRallyRow[] = [...totals.entries()].map(([name, v]) => ({
-		driver_name: name,
+	const rows: DisplayRallyRow[] = [...totals.entries()].map(([uuid, v]) => ({
+		driver_uuid: uuid,
+		driver_name: v.driver_name,
 		class_name: v.class_name,
 		total_ms: v.total,
 		penalty_ms: v.penalty,

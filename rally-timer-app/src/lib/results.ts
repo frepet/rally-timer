@@ -1,4 +1,5 @@
 export type DisplayRallyRow = {
+	driver_uuid: string;
 	driver_name: string;
 	class_name: string;
 	total_ms: number;
@@ -11,6 +12,7 @@ export type DisplayRallyRow = {
 };
 
 export type DisplayStageRow = {
+	driver_uuid: string;
 	driver_name: string;
 	class_name: string;
 	stage_ms: number;

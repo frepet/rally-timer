@@ -4,7 +4,7 @@ import { sql } from '../../../lib/server/db';
 export async function GET(): Promise<Response> {
 	const [drivers, stages, start_events, finish_events] = await Promise.all([
 		sql`
-			SELECT d.id, d.name, d.tag AS rfid_tag, d.class_id, c.name AS class_name, d.active
+			SELECT d.id, d.uuid::text AS uuid, d.name, d.tag AS rfid_tag, d.class_id, c.name AS class_name, d.active
 			FROM drivers d
 			JOIN classes c ON c.id = d.class_id
 			WHERE d.active = true

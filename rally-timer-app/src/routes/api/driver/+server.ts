@@ -40,7 +40,7 @@ export async function POST(event: RequestEvent): Promise<Response> {
 
 export async function GET(): Promise<Response> {
 	const rows = await sql`
-		SELECT d.id, d.name, d.class_id, d.tag, d.active, c.name AS class_name
+		SELECT d.id, d.name, d.class_id, d.tag, d.active, d.rating, c.name AS class_name
 		FROM drivers d
 		LEFT JOIN classes c ON c.id = d.class_id
 		ORDER BY d.id

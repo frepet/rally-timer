@@ -1,6 +1,7 @@
 import { assignPositionsAndDeltas, type StageData } from '../results';
 
 export type SubmittedRallyResult = {
+	driver_uuid: string;
 	driver_name: string;
 	class_name: string;
 	stage_name: string;
@@ -14,6 +15,7 @@ export function buildStageData(results: SubmittedRallyResult[]): StageData[] {
 		const rows = results
 			.filter((r) => r.stage_name === stageName && r.elapsed_ms != null)
 			.map((r) => ({
+				driver_uuid: r.driver_uuid,
 				driver_name: r.driver_name,
 				class_name: r.class_name,
 				stage_ms: r.elapsed_ms as number,

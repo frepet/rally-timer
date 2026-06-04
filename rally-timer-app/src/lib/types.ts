@@ -24,6 +24,7 @@ export const NewDriver = z.object({
 export type BundleResponse = {
 	drivers: {
 		id: number;
+		uuid: string;
 		name: string;
 		rfid_tag: string;
 		class_id: number;

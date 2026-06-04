@@ -63,6 +63,8 @@ export const sv = {
 	noResultsYet: 'Inga resultat än.',
 	noStagesYet: 'Inga sträckor än.',
 	noStageResultsYet: 'Inga sträckaresultat än.',
+	ratingLabel: 'Rating',
+	ratingDeltaLabel: 'Δ Rating',
 
 	// Championships page
 	noChampionshipsYet: 'Inga mästerskap än.',
@@ -411,6 +413,8 @@ export const en: typeof sv = {
 	noResultsYet: 'No results yet.',
 	noStagesYet: 'No stages yet.',
 	noStageResultsYet: 'No stage results yet.',
+	ratingLabel: 'Rating',
+	ratingDeltaLabel: 'Δ Rating',
 
 	// Championships page
 	noChampionshipsYet: 'No championships yet.',

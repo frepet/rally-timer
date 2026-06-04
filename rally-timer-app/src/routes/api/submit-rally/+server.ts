@@ -3,6 +3,8 @@ import { sql } from '../../../lib/server/db';
 import { throwIfNotAdmin } from '../../../lib/server/keycloak';
 import { submitRallySchema } from '../../../lib/server/schemas';
 import { buildStageTimes } from '../../../lib/domain/rallySubmission';
+import { buildStageData } from '../../../lib/domain/submittedRally';
+import { computeRallyRatings } from '../../../lib/domain/ratings';
 
 export async function POST(event: RequestEvent): Promise<Response> {
 	await throwIfNotAdmin(event);
@@ -75,6 +77,27 @@ export async function POST(event: RequestEvent): Promise<Response> {
 		(r): r is typeof r & { elapsed_ms: number } => r.elapsed_ms !== null
 	);
 
+	// Load current ratings for all drivers appearing in this rally
+	const driverUuids = [...new Set(stageTimes.map((r) => r.driver_uuid))];
+	const driverRows =
+		driverUuids.length > 0
+			? await sql`SELECT uuid::text AS uuid, rating FROM drivers WHERE uuid = ANY(${driverUuids}::uuid[])`
+			: [];
+	const initialRatings = new Map(driverRows.map((r) => [r.uuid as string, r.rating as number]));
+
+	// Compute Elo changes for this rally
+	const stagesForRating = buildStageData(
+		stageTimes.map((r) => ({
+			driver_uuid: r.driver_uuid,
+			driver_name: r.driver_name,
+			class_name: r.class_name,
+			stage_name: r.stage_name,
+			elapsed_ms: r.elapsed_ms,
+			dnf: r.dnf
+		}))
+	);
+	const { finalRatings } = computeRallyRatings(stagesForRating, initialRatings);
+
 	let submittedRallyId: string;
 
 	// TransactionSql loses call signatures via Omit<> — cast to the outer sql type
@@ -96,6 +119,16 @@ export async function POST(event: RequestEvent): Promise<Response> {
 			await tsql`
 				INSERT INTO championship_rallies (championship_id, rally_id)
 				VALUES (${champId}::uuid, ${submittedRallyId}::uuid)
+			`;
+		}
+
+		// Persist rating changes
+		for (const [driverUuid, ratingAfter] of finalRatings) {
+			const ratingBefore = initialRatings.get(driverUuid) ?? 1500;
+			await tsql`UPDATE drivers SET rating = ${ratingAfter} WHERE uuid = ${driverUuid}::uuid`;
+			await tsql`
+				INSERT INTO rally_driver_ratings (rally_id, driver_uuid, rating_before, rating_after)
+				VALUES (${submittedRallyId}::uuid, ${driverUuid}::uuid, ${ratingBefore}, ${ratingAfter})
 			`;
 		}
 	});

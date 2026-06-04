@@ -7,7 +7,7 @@ const driver = (
 	name: string,
 	class_name: string,
 	rfid_tag: string | null = `tag${id}`
-) => ({ id, name, class_name, rfid_tag });
+) => ({ id, uuid: `uuid-${id}`, name, class_name, rfid_tag });
 
 const stage = (id: number, name = `SS${id}`) => ({ id, name, is_closed: false });
 const start = (driver_id: number, stage_id: number, ts: number) => ({ driver_id, stage_id, ts });
@@ -117,6 +117,7 @@ describe('buildRallyRows', () => {
 				status: 'closed' as const,
 				rows: [
 					{
+						driver_uuid: 'uuid-alice',
 						driver_name: 'Alice',
 						class_name: 'A',
 						stage_ms: 4000,
@@ -143,6 +144,7 @@ describe('buildRallyRows', () => {
 				status: 'closed' as const,
 				rows: [
 					{
+						driver_uuid: 'uuid-alice',
 						driver_name: 'Alice',
 						class_name: 'A',
 						stage_ms: 4000,
@@ -159,6 +161,7 @@ describe('buildRallyRows', () => {
 				status: 'closed' as const,
 				rows: [
 					{
+						driver_uuid: 'uuid-alice',
 						driver_name: 'Alice',
 						class_name: 'A',
 						stage_ms: 7000,
@@ -184,6 +187,7 @@ describe('buildRallyRows', () => {
 				status: 'closed' as const,
 				rows: [
 					{
+						driver_uuid: 'uuid-alice',
 						driver_name: 'Alice',
 						class_name: 'A',
 						stage_ms: 4000,
@@ -194,6 +198,7 @@ describe('buildRallyRows', () => {
 						dnf: false
 					},
 					{
+						driver_uuid: 'uuid-bob',
 						driver_name: 'Bob',
 						class_name: 'A',
 						stage_ms: 5000,
@@ -223,6 +228,7 @@ describe('buildRallyRows', () => {
 				status: 'closed' as const,
 				rows: [
 					{
+						driver_uuid: 'uuid-alice',
 						driver_name: 'Alice',
 						class_name: 'A',
 						stage_ms: 10000,
@@ -233,6 +239,7 @@ describe('buildRallyRows', () => {
 						dnf: false
 					},
 					{
+						driver_uuid: 'uuid-bob',
 						driver_name: 'Bob',
 						class_name: 'A',
 						stage_ms: 5000,
@@ -249,6 +256,7 @@ describe('buildRallyRows', () => {
 				status: 'closed' as const,
 				rows: [
 					{
+						driver_uuid: 'uuid-alice',
 						driver_name: 'Alice',
 						class_name: 'A',
 						stage_ms: 10000,
@@ -279,6 +287,7 @@ describe('buildRallyRows', () => {
 				status: 'closed' as const,
 				rows: [
 					{
+						driver_uuid: 'uuid-diana',
 						driver_name: 'Diana',
 						class_name: 'A',
 						stage_ms: 4000,
@@ -289,6 +298,7 @@ describe('buildRallyRows', () => {
 						dnf: false
 					},
 					{
+						driver_uuid: 'uuid-bob',
 						driver_name: 'Bob',
 						class_name: 'A',
 						stage_ms: 8000,
@@ -305,6 +315,7 @@ describe('buildRallyRows', () => {
 				status: 'closed' as const,
 				rows: [
 					{
+						driver_uuid: 'uuid-diana',
 						driver_name: 'Diana',
 						class_name: 'A',
 						stage_ms: 3000,
