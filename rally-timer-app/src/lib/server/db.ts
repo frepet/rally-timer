@@ -25,6 +25,7 @@ import { runMigration as run011 } from './migrations/011_gate_events_unique_time
 import { runMigration as run012 } from './migrations/012_training';
 import { runMigration as run013 } from './migrations/013_settings';
 import { runMigration as run014 } from './migrations/014_driver_rating';
+import { runMigration as run015 } from './migrations/015_stage_order';
 
 export async function runMigrations() {
 	await run000();
@@ -42,6 +43,7 @@ export async function runMigrations() {
 	await run012();
 	await run013();
 	await run014();
+	await run015();
 }
 
 export const migrationsReady = runMigrations().catch((e) => {

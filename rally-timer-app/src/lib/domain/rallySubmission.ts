@@ -26,6 +26,7 @@ export type StageTimeResult = {
 	class_id: number;
 	class_name: string;
 	stage_name: string;
+	stage_order: number;
 	elapsed_ms: number | null;
 	dnf: boolean;
 };
@@ -70,6 +71,19 @@ export function buildStageTimes(startRows: StartRow[], finishRows: FinishRow[]):
 		groups.get(key)!.starts.push(se.ts_ms);
 	}
 
+	// Determine chronological stage order from the first start event per stage.
+	const stageFirstStart = new Map<number, number>();
+	for (const g of groups.values()) {
+		const minStart = g.starts.reduce((min, s) => (s < min ? s : min));
+		const existing = stageFirstStart.get(g.stage_id);
+		if (existing === undefined || minStart < existing) stageFirstStart.set(g.stage_id, minStart);
+	}
+	const stageOrderMap = new Map<number, number>(
+		[...stageFirstStart.entries()]
+			.sort(([, a], [, b]) => a - b)
+			.map(([stageId], idx) => [stageId, idx])
+	);
+
 	return [...groups.values()].map((g) => {
 		const finishes = finishMap.get(`${g.stage_id}:${g.driver_tag}`) ?? [];
 		const effectiveTs = (fe: FinishRow) => fe.timestamp + fe.penalty_ms;
@@ -85,6 +99,7 @@ export function buildStageTimes(startRows: StartRow[], finishRows: FinishRow[]):
 			class_id: g.class_id,
 			class_name: g.class_name,
 			stage_name: g.stage_name,
+			stage_order: stageOrderMap.get(g.stage_id) ?? 0,
 			elapsed_ms,
 			dnf
 		};

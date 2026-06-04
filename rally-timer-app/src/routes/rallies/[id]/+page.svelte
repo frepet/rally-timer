@@ -24,6 +24,7 @@
 			driver_name: string;
 			class_name: string;
 			stage_name: string;
+			stage_order: number;
 			elapsed_ms: number | null;
 			best_lap_ms: number | null;
 			dnf: boolean;

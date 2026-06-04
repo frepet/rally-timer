@@ -92,6 +92,7 @@ export async function POST(event: RequestEvent): Promise<Response> {
 			driver_name: r.driver_name,
 			class_name: r.class_name,
 			stage_name: r.stage_name,
+			stage_order: r.stage_order,
 			elapsed_ms: r.elapsed_ms,
 			dnf: r.dnf
 		}))

@@ -26,6 +26,7 @@ const result = (
 	class_id: opts.class_id ?? 1,
 	class_name: opts.class_name ?? 'ClassA',
 	stage_name: opts.stage_name ?? 'SS1',
+	stage_order: 0,
 	elapsed_ms,
 	dnf: false
 });
