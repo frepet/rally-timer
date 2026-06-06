@@ -4,6 +4,7 @@
 	import { kcFetch } from '../../lib/kcFetch';
 	import { isAdmin } from '../../lib/stores/auth';
 	import { t } from '../../lib/stores/locale.svelte';
+	import { playBeep, closeAudio } from '../../lib/beep';
 	import type { TrainingDriverResult } from '../../lib/domain/training';
 	import TrainingResults from '../../lib/TrainingResults.svelte';
 
@@ -32,10 +33,29 @@
 
 	const eligibleGates = $derived(gates.filter((g) => g.stage_id === null));
 
+	type DriverSnapshot = { last_pass_ms: number | null; lap_count: number };
+	let prevDriverState = new Map<number, DriverSnapshot>();
+
 	async function loadState(syncForm = false) {
 		const res = await fetch('/api/training');
 		if (!res.ok) return;
-		tr = (await res.json()) as TrainingState;
+		const newState = (await res.json()) as TrainingState;
+
+		for (const driver of newState.drivers) {
+			const prev = prevDriverState.get(driver.driver_id);
+			if (prev && driver.last_pass_ms !== null && driver.last_pass_ms !== prev.last_pass_ms) {
+				if (driver.lap_count > prev.lap_count) {
+					playBeep(880, 0.3, 0.5);
+				} else {
+					playBeep(440, 0.2, 0.35);
+				}
+			}
+		}
+		prevDriverState = new Map(
+			newState.drivers.map((d) => [d.driver_id, { last_pass_ms: d.last_pass_ms, lap_count: d.lap_count }])
+		);
+
+		tr = newState;
 		if (syncForm) {
 			cooldownSecondsInput = Math.round(tr.cooldown_ms / 1000);
 			selectedGateId = tr.gate_id ?? '';
@@ -112,7 +132,10 @@
 		loadState(true);
 		loadGates();
 		const timer = setInterval(() => loadState(), 2000);
-		return () => clearInterval(timer);
+		return () => {
+			clearInterval(timer);
+			closeAudio();
+		};
 	});
 </script>
 
