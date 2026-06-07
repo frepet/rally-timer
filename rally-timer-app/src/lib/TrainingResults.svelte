@@ -82,16 +82,21 @@
 									<Badge color="green" class="text-xs">{t.trainingBestLap}</Badge>
 								{/if}
 							</div>
-							{#if canDelete}
-								<button
-									type="button"
-									class="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-red-500 dark:hover:bg-gray-700 dark:hover:text-red-400"
-									onclick={() => onDeleteLap!(lap.gate_event_id)}
-									aria-label={t.delete}
-								>
-									<TrashBinOutline size="xs" />
-								</button>
-							{/if}
+							<div class="flex items-center gap-3">
+								{#if lap.rssi !== null}
+									<span class="font-mono text-xs text-gray-400">{t.trainingRssi} {lap.rssi}</span>
+								{/if}
+								{#if canDelete}
+									<button
+										type="button"
+										class="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-red-500 dark:hover:bg-gray-700 dark:hover:text-red-400"
+										onclick={() => onDeleteLap!(lap.gate_event_id)}
+										aria-label={t.delete}
+									>
+										<TrashBinOutline size="xs" />
+									</button>
+								{/if}
+							</div>
 						</li>
 					{/each}
 				</ul>

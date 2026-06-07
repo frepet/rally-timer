@@ -338,6 +338,7 @@ export const sv = {
 	trainingSaveFailed: 'Kunde inte spara: ',
 	trainingClearFailed: 'Kunde inte starta ny session: ',
 	trainingNewSessionConfirm: 'Starta ny session',
+	trainingRssi: 'RSSI',
 
 	// Landing page view picker
 	viewPickerLabel: 'Visa på startsidan',
@@ -687,6 +688,7 @@ export const en: typeof sv = {
 	trainingSaveFailed: 'Failed to save: ',
 	trainingClearFailed: 'Failed to start new session: ',
 	trainingNewSessionConfirm: 'Start new session',
+	trainingRssi: 'RSSI',
 
 	// Landing page view picker
 	viewPickerLabel: 'Show on home page',

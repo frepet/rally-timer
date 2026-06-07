@@ -1,12 +1,14 @@
 export type TrainingPass = {
 	gate_event_id: number;
 	timestamp: number;
+	rssi: number | null;
 };
 
 export type TrainingLap = {
 	gate_event_id: number;
 	timestamp: number;
 	lap_ms: number;
+	rssi: number | null;
 };
 
 export type TrainingDriverInput = {
@@ -58,7 +60,8 @@ export function computeTrainingLaps(passes: TrainingPass[], cooldownMs: number):
 		laps.push({
 			gate_event_id: kept[i].gate_event_id,
 			timestamp: kept[i].timestamp,
-			lap_ms: kept[i].timestamp - kept[i - 1].timestamp
+			lap_ms: kept[i].timestamp - kept[i - 1].timestamp,
+			rssi: kept[i].rssi
 		});
 	}
 	return laps;

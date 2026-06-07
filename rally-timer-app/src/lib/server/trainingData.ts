@@ -31,6 +31,7 @@ export async function fetchTrainingDriverInputs(
 		gate_event_id: number;
 		timestamp: string;
 		tag: string;
+		rssi: number | null;
 		driver_id: number | null;
 		driver_name: string | null;
 		class_id: number | null;
@@ -41,6 +42,7 @@ export async function fetchTrainingDriverInputs(
 		SELECT ge.id        AS gate_event_id,
 		       ge.timestamp AS timestamp,
 		       ge.tag       AS tag,
+		       ge.rssi      AS rssi,
 		       d.id         AS driver_id,
 		       d.name       AS driver_name,
 		       d.class_id   AS class_id,
@@ -70,7 +72,8 @@ export async function fetchTrainingDriverInputs(
 		}
 		const p: TrainingPass = {
 			gate_event_id: r.gate_event_id,
-			timestamp: Number(r.timestamp)
+			timestamp: Number(r.timestamp),
+			rssi: r.rssi
 		};
 		input.passes.push(p);
 	}

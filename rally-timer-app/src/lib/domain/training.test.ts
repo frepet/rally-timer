@@ -8,7 +8,7 @@ import {
 	type TrainingPass
 } from './training';
 
-const pass = (id: number, timestamp: number): TrainingPass => ({ gate_event_id: id, timestamp });
+const pass = (id: number, timestamp: number): TrainingPass => ({ gate_event_id: id, timestamp, rssi: null });
 
 describe('filterPassesByCooldown', () => {
 	it('returns empty when no passes', () => {
@@ -39,8 +39,8 @@ describe('computeTrainingLaps', () => {
 	it('returns one lap per consecutive pass after the first', () => {
 		const laps = computeTrainingLaps([pass(1, 1000), pass(2, 2500), pass(3, 4000)], 1000);
 		expect(laps).toEqual([
-			{ gate_event_id: 2, timestamp: 2500, lap_ms: 1500 },
-			{ gate_event_id: 3, timestamp: 4000, lap_ms: 1500 }
+			{ gate_event_id: 2, timestamp: 2500, lap_ms: 1500, rssi: null },
+			{ gate_event_id: 3, timestamp: 4000, lap_ms: 1500, rssi: null }
 		]);
 	});
 
