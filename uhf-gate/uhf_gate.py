@@ -53,6 +53,7 @@ class UHFGate:
         # Threads
         self.sync_thread: threading.Thread | None = None
         self.heartbeat_thread: threading.Thread | None = None
+        self.ntp_thread: threading.Thread | None = None
 
     def setup_signal_handlers(self):
         """Setup signal handlers for graceful shutdown."""
@@ -88,7 +89,19 @@ class UHFGate:
             except Exception as e:
                 logger.error(f"Sync worker error: {e}")
 
-            time.sleep(2)
+            time.sleep(1)
+
+    def ntp_worker(self):
+        """Background thread re-syncing the NTP offset (system clocks drift)."""
+        while self.running:
+            for _ in range(15 * 60):
+                if not self.running:
+                    return
+                time.sleep(1)
+            try:
+                sync_time(config.ntp_server)
+            except Exception as e:
+                logger.warning(f"Periodic NTP sync failed: {e}")
 
     def heartbeat_worker(self):
         """Background thread for sending heartbeats."""
@@ -119,15 +132,9 @@ class UHFGate:
         ts_str = datetime.now().strftime("%H:%M:%S.%f")[:-3]
         logger.info(f"TAG  {ts_str}  EPC: {epc} → {short_id}  RSSI: {rssi}")
 
-        # Push to queue
-        event_id = self.queue.push(self.api.gate_uuid, epc, int(now), rssi)
-
-        # Try immediate sync
-        if self.api.ensure_registered():
-            success = self.api.post_event(epc, int(now), rssi)
-            if success:
-                self.queue.mark_synced([event_id])
-                logger.debug(f"Immediate sync successful")
+        # Push to queue; the sync thread uploads it within a second. Never do
+        # network I/O here — a slow API would block tag reading for seconds.
+        self.queue.push(self.api.gate_uuid, epc, int(now), rssi)
 
     def run(self):
         """Main event loop."""
@@ -162,6 +169,9 @@ class UHFGate:
         )
         self.heartbeat_thread.start()
 
+        self.ntp_thread = threading.Thread(target=self.ntp_worker, daemon=True)
+        self.ntp_thread.start()
+
         # Start polling
         self.reader.start_polling()
 
@@ -188,6 +198,16 @@ class UHFGate:
                         tag = parse_inventory(frame)
                         if tag and tag["rssi"] >= config.rssi_threshold:
                             self.process_tag(tag["epc"], tag["rssi"])
+                elif not self.reader.is_connected():
+                    # Cable pulled or reader power-cycled: keep retrying
+                    # instead of silently reading nothing forever.
+                    logger.warning("Reader disconnected — reconnecting in 5s")
+                    self.reader.close()
+                    time.sleep(5)
+                    if self.running and self.reader.connect():
+                        self.reader.start_polling()
+                        poll_start = time.time()
+                        logger.info("Reader reconnected")
                 else:
                     time.sleep(0.005)
 

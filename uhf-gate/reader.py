@@ -35,14 +35,18 @@ def parse_inventory(frame: bytes) -> Optional[dict]:
     """Parse a tag inventory frame from the YRM100 reader."""
     if frame is None or len(frame) < 7:
         return None
-    
+
     if len(frame) < 9:
         return None
-    
+
     # Frame format: 0xBB | Type | Command | PL_Hi | PL_Lo | [Payload...] | Checksum | 0x7E
     if frame[0] != 0xBB or frame[-1] != 0x7E:
         return None
-    
+
+    # Reject corrupted frames: checksum covers Type through payload.
+    if checksum(frame[1:-2]) != frame[-2]:
+        return None
+
     if frame[2] == 0x22 and frame[1] in (0x01, 0x02):
         pl_len = (frame[3] << 8) | frame[4]
         payload = frame[5 : 5 + pl_len]
@@ -64,19 +68,43 @@ def parse_inventory(frame: bytes) -> Optional[dict]:
     return None
 
 
+# Largest plausible payload (inventory frames are ~17 bytes; leave headroom).
+MAX_PAYLOAD_LEN = 1024
+# Safety valve so a malformed stream can never grow the buffer unboundedly.
+MAX_BUFFER_LEN = 8192
+
+
 def extract_frames(buf: bytes) -> tuple[list[bytes], bytes]:
-    """Extract complete frames from serial buffer."""
+    """Extract complete frames from the serial buffer.
+
+    Uses the length field in the frame header rather than scanning for the
+    0x7E end marker — payload bytes (EPC data) may legitimately contain 0x7E,
+    which would otherwise split frames mid-payload.
+    """
     frames = []
     while True:
         start = buf.find(b"\xBB")
         if start == -1:
+            buf = b""
             break
-        end = buf.find(b"\x7E", start)
-        if end == -1:
-            buf = buf[start:]
+        buf = buf[start:]
+        if len(buf) < 5:
+            break  # incomplete header — wait for more data
+        pl_len = (buf[3] << 8) | buf[4]
+        if pl_len > MAX_PAYLOAD_LEN:
+            buf = buf[1:]  # corrupt length field — resync past this marker
+            continue
+        total = 5 + pl_len + 2  # header + payload + checksum + end marker
+        if len(buf) < total:
             break
-        frames.append(buf[start : end + 1])
-        buf = buf[end + 1 :]
+        frame = buf[:total]
+        if frame[-1] == 0x7E:
+            frames.append(frame)
+            buf = buf[total:]
+        else:
+            buf = buf[1:]  # false start marker — resync
+    if len(buf) > MAX_BUFFER_LEN:
+        buf = buf[-MAX_BUFFER_LEN:]
     return frames, buf
 
 
@@ -156,16 +184,24 @@ class YRM100Reader:
     def stop_polling(self):
         """Stop continuous polling."""
         if self._connected and self.serial:
-            cmd = bytes([0xBB, 0x00, 0x28, 0x00, 0x00, 0x28, 0x7E])
-            self.serial.write(cmd)  # type: ignore
-            time.sleep(0.1)
-            self.serial.reset_input_buffer()  # type: ignore
+            try:
+                cmd = bytes([0xBB, 0x00, 0x28, 0x00, 0x00, 0x28, 0x7E])
+                self.serial.write(cmd)  # type: ignore
+                time.sleep(0.1)
+                self.serial.reset_input_buffer()  # type: ignore
+            except (serial.SerialException, OSError):
+                pass  # already disconnected
     
     def read_chunk(self, size: int = 256) -> bytes:
-        """Read available data from serial."""
+        """Read available data from serial. Marks the reader disconnected on error."""
         if not self._connected or not self.serial:
             return b""
-        return self.serial.read(size)  # type: ignore
+        try:
+            return self.serial.read(size)  # type: ignore
+        except (serial.SerialException, OSError) as e:
+            logger.error(f"Serial read failed (device unplugged?): {e}")
+            self._connected = False
+            return b""
     
     def is_connected(self) -> bool:
         """Check if still connected."""
@@ -177,7 +213,10 @@ class YRM100Reader:
         """Close the connection."""
         self.stop_polling()
         if self.serial:
-            self.serial.close()
+            try:
+                self.serial.close()
+            except (serial.SerialException, OSError):
+                pass
             self.serial = None
         self._connected = False
         logger.info("Reader disconnected")
