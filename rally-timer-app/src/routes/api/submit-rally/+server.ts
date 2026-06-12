@@ -77,15 +77,9 @@ export async function POST(event: RequestEvent): Promise<Response> {
 		(r): r is typeof r & { elapsed_ms: number } => r.elapsed_ms !== null
 	);
 
-	// Load current ratings for all drivers appearing in this rally
 	const driverUuids = [...new Set(stageTimes.map((r) => r.driver_uuid))];
-	const driverRows =
-		driverUuids.length > 0
-			? await sql`SELECT uuid::text AS uuid, rating FROM drivers WHERE uuid = ANY(${driverUuids}::uuid[])`
-			: [];
-	const initialRatings = new Map(driverRows.map((r) => [r.uuid as string, r.rating as number]));
 
-	// Compute Elo changes for this rally
+	// Input to the Elo computation for this rally
 	const stagesForRating = buildStageData(
 		stageTimes.map((r) => ({
 			driver_uuid: r.driver_uuid,
@@ -97,13 +91,25 @@ export async function POST(event: RequestEvent): Promise<Response> {
 			dnf: r.dnf
 		}))
 	);
-	const { finalRatings } = computeRallyRatings(stagesForRating, initialRatings);
 
 	let submittedRallyId: string;
 
 	// TransactionSql loses call signatures via Omit<> — cast to the outer sql type
 	await sql.begin(async (tx) => {
 		const tsql = tx as unknown as typeof sql;
+
+		// Read base ratings with the rows locked so two concurrent submissions
+		// cannot both start from the same rating and double-apply Elo deltas.
+		const driverRows =
+			driverUuids.length > 0
+				? await tsql`
+						SELECT uuid::text AS uuid, rating FROM drivers
+						WHERE uuid = ANY(${driverUuids}::uuid[])
+						FOR UPDATE
+					`
+				: [];
+		const initialRatings = new Map(driverRows.map((r) => [r.uuid as string, r.rating as number]));
+		const { finalRatings } = computeRallyRatings(stagesForRating, initialRatings);
 
 		const [sr] = await tsql`
 			INSERT INTO submitted_rallies (name, submitted_at)
