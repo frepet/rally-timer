@@ -1,5 +1,6 @@
 import { json, error, type RequestEvent } from '@sveltejs/kit';
 import { sql } from '../../../lib/server/db';
+import { requireGateToken } from '../../../lib/server/gateAuth';
 import { gateSyncSchema } from '../../../lib/server/schemas';
 import { emitGateEvent } from '../../../lib/server/gateEvents';
 
@@ -15,6 +16,18 @@ export async function POST(event: RequestEvent): Promise<Response> {
 
 	const { events } = parsed.data;
 	const now = Date.now();
+
+	// Authenticate every distinct gate up front: a 401 must reject the whole
+	// batch (a 200 tells the reader its queue can be marked synced).
+	const gateIds = [...new Set(events.map((e) => e.gate_id))];
+	const knownGates = gateIds.length
+		? await sql<{ id: string; token: string | null }[]>`
+				SELECT id, token FROM gates WHERE id = ANY(${gateIds})
+			`
+		: [];
+	for (const gate of knownGates) {
+		requireGateToken(event, gate.token);
+	}
 
 	const results: { stored: number; finish_added: number; errors: string[] } = {
 		stored: 0,

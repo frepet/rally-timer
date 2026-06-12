@@ -36,7 +36,12 @@ class UHFGate:
         self.running = False
         self.reader = YRM100Reader(config.serial_port)
         self.queue = EventQueue(config.db_file)
-        self.api = APIClient(config.api_base_url, config.get_or_create_uuid())
+        self.api = APIClient(
+            config.api_base_url,
+            config.get_or_create_uuid(),
+            token=config.get_token(),
+            on_token=config.save_token,
+        )
         self.feedback = Feedback(config.led_pin, config.dedup_led_pin, config.buzzer_pin)
 
         # State

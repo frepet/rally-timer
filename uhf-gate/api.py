@@ -21,33 +21,68 @@ class QueuedEvent:
 
 
 class APIClient:
-    def __init__(self, base_url: str, gate_uuid: str, timeout: float = 10.0):
+    def __init__(
+        self,
+        base_url: str,
+        gate_uuid: str,
+        timeout: float = 10.0,
+        token: str | None = None,
+        on_token=None,
+    ):
         self.base_url = base_url.rstrip("/")
         self.gate_uuid = gate_uuid
         self.timeout = timeout
         self.session = requests.Session()
         self._registered = False
-    
+        self.on_token = on_token
+        self._set_token(token)
+
+    def _set_token(self, token: str | None):
+        self.token = token
+        if token:
+            self.session.headers["Authorization"] = f"Bearer {token}"
+
     def _url(self, path: str) -> str:
         return f"{self.base_url}{path}"
-    
+
     def register(self) -> bool:
         """Register this gate with the server."""
         try:
             response = self.session.post(
                 self._url("/api/gate"),
-                json={"id": self.gate_uuid, "name": f"Gate-{self.gate_uuid[:8]}"},
+                json={
+                    "id": self.gate_uuid,
+                    "name": f"Gate-{self.gate_uuid[:8]}",
+                    "request_token": True,
+                },
                 timeout=self.timeout
             )
-            
+
             if response.status_code in (200, 201):
                 logger.info(f"Gate registered: {self.gate_uuid}")
+                try:
+                    token = response.json().get("token")
+                except ValueError:
+                    token = None
+                if token:
+                    # Issued once per gate; persist it for subsequent runs.
+                    self._set_token(token)
+                    if self.on_token:
+                        self.on_token(token)
+                    logger.info("Gate token received and stored")
                 self._registered = True
                 return True
+            elif response.status_code == 401:
+                logger.error(
+                    "Registration rejected (401): the server holds a different "
+                    "token for this gate. Delete and re-register the gate in "
+                    "the admin UI, or restore the original .gate_token file."
+                )
+                return False
             else:
                 logger.error(f"Registration failed: {response.status_code} {response.text}")
                 return False
-                
+
         except requests.RequestException as e:
             logger.error(f"Registration error: {e}")
             return False

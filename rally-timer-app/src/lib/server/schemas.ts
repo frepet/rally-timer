@@ -82,7 +82,8 @@ export const finishUpdateSchema = z
 
 export const gateRegisterSchema = z.object({
 	id: z.string().uuid(),
-	name: z.string().max(100).optional()
+	name: z.string().max(100).optional(),
+	request_token: z.boolean().optional()
 });
 
 export const gateEventSchema = z.object({

@@ -1,5 +1,6 @@
 import { json, error, type RequestEvent } from '@sveltejs/kit';
 import { sql } from '../../../lib/server/db';
+import { requireGateToken } from '../../../lib/server/gateAuth';
 import { gateEventSchema } from '../../../lib/server/schemas';
 import { emitGateEvent } from '../../../lib/server/gateEvents';
 import { computeLaps } from '../../../lib/domain/rallycross';
@@ -17,8 +18,9 @@ export async function POST(event: RequestEvent): Promise<Response> {
 	const { gate_id, timestamp_ms, tag, rssi } = parsed.data;
 	const now = Date.now();
 
-	const [gate] = await sql`SELECT id, stage_id FROM gates WHERE id = ${gate_id}`;
+	const [gate] = await sql`SELECT id, stage_id, token FROM gates WHERE id = ${gate_id}`;
 	if (!gate) throw error(404, 'Gate not registered');
+	requireGateToken(event, gate.token as string | null);
 
 	const [row] = await sql`
 		INSERT INTO gate_events (gate_id, tag, timestamp, rssi, synced_at)

@@ -1,5 +1,6 @@
 import { json, error, type RequestEvent } from '@sveltejs/kit';
 import { sql } from '../../../../lib/server/db';
+import { registerGate } from '../../../../lib/server/gateAuth';
 import { throwIfNotAdmin } from '../../../../lib/server/keycloak';
 import { gateRegisterSchema, gateAssignSchema } from '../../../../lib/server/schemas';
 
@@ -13,18 +14,7 @@ export async function POST(event: RequestEvent): Promise<Response> {
 	const parsed = gateRegisterSchema.safeParse(body);
 	if (!parsed.success) return json({ errors: parsed.error.flatten() }, { status: 400 });
 
-	const { id, name } = parsed.data;
-	const now = Date.now();
-
-	await sql`
-		INSERT INTO gates (id, name, last_seen, created_at)
-		VALUES (${id}, ${name ?? null}, ${now}, ${now})
-		ON CONFLICT (id) DO UPDATE SET
-			name = COALESCE(EXCLUDED.name, gates.name),
-			last_seen = ${now}
-	`;
-
-	return json({ id, registered: true }, { status: 201 });
+	return registerGate(event, parsed.data);
 }
 
 export async function PATCH(event: RequestEvent): Promise<Response> {
