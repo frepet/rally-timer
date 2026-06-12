@@ -81,7 +81,7 @@
 	let clearModalOpen = $state(false);
 
 	// Heat management
-	let selectedDriverIds = $state(new Set<number>());
+	let selectedDriverIds = new SvelteSet<number>();
 	let closeModalOpen = $state(false);
 	let creating = $state(false);
 	let starting = $state(false);
@@ -239,14 +239,13 @@
 	}
 
 	function selectGroup(group: number[]) {
-		selectedDriverIds = new Set(group);
+		selectedDriverIds.clear();
+		for (const id of group) selectedDriverIds.add(id);
 	}
 
 	function toggleDriverSelection(id: number) {
-		const next = new Set(selectedDriverIds);
-		if (next.has(id)) next.delete(id);
-		else next.add(id);
-		selectedDriverIds = next;
+		if (selectedDriverIds.has(id)) selectedDriverIds.delete(id);
+		else selectedDriverIds.add(id);
 	}
 
 	async function createHeat() {
@@ -259,7 +258,7 @@
 				body: JSON.stringify({ driver_ids: [...selectedDriverIds] })
 			});
 			if (!res.ok) throw new Error(await res.text());
-			selectedDriverIds = new Set();
+			selectedDriverIds.clear();
 			await Promise.all([loadState(), loadLeaderboard(), loadSuggest()]);
 		} catch (e) {
 			alert(t.rxCreateFailed + (e as Error).message);
@@ -574,10 +573,10 @@
 					<div class="mb-4">
 						<p class="mb-2 text-sm text-gray-500">{t.rxSuggestedGroups}</p>
 						<div class="flex flex-wrap gap-2">
-							{#each suggestedGroups as group, gi}
+							{#each suggestedGroups as group, gi (group.join('-'))}
 								<Button
 									size="xs"
-									color={[...selectedDriverIds].sort().join() ===
+									color={[...selectedDriverIds].sort((a, b) => a - b).join() ===
 									[...group].sort((a, b) => a - b).join()
 										? 'blue'
 										: 'alternative'}

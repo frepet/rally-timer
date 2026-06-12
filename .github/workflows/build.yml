@@ -5,6 +5,7 @@ on:
   push:
     branches: [main]
     tags: ['v*']
+  pull_request:
 
 jobs:
   unit-test:
@@ -17,6 +18,10 @@ jobs:
           cache: npm
           cache-dependency-path: rally-timer-app/package-lock.json
       - run: npm ci --no-audit --no-fund
+        working-directory: rally-timer-app
+      - run: npm run check
+        working-directory: rally-timer-app
+      - run: npm run lint
         working-directory: rally-timer-app
       - run: npm test
         working-directory: rally-timer-app
@@ -47,8 +52,6 @@ jobs:
         working-directory: rally-timer-app
       - run: npm run build
         working-directory: rally-timer-app
-        env:
-          PUBLIC_BUILD_SHA: dev
       - name: Start app
         working-directory: rally-timer-app
         env:
@@ -73,6 +76,7 @@ jobs:
         run: ./verify-training.sh http://localhost:3000
 
   build:
+    if: github.event_name != 'pull_request'
     needs: [unit-test, e2e]
     runs-on: ubuntu-latest
     permissions:
@@ -96,12 +100,12 @@ jobs:
             echo "tags=ghcr.io/frepet/rally-timer:dev,ghcr.io/frepet/rally-timer:dev-${{ github.sha }}" >> $GITHUB_OUTPUT
             echo "build_sha=${{ github.sha }}" >> $GITHUB_OUTPUT
           fi
-      - name: Write build SHA into .env
-        run: echo "PUBLIC_BUILD_SHA=${{ steps.tags.outputs.build_sha }}" > rally-timer-app/.env
       - uses: docker/build-push-action@v6
         with:
           context: ./rally-timer-app
           push: true
           tags: ${{ steps.tags.outputs.tags }}
+          build-args: |
+            PUBLIC_BUILD_SHA=${{ steps.tags.outputs.build_sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

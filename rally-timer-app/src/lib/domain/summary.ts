@@ -94,7 +94,14 @@ export function buildStageData(
 export function buildRallyRows(stageData: StageData[]): DisplayRallyRow[] {
 	const totals = new Map<
 		string,
-		{ driver_name: string; class_name: string; total: number; penalty: number; finished: number; dnf: boolean }
+		{
+			driver_name: string;
+			class_name: string;
+			total: number;
+			penalty: number;
+			finished: number;
+			dnf: boolean;
+		}
 	>();
 
 	for (const stage of stageData) {

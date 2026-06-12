@@ -13,7 +13,12 @@
 	} from '../../../lib/domain/rallycrossDisplay';
 
 	type Championship = { id: string; name: string };
-	type DriverRatingEntry = { driver_uuid: string; driver_name: string; rating_before: number; rating_after: number };
+	type DriverRatingEntry = {
+		driver_uuid: string;
+		driver_name: string;
+		rating_before: number;
+		rating_after: number;
+	};
 	type RallyDetail = {
 		name: string;
 		submitted_at: number;

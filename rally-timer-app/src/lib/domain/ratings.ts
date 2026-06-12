@@ -4,7 +4,7 @@ const BASE_RATING = 1500;
 const K_FACTOR = 32;
 
 // 10% of winning time as the time scale; tanh saturates toward 1 beyond ~3x that.
-const MARGIN_SCALE = 0.10;
+const MARGIN_SCALE = 0.1;
 
 export type RallyRatings = {
 	finalRatings: Map<string, number>;
@@ -43,8 +43,14 @@ function processGroup(
 			const { actualA, effectiveK } = pairScoreAndK(a, b);
 			const actualB = 1 - actualA;
 			const expectedB = 1 - expectedA;
-			deltas.set(a.driver_uuid, (deltas.get(a.driver_uuid) ?? 0) + effectiveK * (actualA - expectedA));
-			deltas.set(b.driver_uuid, (deltas.get(b.driver_uuid) ?? 0) + effectiveK * (actualB - expectedB));
+			deltas.set(
+				a.driver_uuid,
+				(deltas.get(a.driver_uuid) ?? 0) + effectiveK * (actualA - expectedA)
+			);
+			deltas.set(
+				b.driver_uuid,
+				(deltas.get(b.driver_uuid) ?? 0) + effectiveK * (actualB - expectedB)
+			);
 		}
 	}
 }

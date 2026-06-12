@@ -1,14 +1,35 @@
 import postgres from 'postgres';
 import { env } from '$env/dynamic/private';
 
+type Sql = ReturnType<typeof postgres>;
+
 declare global {
-	var __pgSql__: ReturnType<typeof postgres> | undefined;
+	var __pgSql__: Sql | undefined;
 }
 
-const sql = globalThis.__pgSql__ ?? postgres(env.DATABASE_URL);
-if (!globalThis.__pgSql__) globalThis.__pgSql__ = sql;
+function getSql(): Sql {
+	if (!globalThis.__pgSql__) {
+		if (!env.DATABASE_URL) {
+			throw new Error('DATABASE_URL environment variable is required');
+		}
+		globalThis.__pgSql__ = postgres(env.DATABASE_URL);
+	}
+	return globalThis.__pgSql__;
+}
 
-export { sql };
+// Lazy proxy: importing this module (e.g. during SvelteKit's build-time route
+// analysis) must not require a database connection, but the first actual query
+// fails fast with a clear error when DATABASE_URL is missing.
+export const sql: Sql = new Proxy((() => {}) as unknown as Sql, {
+	apply(_target, thisArg, args) {
+		return Reflect.apply(getSql() as unknown as (...a: unknown[]) => unknown, thisArg, args);
+	},
+	get(_target, prop) {
+		const real = getSql();
+		const value = Reflect.get(real as object, prop, real);
+		return typeof value === 'function' ? (value as (...a: unknown[]) => unknown).bind(real) : value;
+	}
+});
 
 import { runMigration as run000 } from './migrations/000_initial_schema';
 import { runMigration as run001 } from './migrations/001_class_crud';
@@ -45,8 +66,3 @@ export async function runMigrations() {
 	await run014();
 	await run015();
 }
-
-export const migrationsReady = runMigrations().catch((e) => {
-	console.error('Migration failed, crashing:', e);
-	process.exit(1);
-});

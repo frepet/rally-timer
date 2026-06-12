@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import '../app.css';
-	import { PUBLIC_BUILD_SHA } from '$env/static/public';
+	import { env } from '$env/dynamic/public';
 	import { page } from '$app/state';
 	import {
 		Button,
@@ -22,6 +22,8 @@
 	import { initLocale, t } from '../lib/stores/locale.svelte';
 
 	let { children, data } = $props();
+
+	const buildSha = env.PUBLIC_BUILD_SHA ?? 'dev';
 
 	let editingTitle = $state(false);
 	let titleDraft = $state(untrack(() => data.title));
@@ -147,5 +149,5 @@
 </Navbar>
 {@render children?.()}
 <footer class="mt-8 pb-4 text-center text-xs text-gray-400 dark:text-gray-600">
-	{PUBLIC_BUILD_SHA.startsWith('v') ? PUBLIC_BUILD_SHA : PUBLIC_BUILD_SHA.slice(0, 7)}
+	{buildSha.startsWith('v') ? buildSha : buildSha.slice(0, 7)}
 </footer>

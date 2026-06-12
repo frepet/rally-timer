@@ -18,7 +18,6 @@
 	import type { BundleResponse } from '../../../../lib/types';
 	import { t } from '../../../../lib/stores/locale.svelte';
 	import {
-		playBeep,
 		primeAudio,
 		getAudioCurrentTime,
 		scheduleBeepAt,

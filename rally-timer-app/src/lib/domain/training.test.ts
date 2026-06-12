@@ -8,7 +8,11 @@ import {
 	type TrainingPass
 } from './training';
 
-const pass = (id: number, timestamp: number): TrainingPass => ({ gate_event_id: id, timestamp, rssi: null });
+const pass = (id: number, timestamp: number): TrainingPass => ({
+	gate_event_id: id,
+	timestamp,
+	rssi: null
+});
 
 describe('filterPassesByCooldown', () => {
 	it('returns empty when no passes', () => {

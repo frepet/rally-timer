@@ -52,7 +52,10 @@
 			}
 		}
 		prevDriverState = new Map(
-			newState.drivers.map((d) => [d.driver_id, { last_pass_ms: d.last_pass_ms, lap_count: d.lap_count }])
+			newState.drivers.map((d) => [
+				d.driver_id,
+				{ last_pass_ms: d.last_pass_ms, lap_count: d.lap_count }
+			])
 		);
 
 		tr = newState;

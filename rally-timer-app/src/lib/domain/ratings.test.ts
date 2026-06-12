@@ -6,7 +6,13 @@ const BASE = 1500;
 
 function makeStage(
 	name: string,
-	rows: Array<{ uuid: string; driverName: string; className: string; stage_ms: number; dnf?: boolean }>
+	rows: Array<{
+		uuid: string;
+		driverName: string;
+		className: string;
+		stage_ms: number;
+		dnf?: boolean;
+	}>
 ): StageData {
 	return {
 		name,
@@ -33,7 +39,9 @@ describe('computeRallyRatings', () => {
 	});
 
 	it('skips stages with fewer than 2 drivers in a class', () => {
-		const stages = [makeStage('SS1', [{ uuid: 'a', driverName: 'Alice', className: 'A', stage_ms: 5000 }])];
+		const stages = [
+			makeStage('SS1', [{ uuid: 'a', driverName: 'Alice', className: 'A', stage_ms: 5000 }])
+		];
 		const { finalRatings } = computeRallyRatings(stages);
 		expect(finalRatings.get('a')).toBe(BASE);
 	});
