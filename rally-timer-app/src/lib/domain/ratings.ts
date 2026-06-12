@@ -23,6 +23,9 @@ function pairScoreAndK(
 
 	const winner_ms = Math.min(a.stage_ms, b.stage_ms);
 	const gap_ms = Math.abs(a.stage_ms - b.stage_ms);
+	// Equal times mean no information; non-positive times are corrupt data.
+	// Both would otherwise produce NaN/Infinity inside tanh (0/0 or x/0).
+	if (gap_ms === 0 || winner_ms <= 0) return { actualA: 0.5, effectiveK: 0 };
 	const effectiveK = K_FACTOR * Math.tanh(gap_ms / (winner_ms * MARGIN_SCALE));
 	const actualA = a.stage_ms <= b.stage_ms ? 1 : 0;
 	return { actualA, effectiveK };

@@ -104,10 +104,11 @@ export function buildRxDisplayFromSubmission(
 		.sort(([a], [b]) => b - a)
 		.map(([number, entries]) => {
 			const sorted = [...entries].sort((a, b) => {
-				if (a.dnf && b.dnf) return 0;
+				if (a.dnf && b.dnf) return a.driver_name.localeCompare(b.driver_name);
 				if (a.dnf) return 1;
 				if (b.dnf) return -1;
-				return (a.elapsed_ms ?? 0) - (b.elapsed_ms ?? 0);
+				const byTime = (a.elapsed_ms ?? 0) - (b.elapsed_ms ?? 0);
+				return byTime !== 0 ? byTime : a.driver_name.localeCompare(b.driver_name);
 			});
 			const total = sorted.length;
 			return {

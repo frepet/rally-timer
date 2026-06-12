@@ -4,6 +4,12 @@ export type RankedEntry = {
 	delta_prev: number | null;
 };
 
+/**
+ * Annotate a list of times with position and deltas.
+ *
+ * @param times Times in milliseconds, **already sorted ascending** — positions
+ * are assigned by array index, no sorting is performed here.
+ */
 export function rankTimes(times: number[]): RankedEntry[] {
 	if (times.length === 0) return [];
 	const p1 = times[0];

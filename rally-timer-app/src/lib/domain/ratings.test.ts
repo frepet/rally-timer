@@ -178,6 +178,30 @@ describe('computeRallyRatings', () => {
 		for (const r of finalRatings.values()) expect(Number.isInteger(r)).toBe(true);
 	});
 
+	it('equal times leave equal-rated drivers unchanged', () => {
+		const stages = [
+			makeStage('SS1', [
+				{ uuid: 'a', driverName: 'Alice', className: 'A', stage_ms: 5000 },
+				{ uuid: 'b', driverName: 'Bob', className: 'A', stage_ms: 5000 }
+			])
+		];
+		const { finalRatings } = computeRallyRatings(stages);
+		expect(finalRatings.get('a')).toBe(BASE);
+		expect(finalRatings.get('b')).toBe(BASE);
+	});
+
+	it('zero or negative stage times never produce NaN ratings', () => {
+		const stages = [
+			makeStage('SS1', [
+				{ uuid: 'a', driverName: 'Alice', className: 'A', stage_ms: 0 },
+				{ uuid: 'b', driverName: 'Bob', className: 'A', stage_ms: 0 },
+				{ uuid: 'c', driverName: 'Carol', className: 'A', stage_ms: 5000 }
+			])
+		];
+		const { finalRatings } = computeRallyRatings(stages);
+		for (const r of finalRatings.values()) expect(Number.isFinite(r)).toBe(true);
+	});
+
 	it('close margin yields smaller delta than large margin', () => {
 		const closeStage = makeStage('SS1', [
 			{ uuid: 'a', driverName: 'Alice', className: 'A', stage_ms: 5000 },
