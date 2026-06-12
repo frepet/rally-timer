@@ -14,7 +14,7 @@
 	import { DotsVerticalOutline, TrashBinOutline } from 'flowbite-svelte-icons';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { kcFetch } from '../../lib/kcFetch';
-	import { isAdmin } from '../../lib/stores/auth';
+	import { auth } from '../../lib/stores/auth.svelte';
 	import { t } from '../../lib/stores/locale.svelte';
 	import { playBeep, closeAudio } from '../../lib/beep';
 
@@ -244,7 +244,7 @@
 					<TableHeadCell>{t.nameIdHeader}</TableHeadCell>
 					<TableHeadCell>{t.assignedStageHeader}</TableHeadCell>
 					<TableHeadCell>{t.lastSeenHeader}</TableHeadCell>
-					{#if $isAdmin}
+					{#if auth.isAdmin}
 						<TableHeadCell class="text-right">{t.actions}</TableHeadCell>
 					{/if}
 				</TableHead>
@@ -257,9 +257,9 @@
 						>
 							<TableBodyCell>
 								{#if isOnline(gate)}
-									<Badge color="green">Online</Badge>
+									<Badge color="green">{t.gateOnline}</Badge>
 								{:else}
-									<Badge color="gray">Offline</Badge>
+									<Badge color="gray">{t.gateOffline}</Badge>
 								{/if}
 							</TableBodyCell>
 							<TableBodyCell>
@@ -281,7 +281,7 @@
 							<TableBodyCell>
 								<P class="text-sm">{fmtAge(gate.last_seen)}</P>
 							</TableBodyCell>
-							{#if $isAdmin}
+							{#if auth.isAdmin}
 								<TableBodyCell class="text-right">
 									<button
 										type="button"

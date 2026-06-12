@@ -167,9 +167,9 @@
 					>
 						<span class="font-medium">{g.name ?? g.id.slice(0, 8)}</span>
 						{#if isOnline(g)}
-							<Badge color="green" class="ml-1">Online</Badge>
+							<Badge color="green" class="ml-1">{t.gateOnline}</Badge>
 						{:else}
-							<Badge color="gray" class="ml-1">Offline</Badge>
+							<Badge color="gray" class="ml-1">{t.gateOffline}</Badge>
 						{/if}
 						<button
 							class="ml-1 text-red-500 hover:text-red-700"

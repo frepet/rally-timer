@@ -315,9 +315,9 @@
 				{#if selectedGate}
 					<div class="mt-1 flex items-center gap-2 text-xs">
 						{#if isGateOnline(selectedGate)}
-							<Badge color="green" class="text-xs">Online</Badge>
+							<Badge color="green" class="text-xs">{t.gateOnline}</Badge>
 						{:else}
-							<Badge color="gray" class="text-xs">Offline</Badge>
+							<Badge color="gray" class="text-xs">{t.gateOffline}</Badge>
 						{/if}
 						<Toggle bind:checked={autoSubmitEnabled} size="small" />
 						<span class="opacity-70">{t.addAutomatically}</span>

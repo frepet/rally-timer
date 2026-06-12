@@ -2,7 +2,7 @@
 	import { untrack } from 'svelte';
 	import { Button, Textarea } from 'flowbite-svelte';
 	import { marked } from 'marked';
-	import { isAdmin } from '$lib/stores/auth';
+	import { auth } from '$lib/stores/auth.svelte';
 	import { kcFetch } from '$lib/kcFetch';
 	import { t } from '../stores/locale.svelte';
 
@@ -64,7 +64,7 @@
 			<p class="mb-2 text-sm text-red-500">{saveError}</p>
 		{/if}
 	{:else}
-		{#if $isAdmin}
+		{#if auth.isAdmin}
 			<Button color="primary" class="mb-2" onclick={startEdit}>{t.edit}</Button>
 		{/if}
 		<div class="prose max-w-none dark:prose-invert [&_li]:my-0 [&_ol]:my-2 [&_ul]:my-2">

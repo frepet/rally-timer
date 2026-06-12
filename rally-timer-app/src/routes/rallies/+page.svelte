@@ -10,7 +10,7 @@
 	} from 'flowbite-svelte-icons';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { kcFetch } from '../../lib/kcFetch';
-	import { isAdmin } from '../../lib/stores/auth';
+	import { auth } from '../../lib/stores/auth.svelte';
 	import { t } from '../../lib/stores/locale.svelte';
 
 	type Stage = { id: number; name: string; event_count: number };
@@ -350,7 +350,7 @@
 	>
 		{#if assignedGatesForStage(menuStage.id).length > 0}
 			<a href={`/stages/${menuStage.id}/start`} class="{stageMenuItemClass} sm:hidden">
-				▶ Start
+				▶ {t.startButton}
 			</a>
 		{/if}
 		<button
@@ -380,7 +380,7 @@
 			<Button size="sm" color="alternative" onclick={() => (driversModalOpen = true)}>
 				{t.activeDriversButton}
 			</Button>
-			{#if $isAdmin}
+			{#if auth.isAdmin}
 				<Button size="sm" color="alternative" onclick={openPenaltyModal}>{t.penaltyButton}</Button>
 				<Button size="sm" color="alternative" onclick={openSubmitModal}>
 					<AwardOutline size="sm" class="mr-1" />
@@ -442,7 +442,7 @@
 									<span class="text-xs text-gray-500 dark:text-gray-400"
 										>{isOnline(g) ? 'Online' : 'Offline'}</span
 									>
-									{#if $isAdmin}
+									{#if auth.isAdmin}
 										<button
 											class="ml-0.5 text-gray-400 hover:text-red-500"
 											onclick={() => unassignGate(g)}
@@ -451,7 +451,7 @@
 									{/if}
 								</span>
 							{/each}
-							{#if $isAdmin}
+							{#if auth.isAdmin}
 								<button
 									type="button"
 									class="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300"
@@ -464,7 +464,7 @@
 							{#if !assignedGatesForStage(s.id).length}
 								<span class="text-xs text-gray-400 dark:text-gray-500">{t.noGateAssigned}</span>
 							{/if}
-							{#if $isAdmin}
+							{#if auth.isAdmin}
 								<div class="ml-auto flex items-center gap-1">
 									{#if availableGatesForAssign().length}
 										<Select
@@ -516,7 +516,7 @@
 						{/if}
 
 						<!-- Close Stage: admin only -->
-						{#if $isAdmin}
+						{#if auth.isAdmin}
 							<Button size="xs" onclick={() => closeStage(s.id)}>{t.closeStageButton}</Button>
 						{/if}
 
@@ -543,7 +543,7 @@
 			{/if}
 		</div>
 
-		{#if $isAdmin}
+		{#if auth.isAdmin}
 			<!-- Add Stage -->
 			<div class="mt-4 border-t border-gray-200 pt-4 dark:border-gray-700">
 				<div class="grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -633,7 +633,7 @@
 		{#each filteredDrivers as d (d.id)}
 			<li class="flex items-center justify-between gap-2 rounded border p-2">
 				<span>{d.name}{d.class_name ? ` — ${d.class_name}` : ''}</span>
-				{#if $isAdmin}
+				{#if auth.isAdmin}
 					<Toggle checked={d.active} onchange={() => toggleDriver(d.id, !d.active)} size="small" />
 				{:else}
 					<Badge color={d.active ? 'green' : 'gray'}>{d.active ? t.active : t.inactive}</Badge>

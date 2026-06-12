@@ -11,7 +11,7 @@
 	import type { OverallResult } from '../lib/domain/rallycross';
 	import { buildRxDisplay } from '../lib/domain/rallycrossDisplay';
 	import type { TrainingDriverResult } from '../lib/domain/training';
-	import { isAdmin } from '../lib/stores/auth';
+	import { auth } from '../lib/stores/auth.svelte';
 	import { t } from '../lib/stores/locale.svelte';
 
 	type View = 'rally' | 'rallycross' | 'training';
@@ -54,10 +54,10 @@
 	async function loadAll() {
 		const [bundleRes, rxRes, boardRes, trainingRes, settingsRes] = await Promise.all([
 			kcFetch('/api/bundle'),
-			fetch('/api/rallycross'),
-			fetch('/api/rallycross/leaderboard'),
-			fetch('/api/training'),
-			fetch('/api/settings')
+			kcFetch('/api/rallycross'),
+			kcFetch('/api/rallycross/leaderboard'),
+			kcFetch('/api/training'),
+			kcFetch('/api/settings')
 		]);
 		if (bundleRes.ok) bundle = await bundleRes.json();
 		if (rxRes.ok) rxConfig = await rxRes.json();
@@ -108,7 +108,7 @@
 </script>
 
 <div class="w-full space-y-8 p-5">
-	{#if $isAdmin}
+	{#if auth.isAdmin}
 		<div class="mx-auto flex w-full max-w-5xl items-center gap-3">
 			<span class="text-sm text-gray-500 dark:text-gray-400">{t.viewPickerLabel}:</span>
 			<div class="flex overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">

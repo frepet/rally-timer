@@ -19,7 +19,7 @@
 	} from 'flowbite-svelte';
 	import { TrashBinOutline, PlusOutline, PenOutline } from 'flowbite-svelte-icons';
 	import { kcFetch } from '../../lib/kcFetch';
-	import { isAdmin } from '../../lib/stores/auth';
+	import { auth } from '../../lib/stores/auth.svelte';
 	import { t } from '../../lib/stores/locale.svelte';
 	import { formatMs } from '../../lib/results';
 	import { groupStandingsByClass } from '../../lib/domain/standings';
@@ -175,7 +175,7 @@
 	{#if championships.length === 0}
 		<Card class="max-w-none p-8 text-center">
 			<P class="text-gray-500 dark:text-gray-400">{t.noChampionshipsYet}</P>
-			{#if $isAdmin}
+			{#if auth.isAdmin}
 				<Button class="mt-4" onclick={() => (createModalOpen = true)}
 					>{t.createFirstChampionship}</Button
 				>
@@ -193,7 +193,7 @@
 					<option value={c.id}>{c.name}</option>
 				{/each}
 			</Select>
-			{#if $isAdmin && selectedId}
+			{#if auth.isAdmin && selectedId}
 				<button
 					class="rounded p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
 					title={t.renameChampionshipTitle}
@@ -209,7 +209,7 @@
 					<TrashBinOutline size="sm" />
 				</button>
 			{/if}
-			{#if $isAdmin}
+			{#if auth.isAdmin}
 				<Button size="sm" class="whitespace-nowrap" onclick={() => (createModalOpen = true)}>
 					<PlusOutline size="sm" class="mr-1" />
 					{t.newChampionship}
@@ -230,7 +230,7 @@
 								>
 									{r.name} ({fmtDate(r.submitted_at)})
 								</a>
-								{#if $isAdmin}
+								{#if auth.isAdmin}
 									<button
 										type="button"
 										title={t.delete}
@@ -263,7 +263,7 @@
 				{:else if standings.length === 0}
 					<Card class="max-w-none p-6 text-center">
 						<P class="text-gray-500 dark:text-gray-400">{t.noResultsSubmitRally}</P>
-						{#if $isAdmin}
+						{#if auth.isAdmin}
 							<a
 								href="/rallies"
 								class="mt-2 block text-sm text-blue-600 hover:underline dark:text-blue-400"

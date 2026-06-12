@@ -3,7 +3,7 @@
 	import { TrashBinOutline } from 'flowbite-svelte-icons';
 	import { formatMs } from './results';
 	import { t } from './stores/locale.svelte';
-	import { isAdmin } from './stores/auth';
+	import { auth } from './stores/auth.svelte';
 	import type { TrainingDriverResult } from './domain/training';
 
 	type Props = {
@@ -13,7 +13,7 @@
 
 	let { drivers, onDeleteLap }: Props = $props();
 
-	const canDelete = $derived(!!onDeleteLap && $isAdmin);
+	const canDelete = $derived(!!onDeleteLap && auth.isAdmin);
 </script>
 
 {#if drivers.length}

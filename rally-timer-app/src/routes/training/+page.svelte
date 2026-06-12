@@ -3,7 +3,7 @@
 	import { RefreshOutline } from 'flowbite-svelte-icons';
 	import { kcFetch } from '../../lib/kcFetch';
 	import { startLiveRefresh } from '../../lib/liveRefresh';
-	import { isAdmin } from '../../lib/stores/auth';
+	import { auth } from '../../lib/stores/auth.svelte';
 	import { t } from '../../lib/stores/locale.svelte';
 	import { playBeep, closeAudio } from '../../lib/beep';
 	import type { TrainingDriverResult } from '../../lib/domain/training';
@@ -38,7 +38,7 @@
 	let prevDriverState = new Map<number, DriverSnapshot>();
 
 	async function loadState(syncForm = false) {
-		const res = await fetch('/api/training');
+		const res = await kcFetch('/api/training');
 		if (!res.ok) return;
 		const newState = (await res.json()) as TrainingState;
 
@@ -155,7 +155,7 @@
 			{/if}
 		</div>
 
-		{#if $isAdmin}
+		{#if auth.isAdmin}
 			<div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
 				<div>
 					<label for="trainingGate" class="mb-1 block text-sm font-medium"

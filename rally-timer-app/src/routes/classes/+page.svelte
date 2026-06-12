@@ -26,12 +26,12 @@
 	let error: string | null = $state(null);
 
 	async function refresh() {
-		const res = await fetch('/api/class');
+		const res = await kcFetch('/api/class');
 		if (!res.ok) return;
 		const list = (await res.json()) as { id: number; name: string; start_priority: number }[];
 
 		// Fetch drivers once to compute per-class counts (drivers list is small)
-		const dRes = await fetch('/api/driver');
+		const dRes = await kcFetch('/api/driver');
 		const drivers = dRes.ok ? ((await dRes.json()) as { class_id: number }[]) : [];
 		const counts = new SvelteMap<number, number>();
 		for (const d of drivers) counts.set(d.class_id, (counts.get(d.class_id) ?? 0) + 1);

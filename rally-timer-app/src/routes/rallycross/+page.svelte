@@ -12,7 +12,7 @@
 	import { kcFetch } from '../../lib/kcFetch';
 	import { startLiveRefresh } from '../../lib/liveRefresh';
 	import { primeAudio, getAudioCurrentTime, scheduleBeepAt } from '../../lib/beep';
-	import { isAdmin } from '../../lib/stores/auth';
+	import { auth } from '../../lib/stores/auth.svelte';
 	import { formatMs } from '../../lib/results';
 	import { t } from '../../lib/stores/locale.svelte';
 	import { getHeatResults, type OverallResult, type HeatResult } from '../../lib/domain/rallycross';
@@ -124,7 +124,7 @@
 	const tooManySelected = $derived(selectedDriverIds.size > rx.max_per_heat);
 
 	async function loadState(syncForm = false) {
-		const res = await fetch('/api/rallycross');
+		const res = await kcFetch('/api/rallycross');
 		if (!res.ok) return;
 		rx = (await res.json()) as RallycrossState;
 		if (syncForm) {
@@ -136,13 +136,13 @@
 	}
 
 	async function loadLeaderboard() {
-		const res = await fetch('/api/rallycross/leaderboard');
+		const res = await kcFetch('/api/rallycross/leaderboard');
 		if (!res.ok) return;
 		leaderboard = await res.json();
 	}
 
 	async function loadSuggest() {
-		const res = await fetch('/api/rallycross/suggest-heat');
+		const res = await kcFetch('/api/rallycross/suggest-heat');
 		if (!res.ok) return;
 		const data = await res.json();
 		suggestedGroups = data.groups ?? [];
@@ -172,7 +172,7 @@
 	}
 
 	async function openSubmitModal() {
-		const res = await fetch('/api/championship');
+		const res = await kcFetch('/api/championship');
 		if (res.ok) championships = await res.json();
 		selectedChampIds.clear();
 		submitName = '';
@@ -385,7 +385,7 @@
 			</div>
 		</div>
 
-		{#if $isAdmin}
+		{#if auth.isAdmin}
 			<div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
 				<div>
 					<label for="rxGate" class="mb-1 block text-sm font-medium">{t.rxFinishGate}</label>
@@ -477,7 +477,7 @@
 					<p class="font-semibold">{t.rxHeatLabel(rx.active_heat.number)}</p>
 					<Badge color="green">{t.rxStatusInProgress}</Badge>
 				</div>
-				{#if $isAdmin}
+				{#if auth.isAdmin}
 					<Button color="red" size="sm" onclick={() => (closeModalOpen = true)} disabled={closing}>
 						<StopOutline size="sm" class="mr-1" />
 						{t.rxCloseHeat}
@@ -536,7 +536,7 @@
 						<p class="font-semibold">{t.rxHeatLabel(pendingHeat.number)}</p>
 						<Badge color="yellow">{t.rxStatusNotStarted}</Badge>
 					</div>
-					{#if $isAdmin}
+					{#if auth.isAdmin}
 						<div class="flex items-center gap-2">
 							<Button
 								color="alternative"
@@ -565,7 +565,7 @@
 					<p class="mt-2 text-sm text-yellow-600">{t.rxAssignGateBeforeStart}</p>
 				{/if}
 			</Card>
-		{:else if $isAdmin}
+		{:else if auth.isAdmin}
 			<!-- Create next heat -->
 			<Card class="max-w-none p-4">
 				<p class="mb-3 font-semibold">{t.rxCreateNextHeat}</p>
@@ -654,7 +654,7 @@
 								>
 									<EyeOutline size="xs" />
 								</a>
-								{#if $isAdmin}
+								{#if auth.isAdmin}
 									<button
 										type="button"
 										class="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-red-500 dark:hover:bg-gray-700 dark:hover:text-red-400"
@@ -689,7 +689,7 @@
 		{#each filteredDrivers as d (d.id)}
 			<li class="flex items-center justify-between gap-2 rounded border p-2">
 				<span>{d.name}{d.class_name ? ` — ${d.class_name}` : ''}</span>
-				{#if $isAdmin}
+				{#if auth.isAdmin}
 					<Toggle checked={d.active} onchange={() => toggleDriver(d.id, !d.active)} size="small" />
 				{:else}
 					<Badge color={d.active ? 'green' : 'gray'}>{d.active ? t.active : t.inactive}</Badge>
@@ -799,14 +799,14 @@
 							class="rounded px-1 text-xs text-gray-400 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-30 dark:hover:bg-gray-700"
 							disabled={i === 0}
 							onclick={() => moveDriver(i, -1)}
-							aria-label="Move up">▲</button
+							aria-label={t.moveUp}>▲</button
 						>
 						<button
 							type="button"
 							class="rounded px-1 text-xs text-gray-400 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-30 dark:hover:bg-gray-700"
 							disabled={i === manualOrderDrivers.length - 1}
 							onclick={() => moveDriver(i, 1)}
-							aria-label="Move down">▼</button
+							aria-label={t.moveDown}>▼</button
 						>
 					</div>
 				</li>

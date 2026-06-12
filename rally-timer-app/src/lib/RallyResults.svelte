@@ -4,13 +4,16 @@
 	import { untrack } from 'svelte';
 	import { formatMs, type DisplayRallyRow, type StageData } from './results';
 	import { t } from './stores/locale.svelte';
+	import type { RallyRatings } from './domain/ratings';
 
 	let {
 		rallyRows,
-		stages
+		stages,
+		ratings = null
 	}: {
 		rallyRows: DisplayRallyRow[];
 		stages: StageData[];
+		ratings?: RallyRatings | null;
 	} = $props();
 
 	function defaultStage(stages: StageData[]): string | null {
@@ -30,6 +33,10 @@
 	});
 
 	const activeRows = $derived(stages.find((s) => s.name === activeStage)?.rows ?? []);
+
+	function fmtDelta(delta: number): string {
+		return delta >= 0 ? `+${delta}` : `${delta}`;
+	}
 </script>
 
 <!-- Rally leaderboard -->
@@ -88,6 +95,14 @@
 									r.penalty_ms
 								)}</span
 							>
+						{/if}
+						{#if ratings}
+							{@const finalRating = ratings.finalRatings.get(r.driver_uuid)}
+							{#if finalRating != null}
+								<span class="whitespace-nowrap text-violet-600 dark:text-violet-400"
+									><span class="mr-1 opacity-70">{t.ratingLabel}</span>{finalRating}</span
+								>
+							{/if}
 						{/if}
 					</div>
 				</div>
@@ -184,6 +199,19 @@
 										r.penalty_ms
 									)}</span
 								>
+							{/if}
+							{#if ratings && activeStage}
+								{@const delta = ratings.stageDeltas.get(activeStage)?.get(r.driver_uuid)}
+								{#if delta != null}
+									<span
+										class="whitespace-nowrap {delta >= 0
+											? 'text-green-600 dark:text-green-400'
+											: 'text-red-500 dark:text-red-400'}"
+										><span class="mr-1 opacity-70">{t.ratingDeltaLabel}</span>{fmtDelta(
+											delta
+										)}</span
+									>
+								{/if}
 							{/if}
 						</div>
 					</div>

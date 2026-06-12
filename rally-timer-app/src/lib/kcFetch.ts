@@ -1,4 +1,4 @@
-import { keycloak } from './stores/auth';
+import { keycloak } from './stores/auth.svelte';
 
 export async function kcFetch(input: RequestInfo, init: RequestInit = {}) {
 	// Ensure token is fresh (refresh if expiring in <30s)

@@ -17,7 +17,7 @@
 	import DarkModeToggle from '../lib/components/DarkModeToggle.svelte';
 	import LanguageSwitcher from '../lib/components/LanguageSwitcher.svelte';
 	import { untrack } from 'svelte';
-	import { initKeycloak, isAdmin, isAuthenticated, login, logout } from '../lib/stores/auth';
+	import { auth, initKeycloak, login, logout } from '../lib/stores/auth.svelte';
 	import { kcFetch } from '../lib/kcFetch';
 	import { initLocale, t } from '../lib/stores/locale.svelte';
 
@@ -106,7 +106,7 @@
 			>
 		{:else}
 			<Heading class="small-caps ml-2">{title}</Heading>
-			{#if $isAdmin}
+			{#if auth.isAdmin}
 				<button
 					class="ml-2 text-gray-500 hover:text-gray-800 dark:hover:text-gray-200"
 					onclick={(e) => {
@@ -129,7 +129,7 @@
 		<NavLi href="/championships" class={navClass('/championships')}>{t.navChampionships}</NavLi>
 		<NavLi href="/rules" class={navClass('/rules')}>{t.navRules}</NavLi>
 		<NavLi href="/about" class={navClass('/about')}>{t.navAbout}</NavLi>
-		{#if $isAdmin}
+		{#if auth.isAdmin}
 			<NavLi>|</NavLi>
 			<NavLi href="/rallies" class={navClass('/rallies')}>{t.navRally}</NavLi>
 			<NavLi href="/rallycross" class={navClass('/rallycross')}>{t.navRallycross}</NavLi>
@@ -138,7 +138,7 @@
 			<NavLi href="/classes" class={navClass('/classes')}>{t.navClasses}</NavLi>
 			<NavLi href="/gates" class={navClass('/gates')}>{t.navGates}</NavLi>
 		{/if}
-		{#if $isAuthenticated}
+		{#if auth.isAuthenticated}
 			<Button color="alternative" onclick={logout} class="p-1">{t.logout}</Button>
 		{:else}
 			<Button color="alternative" onclick={login} class="p-1">{t.login}</Button>

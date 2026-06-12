@@ -2,7 +2,6 @@
 	import { env } from '$env/dynamic/public';
 	import { Badge, P } from 'flowbite-svelte';
 	import RallyResults from '../../../lib/RallyResults.svelte';
-	import RallyResultsLab from '../../../lib/RallyResultsLab.svelte';
 	import RallycrossLeaderboard from '../../../lib/RallycrossLeaderboard.svelte';
 	import { buildStageData } from '../../../lib/domain/submittedRally';
 	import { buildRallyRows } from '../../../lib/domain/summary';
@@ -77,9 +76,7 @@
 
 	{#if isRx && rxDisplay}
 		<RallycrossLeaderboard standings={rxDisplay.standings} heats={rxDisplay.heats} />
-	{:else if driverRatingsEnabled}
-		<RallyResultsLab {rallyRows} {stages} {ratings} />
 	{:else}
-		<RallyResults {rallyRows} {stages} />
+		<RallyResults {rallyRows} {stages} ratings={driverRatingsEnabled ? ratings : null} />
 	{/if}
 </div>
