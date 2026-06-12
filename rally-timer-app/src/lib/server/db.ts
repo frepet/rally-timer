@@ -48,21 +48,47 @@ import { runMigration as run013 } from './migrations/013_settings';
 import { runMigration as run014 } from './migrations/014_driver_rating';
 import { runMigration as run015 } from './migrations/015_stage_order';
 
-export async function runMigrations() {
-	await run000();
-	await run001();
-	await run002();
-	await run003();
-	await run004();
-	await run005();
-	await run006();
-	await run007();
-	await run008();
-	await run009();
-	await run010();
-	await run011();
-	await run012();
-	await run013();
-	await run014();
-	await run015();
+const MIGRATIONS: Array<[name: string, run: () => Promise<void>]> = [
+	['000_initial_schema', run000],
+	['001_class_crud', run001],
+	['002_class_start_priority', run002],
+	['003_pages', run003],
+	['004_drop_leaderboard_views', run004],
+	['005_stage_is_closed', run005],
+	['006_finish_events_penalty', run006],
+	['007_rallycross', run007],
+	['008_rallycross_heats', run008],
+	['009_rallycross_manual_position', run009],
+	['010_rx_best_lap_in_submission', run010],
+	['011_gate_events_unique_timestamp', run011],
+	['012_training', run012],
+	['013_settings', run013],
+	['014_driver_rating', run014],
+	['015_stage_order', run015]
+];
+
+const MIGRATION_LOCK_ID = 72727201;
+
+export async function runMigrations(): Promise<void> {
+	await sql.begin(async (tx) => {
+		// TransactionSql loses call signatures via Omit<> — cast to the outer sql type
+		const tsql = tx as unknown as Sql;
+		// Serialise across replicas: concurrent pods during a rolling deploy
+		// must never run DDL at the same time. The transaction-scoped advisory
+		// lock is released automatically when this transaction ends.
+		await tsql`SELECT pg_advisory_xact_lock(${MIGRATION_LOCK_ID})`;
+		await tsql.unsafe(`
+			CREATE TABLE IF NOT EXISTS schema_migrations (
+				name       TEXT   PRIMARY KEY,
+				applied_at BIGINT NOT NULL
+			)
+		`);
+		const rows = await tsql<{ name: string }[]>`SELECT name FROM schema_migrations`;
+		const applied = new Set(rows.map((r) => r.name));
+		for (const [name, run] of MIGRATIONS) {
+			if (applied.has(name)) continue;
+			await run();
+			await tsql`INSERT INTO schema_migrations (name, applied_at) VALUES (${name}, ${Date.now()})`;
+		}
+	});
 }
