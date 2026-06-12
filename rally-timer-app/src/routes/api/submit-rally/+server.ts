@@ -113,7 +113,10 @@ export async function POST(event: RequestEvent): Promise<Response> {
 		submittedRallyId = sr.id as string;
 
 		if (stageTimes.length > 0) {
-			await tsql`INSERT INTO rally_results ${tsql(stageTimes.map((r) => ({ ...r, rally_id: submittedRallyId })))}`;
+			// Strip driver_id — rally_results stores a snapshot keyed by driver_uuid.
+			await tsql`INSERT INTO rally_results ${tsql(
+				stageTimes.map(({ driver_id: _driverId, ...r }) => ({ ...r, rally_id: submittedRallyId }))
+			)}`;
 		}
 
 		for (const champId of championship_ids) {

@@ -21,6 +21,7 @@ export type FinishRow = {
 };
 
 export type StageTimeResult = {
+	driver_id: number;
 	driver_uuid: string;
 	driver_name: string;
 	class_id: number;
@@ -44,6 +45,7 @@ export function buildStageTimes(startRows: StartRow[], finishRows: FinishRow[]):
 	// Group starts by (driver_id, stage_id), keeping driver/stage metadata from any row in the group
 	type Group = {
 		stage_id: number;
+		driver_id: number;
 		driver_uuid: string;
 		driver_name: string;
 		driver_tag: string;
@@ -59,6 +61,7 @@ export function buildStageTimes(startRows: StartRow[], finishRows: FinishRow[]):
 		if (!groups.has(key)) {
 			groups.set(key, {
 				stage_id: se.stage_id,
+				driver_id: se.driver_id,
 				driver_uuid: se.driver_uuid,
 				driver_name: se.driver_name,
 				driver_tag: se.driver_tag,
@@ -94,6 +97,7 @@ export function buildStageTimes(startRows: StartRow[], finishRows: FinishRow[]):
 		// i.e. there is no real (dnf=false) valid finish.
 		const dnf = elapsed_ms !== null && !validFinishes.some((fe) => !fe.dnf);
 		return {
+			driver_id: g.driver_id,
 			driver_uuid: g.driver_uuid,
 			driver_name: g.driver_name,
 			class_id: g.class_id,

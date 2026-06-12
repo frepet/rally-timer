@@ -21,6 +21,7 @@ const result = (
 	elapsed_ms: number | null,
 	opts: { class_id?: number; class_name?: string; stage_name?: string } = {}
 ): StageTimeResult => ({
+	driver_id: 1,
 	driver_uuid: `uuid-${driver_name}`,
 	driver_name,
 	class_id: opts.class_id ?? 1,
