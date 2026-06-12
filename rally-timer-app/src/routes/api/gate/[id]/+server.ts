@@ -1,5 +1,6 @@
 import { json, error, type RequestEvent } from '@sveltejs/kit';
 import { sql } from '../../../../lib/server/db';
+import { throwIfNotAdmin } from '../../../../lib/server/keycloak';
 import { gateRegisterSchema, gateAssignSchema } from '../../../../lib/server/schemas';
 
 export async function POST(event: RequestEvent): Promise<Response> {
@@ -27,6 +28,7 @@ export async function POST(event: RequestEvent): Promise<Response> {
 }
 
 export async function PATCH(event: RequestEvent): Promise<Response> {
+	await throwIfNotAdmin(event);
 	const { id } = event.params;
 	if (!id) throw error(400, 'Missing gate id');
 
@@ -59,6 +61,7 @@ export async function PATCH(event: RequestEvent): Promise<Response> {
 }
 
 export async function DELETE(event: RequestEvent): Promise<Response> {
+	await throwIfNotAdmin(event);
 	const { id } = event.params;
 	if (!id) throw error(400, 'Missing gate id');
 

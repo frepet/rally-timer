@@ -71,6 +71,15 @@ export const tagParamSchema = z
 	.max(50)
 	.transform((s) => s.trim());
 
+export const finishUpdateSchema = z
+	.object({
+		timestamp: z.number().int().positive().optional(),
+		penalty_ms: z.number().nonnegative().finite().transform(Math.round).optional()
+	})
+	.refine((v) => v.timestamp !== undefined || v.penalty_ms !== undefined, {
+		message: 'timestamp or penalty_ms required'
+	});
+
 export const gateRegisterSchema = z.object({
 	id: z.string().uuid(),
 	name: z.string().max(100).optional()
