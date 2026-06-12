@@ -11,6 +11,7 @@ type Listener = (data: GateEventPayload) => void;
 
 const listeners = new Set<Listener>();
 let listening = false;
+let retryDelayMs = 1000;
 
 // Lazily set up PG LISTEN — deferred until the first SSE client connects
 // so it doesn't fire during the build step where no DB is available.
@@ -32,9 +33,18 @@ function ensureListening() {
 				/* ignore malformed payload */
 			}
 		})
+		.then(() => {
+			retryDelayMs = 1000;
+		})
 		.catch((e) => {
 			console.error('PG LISTEN gate_events failed:', e);
 			listening = false;
+			// Connected SSE clients would otherwise silently stop receiving
+			// events — keep retrying with backoff while anyone is listening.
+			if (listeners.size > 0) {
+				setTimeout(ensureListening, retryDelayMs);
+				retryDelayMs = Math.min(retryDelayMs * 2, 30000);
+			}
 		});
 }
 

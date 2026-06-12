@@ -10,6 +10,7 @@
 	} from 'flowbite-svelte-icons';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { kcFetch } from '../../lib/kcFetch';
+	import { startLiveRefresh } from '../../lib/liveRefresh';
 	import { primeAudio, getAudioCurrentTime, scheduleBeepAt } from '../../lib/beep';
 	import { isAdmin } from '../../lib/stores/auth';
 	import { formatMs } from '../../lib/results';
@@ -357,12 +358,12 @@
 		loadLeaderboard();
 		loadAllDrivers();
 		loadSuggest();
-		const timer = setInterval(() => {
+		const stopLive = startLiveRefresh(() => {
 			loadState();
 			loadLeaderboard();
 			loadSuggest();
-		}, 2000);
-		return () => clearInterval(timer);
+		});
+		return () => stopLive();
 	});
 </script>
 

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import { kcFetch } from '../lib/kcFetch';
+	import { startLiveRefresh } from '../lib/liveRefresh';
 	import type { BundleResponse } from '../lib/types';
 	import RallyResults from '../lib/RallyResults.svelte';
 	import RallycrossLeaderboard from '../lib/RallycrossLeaderboard.svelte';
@@ -95,14 +96,14 @@
 		training: () => t.viewTraining
 	};
 
-	let poller: number | null = null;
+	let stopLive: (() => void) | null = null;
 
 	onMount(async () => {
 		await loadAll();
-		poller = window.setInterval(loadAll, 2000);
+		stopLive = startLiveRefresh(loadAll);
 	});
 	onDestroy(() => {
-		if (poller) clearInterval(poller);
+		stopLive?.();
 	});
 </script>
 

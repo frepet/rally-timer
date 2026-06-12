@@ -2,6 +2,7 @@
 	import { Card, Button, Input, Select, Modal, Badge } from 'flowbite-svelte';
 	import { RefreshOutline } from 'flowbite-svelte-icons';
 	import { kcFetch } from '../../lib/kcFetch';
+	import { startLiveRefresh } from '../../lib/liveRefresh';
 	import { isAdmin } from '../../lib/stores/auth';
 	import { t } from '../../lib/stores/locale.svelte';
 	import { playBeep, closeAudio } from '../../lib/beep';
@@ -134,9 +135,9 @@
 	$effect(() => {
 		loadState(true);
 		loadGates();
-		const timer = setInterval(() => loadState(), 2000);
+		const stopLive = startLiveRefresh(() => loadState());
 		return () => {
-			clearInterval(timer);
+			stopLive();
 			closeAudio();
 		};
 	});
