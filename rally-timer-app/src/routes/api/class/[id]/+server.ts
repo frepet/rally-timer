@@ -6,7 +6,7 @@ import { classUpdateSchema } from '../../../../lib/server/schemas';
 export async function PATCH(event: RequestEvent): Promise<Response> {
 	await throwIfNotAdmin(event);
 	const id = Number(event.params.id);
-	if (!Number.isFinite(id) || id <= 0) throw error(400, 'Invalid id');
+	if (!Number.isInteger(id) || id <= 0) throw error(400, 'Invalid id');
 
 	let body: unknown;
 	try {
@@ -39,9 +39,17 @@ export async function PATCH(event: RequestEvent): Promise<Response> {
 export async function DELETE(event: RequestEvent): Promise<Response> {
 	await throwIfNotAdmin(event);
 	const id = Number(event.params.id);
-	if (!Number.isFinite(id) || id <= 0) throw error(400, 'Invalid id');
+	if (!Number.isInteger(id) || id <= 0) throw error(400, 'Invalid id');
 
-	const result = await sql`DELETE FROM classes WHERE id = ${id}`;
-	if (result.count === 0) throw error(404, 'Class not found');
-	return new Response(null, { status: 204 });
+	try {
+		const result = await sql`DELETE FROM classes WHERE id = ${id}`;
+		if (result.count === 0) throw error(404, 'Class not found');
+		return new Response(null, { status: 204 });
+	} catch (e) {
+		// drivers.class_id is ON DELETE RESTRICT — surface a conflict instead of a 500
+		if (e instanceof Error && 'code' in e && (e as { code: string }).code === '23503') {
+			throw error(409, 'Class has drivers and cannot be deleted');
+		}
+		throw e;
+	}
 }

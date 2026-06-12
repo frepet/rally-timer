@@ -1,11 +1,18 @@
-import { json, type RequestEvent } from '@sveltejs/kit';
+import { json, error, type RequestEvent } from '@sveltejs/kit';
 import { sql } from '../../../../lib/server/db';
 import { throwIfNotAdmin } from '../../../../lib/server/keycloak';
 
 export async function PATCH(event: RequestEvent): Promise<Response> {
 	await throwIfNotAdmin(event);
 	const id = Number(event.params.id);
-	const raw = (await event.request.json()) as unknown;
+	if (!Number.isInteger(id) || id <= 0) throw error(400, 'Invalid id');
+
+	let raw: unknown;
+	try {
+		raw = await event.request.json();
+	} catch {
+		throw error(400, 'Invalid JSON');
+	}
 
 	if (!raw || typeof raw !== 'object') return new Response(null, { status: 400 });
 	const r = raw as { name?: unknown; class_id?: unknown; tag?: unknown; active?: unknown };
@@ -52,6 +59,7 @@ export async function PATCH(event: RequestEvent): Promise<Response> {
 export async function DELETE(event: RequestEvent): Promise<Response> {
 	await throwIfNotAdmin(event);
 	const id = Number(event.params.id);
+	if (!Number.isInteger(id) || id <= 0) throw error(400, 'Invalid id');
 	const result = await sql`DELETE FROM drivers WHERE id = ${id}`;
 	if (result.count === 0) return new Response(null, { status: 404 });
 	return new Response(null, { status: 204 });

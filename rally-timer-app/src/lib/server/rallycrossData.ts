@@ -41,34 +41,46 @@ async function fetchEntriesForHeat(
 		WHERE rhe.heat_id = ${heat.id}
 	`;
 
-	return Promise.all(
-		rows.map(async (e) => {
-			const ts = Number(e.ts_ms ?? 0);
-			const passes =
-				!isManual && cfg.gate_id && e.ts_ms
-					? await sql<{ timestamp: number }[]>`
-							SELECT timestamp FROM gate_events
-							WHERE gate_id = ${cfg.gate_id!} AND tag = ${e.tag}
-							  AND timestamp >= ${ts}
-							  AND timestamp <= ${upperTs}
-							ORDER BY timestamp
-						`
-					: [];
-			return {
-				driver_id: e.driver_id,
-				driver_name: e.driver_name,
-				class_id: e.class_id,
-				class_name: e.class_name,
-				driver_uuid: e.driver_uuid,
-				tag: e.tag,
-				ts_ms: ts,
-				dnf: e.dnf,
-				dnf_time_ms: e.dnf_time_ms !== null ? Number(e.dnf_time_ms) : null,
-				passes: passes.map((p) => Number(p.timestamp)),
-				manual_position: e.manual_position !== null ? Number(e.manual_position) : null
-			};
-		})
-	);
+	// One query for all entries' gate passes instead of one per entry.
+	const timed = rows.filter((e) => !isManual && cfg.gate_id && e.ts_ms !== null);
+	const passesByTag = new Map<string, number[]>();
+	if (timed.length > 0) {
+		const minStart = Math.min(...timed.map((e) => Number(e.ts_ms)));
+		const allPasses = await sql<{ tag: string; timestamp: number }[]>`
+			SELECT tag, timestamp FROM gate_events
+			WHERE gate_id = ${cfg.gate_id!}
+			  AND tag = ANY(${timed.map((e) => e.tag)})
+			  AND timestamp >= ${minStart}
+			  AND timestamp <= ${upperTs}
+			ORDER BY timestamp
+		`;
+		for (const p of allPasses) {
+			const list = passesByTag.get(p.tag) ?? [];
+			list.push(Number(p.timestamp));
+			passesByTag.set(p.tag, list);
+		}
+	}
+
+	return rows.map((e) => {
+		const ts = Number(e.ts_ms ?? 0);
+		const passes =
+			!isManual && cfg.gate_id && e.ts_ms !== null
+				? (passesByTag.get(e.tag) ?? []).filter((p) => p >= ts)
+				: [];
+		return {
+			driver_id: e.driver_id,
+			driver_name: e.driver_name,
+			class_id: e.class_id,
+			class_name: e.class_name,
+			driver_uuid: e.driver_uuid,
+			tag: e.tag,
+			ts_ms: ts,
+			dnf: e.dnf,
+			dnf_time_ms: e.dnf_time_ms !== null ? Number(e.dnf_time_ms) : null,
+			passes,
+			manual_position: e.manual_position !== null ? Number(e.manual_position) : null
+		};
+	});
 }
 
 function toHeatResultsWithUuid(

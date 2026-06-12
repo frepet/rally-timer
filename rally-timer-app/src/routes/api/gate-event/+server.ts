@@ -38,8 +38,13 @@ export async function POST(event: RequestEvent): Promise<Response> {
 		`;
 	}
 
-	// Auto-close rallycross heat if all entries have finished required laps
-	await maybeAutoCloseHeat(gate_id, timestamp_ms);
+	// Auto-close rallycross heat if all entries have finished required laps.
+	// A failure here must not fail the gate event itself — it is already stored.
+	try {
+		await maybeAutoCloseHeat(gate_id, timestamp_ms);
+	} catch (e) {
+		console.error('Heat auto-close failed:', e);
+	}
 
 	await emitGateEvent({ gate_id, tag, rssi: rssi ?? null, timestamp_ms });
 
@@ -74,25 +79,39 @@ async function maybeAutoCloseHeat(gate_id: string, timestamp_ms: number): Promis
 		WHERE rhe.heat_id = ${heat.id}
 	`;
 
-	const allDone = await Promise.all(
-		entries.map(async (e) => {
-			if (e.dnf) return true;
-			const passes = await sql<{ timestamp: number }[]>`
-				SELECT timestamp FROM gate_events
-				WHERE gate_id = ${gate_id} AND tag = ${e.tag}
-				  AND timestamp >= ${Number(e.ts_ms)}
+	const racing = entries.filter((e) => !e.dnf);
+	const minStart = Math.min(...racing.map((e) => Number(e.ts_ms)));
+	const allPasses = racing.length
+		? await sql<{ tag: string; timestamp: number }[]>`
+				SELECT tag, timestamp FROM gate_events
+				WHERE gate_id = ${gate_id}
+				  AND tag = ANY(${racing.map((e) => e.tag)})
+				  AND timestamp >= ${minStart}
 				ORDER BY timestamp
-			`;
-			const laps = computeLaps(
-				passes.map((p) => Number(p.timestamp)),
-				Number(e.ts_ms),
-				rx.cooldown_ms
-			);
-			return laps.length >= heat.required_laps;
-		})
-	);
+			`
+		: [];
+	const passesByTag = new Map<string, number[]>();
+	for (const p of allPasses) {
+		const list = passesByTag.get(p.tag) ?? [];
+		list.push(Number(p.timestamp));
+		passesByTag.set(p.tag, list);
+	}
 
-	if (allDone.every(Boolean)) {
-		await sql`UPDATE rallycross_heats SET closed_at = ${timestamp_ms} WHERE id = ${heat.id}`;
+	const allDone = racing.every((e) => {
+		const start = Number(e.ts_ms);
+		const laps = computeLaps(
+			(passesByTag.get(e.tag) ?? []).filter((ts) => ts >= start),
+			start,
+			rx.cooldown_ms
+		);
+		return laps.length >= heat.required_laps;
+	});
+
+	if (allDone) {
+		// Guard against a concurrent close: only the first writer wins.
+		await sql`
+			UPDATE rallycross_heats SET closed_at = ${timestamp_ms}
+			WHERE id = ${heat.id} AND closed_at IS NULL
+		`;
 	}
 }
