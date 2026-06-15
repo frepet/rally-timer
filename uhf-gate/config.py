@@ -23,6 +23,20 @@ class Config:
     dedup_led_pin: int | None = field(default_factory=lambda: int(os.getenv("DEDUP_LED_PIN")) if os.getenv("DEDUP_LED_PIN") else None)
     buzzer_pin: int | None = field(default_factory=lambda: int(os.getenv("BUZZER_PIN")) if os.getenv("BUZZER_PIN") else None)
 
+    def validate(self) -> list[str]:
+        """Return a list of human-readable config warnings (empty if all sane)."""
+        warnings = []
+        if self.rssi_threshold > 0:
+            warnings.append(
+                f"RSSI_THRESHOLD={self.rssi_threshold} is positive, but RSSI is "
+                f"negative dBm — this rejects every read. Use e.g. -65."
+            )
+        if self.epc_chars < 1:
+            warnings.append(f"EPC_CHARS={self.epc_chars} must be >= 1.")
+        if self.dedup_seconds < 0:
+            warnings.append(f"DEDUP_SECONDS={self.dedup_seconds} must be >= 0.")
+        return warnings
+
     def get_or_create_uuid(self) -> str:
         """Get existing UUID or generate new one."""
         if self.gate_uuid:

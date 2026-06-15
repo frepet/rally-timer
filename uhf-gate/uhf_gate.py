@@ -145,6 +145,9 @@ class UHFGate:
         logger.info(f"Queue DB: {config.db_file}")
         logger.info("=" * 60)
 
+        for warning in config.validate():
+            logger.warning(f"CONFIG: {warning}")
+
         # NTP sync
         logger.info("Syncing time with NTP...")
         ntp_time = sync_time(config.ntp_server)
