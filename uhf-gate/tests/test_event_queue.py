@@ -25,6 +25,24 @@ class TestPush:
         assert q.count_pending() == 0
 
 
+class TestBounding:
+    def test_pending_queue_is_capped(self, tmp_path):
+        # During a long API outage every read stays pending; the queue must
+        # not grow without bound and fill the Pi's SD card.
+        q = EventQueue(tmp_path / "q.sqlite", max_pending=100)
+        for i in range(250):
+            q.push(GATE, f"EPC{i:05d}", 1000 + i, -50)
+        assert q.count_pending() <= 100
+
+    def test_newest_events_are_retained_when_capped(self, tmp_path):
+        q = EventQueue(tmp_path / "q.sqlite", max_pending=100)
+        for i in range(250):
+            q.push(GATE, f"EPC{i:05d}", 1000 + i, -50)
+        tags = {e.tag for e in q.get_pending(limit=10000)}
+        assert "EPC00249" in tags  # most recent kept
+        assert "EPC00000" not in tags  # oldest evicted
+
+
 class TestSyncLifecycle:
     def test_get_pending_returns_oldest_first(self, tmp_path):
         q = make_queue(tmp_path)

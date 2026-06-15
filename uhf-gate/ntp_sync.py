@@ -7,6 +7,7 @@ event day.
 """
 import socket
 import struct
+import threading
 import time
 import logging
 
@@ -16,6 +17,12 @@ NTP_EPOCH = 2208988800
 
 # Measured NTP-minus-system offset in milliseconds; applied to all timestamps.
 _offset_ms = 0.0
+# Highest timestamp emitted so far. An NTP re-sync can correct the offset
+# downward; without this guard the corrected time would jump backwards,
+# reordering passes server-side and breaking client dedup. Guarded by a lock
+# because the offset is written from the NTP thread and read from the main thread.
+_last_issued_ms = 0.0
+_lock = threading.Lock()
 
 
 def get_ntp_time(ntp_server: str = "pool.ntp.org") -> float | None:
@@ -67,5 +74,12 @@ def sync_time(ntp_server: str = "pool.ntp.org") -> float:
 
 
 def get_local_time_ms() -> float:
-    """Current time in milliseconds since epoch, corrected by the NTP offset."""
-    return time.time() * 1000 + _offset_ms
+    """Current time in ms since epoch, corrected by the NTP offset and clamped
+    to be monotonically non-decreasing across offset corrections."""
+    global _last_issued_ms
+    with _lock:
+        t = time.time() * 1000 + _offset_ms
+        if t < _last_issued_ms:
+            t = _last_issued_ms
+        _last_issued_ms = t
+        return t

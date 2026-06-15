@@ -23,8 +23,13 @@ class QueuedEvent:
 
 
 class EventQueue:
-    def __init__(self, db_path: Path):
+    # Hard cap on pending (unsynced) rows so a long API outage cannot grow the
+    # SQLite file until the Pi's SD card fills and the gate stops timing.
+    DEFAULT_MAX_PENDING = 200_000
+
+    def __init__(self, db_path: Path, max_pending: int = DEFAULT_MAX_PENDING):
         self.db_path = db_path
+        self.max_pending = max_pending
         self._init_db()
     
     def _init_db(self):
@@ -61,7 +66,26 @@ class EventQueue:
                 INSERT INTO events (gate_id, tag, timestamp_ms, rssi, created_at, synced)
                 VALUES (?, ?, ?, ?, ?, 0)
             """, (gate_id, tag, timestamp_ms, rssi, created_at))
-            return cursor.lastrowid or 0
+            event_id = cursor.lastrowid or 0
+            self._evict_overflow(conn)
+            return event_id
+
+    def _evict_overflow(self, conn):
+        """Drop the oldest unsynced events beyond max_pending (newest retained).
+        The COUNT uses the (synced, created_at) index so this stays cheap."""
+        (pending,) = conn.execute("SELECT COUNT(*) FROM events WHERE synced = 0").fetchone()
+        if pending <= self.max_pending:
+            return
+        cursor = conn.execute("""
+            DELETE FROM events WHERE synced = 0 AND id NOT IN (
+                SELECT id FROM events WHERE synced = 0
+                ORDER BY created_at DESC, id DESC LIMIT ?
+            )
+        """, (self.max_pending,))
+        logger.warning(
+            f"Pending queue exceeded cap ({pending} > {self.max_pending}); "
+            f"evicted {cursor.rowcount} oldest unsynced events"
+        )
     
     def get_pending(self, limit: int = 50) -> list[QueuedEvent]:
         """Get pending events that need to be synced."""
