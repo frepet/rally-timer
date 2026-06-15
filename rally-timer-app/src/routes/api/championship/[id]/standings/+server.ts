@@ -1,12 +1,15 @@
 import { json, error, type RequestEvent } from '@sveltejs/kit';
 import { sql } from '../../../../../lib/server/db';
+import { uuidParam } from '../../../../../lib/server/schemas';
 import { positionToPoints } from '../../../../../lib/domain/scoring';
 import { calculateStandings } from '../../../../../lib/domain/standings';
 import { rankRallyResultsByClass } from '../../../../../lib/domain/championshipRanking';
 import { aggregateRallyResults, type RallyStageRow } from '../../../../../lib/domain/rallyResults';
 
 export async function GET(event: RequestEvent): Promise<Response> {
-	const id = event.params.id!;
+	const parsed = uuidParam.safeParse(event.params.id);
+	if (!parsed.success) throw error(400, 'Invalid championship id');
+	const id = parsed.data;
 	const [champ] = await sql`SELECT id FROM championships WHERE id = ${id}::uuid`;
 	if (!champ) throw error(404, 'Championship not found');
 

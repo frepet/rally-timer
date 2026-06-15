@@ -50,7 +50,7 @@ export async function POST(event: RequestEvent): Promise<Response> {
 
 	await emitGateEvent({ gate_id, tag, rssi: rssi ?? null, timestamp_ms });
 
-	return json({ stored: true, event_id: row }, { status: 201 });
+	return json({ stored: true, event_id: row.id }, { status: 201 });
 }
 
 async function maybeAutoCloseHeat(gate_id: string, timestamp_ms: number): Promise<void> {

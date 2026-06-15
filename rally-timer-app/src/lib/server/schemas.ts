@@ -4,6 +4,8 @@ export const idParam = z
 	.union([z.number().int().positive(), z.string().regex(/^[1-9]\d*$/)])
 	.transform(Number);
 
+export const uuidParam = z.string().uuid();
+
 export const driverCreateSchema = z.object({
 	name: z
 		.string()
@@ -98,11 +100,15 @@ export const gateEventSchema = z.object({
 });
 
 export const gateSyncSchema = z.object({
-	events: z.array(
-		gateEventSchema.extend({
-			client_id: z.string().uuid().optional()
-		})
-	)
+	// Bounded so an (unauthenticated, for legacy gates) client cannot flood the
+	// DB and every SSE listener with one request. Readers batch ≤50 at a time.
+	events: z
+		.array(
+			gateEventSchema.extend({
+				client_id: z.string().uuid().optional()
+			})
+		)
+		.max(1000)
 });
 
 export const gateAssignSchema = z.object({
