@@ -91,7 +91,7 @@ jobs:
 
   build:
     if: github.event_name != 'pull_request'
-    needs: [unit-test, e2e]
+    needs: [unit-test, python-test, e2e]
     runs-on: ubuntu-latest
     permissions:
       contents: read

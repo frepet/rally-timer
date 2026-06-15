@@ -51,6 +51,29 @@ leak=$(body "$BASE/api/championship/not-a-uuid/standings" | grep -ic "invalid in
 check "error body does not leak Postgres internals" "0" "$leak"
 
 echo ""
+echo "── Gate sync: idempotent, no error leak, unknown gates skipped ────────"
+
+batch="{\"events\":[
+  {\"gate_id\":\"$GATE_UUID\",\"timestamp_ms\":1700000100000,\"tag\":\"SYNCTAG1\"},
+  {\"gate_id\":\"$GATE_UUID\",\"timestamp_ms\":1700000200000,\"tag\":\"SYNCTAG2\"}
+]}"
+r1=$(body -X POST "$BASE/api/gate-sync" -H "content-type: application/json" -d "$batch")
+check "first sync stores both events"     "2" "$(echo "$r1" | jq '.stored')"
+check "first sync reports no failures"    "0" "$(echo "$r1" | jq '.failed')"
+r2=$(body -X POST "$BASE/api/gate-sync" -H "content-type: application/json" -d "$batch")
+check "re-sync is idempotent (stored 0)"  "0" "$(echo "$r2" | jq '.stored')"
+
+unknown="{\"events\":[{\"gate_id\":\"00000000-0000-4000-8000-000000000000\",\"timestamp_ms\":1,\"tag\":\"X\"}]}"
+ru=$(body -X POST "$BASE/api/gate-sync" -H "content-type: application/json" -d "$unknown")
+check "unknown gate is skipped, not failed" "1" "$(echo "$ru" | jq '.skipped')"
+ucode=$(status -X POST "$BASE/api/gate-sync" -H "content-type: application/json" -d "$unknown")
+check "unknown-gate batch still 200"        "200" "$ucode"
+
+oversize=$(status -X POST "$BASE/api/gate-sync" -H "content-type: application/json" \
+  -d "{\"events\":[$(python3 -c 'print(",".join(["{\"gate_id\":\"00000000-0000-4000-8000-000000000000\",\"timestamp_ms\":1,\"tag\":\"X\"}"]*1500))')]}")
+check "oversized batch rejected (400)"      "400" "$oversize"
+
+echo ""
 echo "────────────────────────────────────────────────────────────────────────"
 echo "  $pass passed / $((pass + fail)) total"
 if [[ $fail -gt 0 ]]; then echo "  FAILED"; exit 1; fi
