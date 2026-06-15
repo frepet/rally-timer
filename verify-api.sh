@@ -51,6 +51,23 @@ leak=$(body "$BASE/api/championship/not-a-uuid/standings" | grep -ic "invalid in
 check "error body does not leak Postgres internals" "0" "$leak"
 
 echo ""
+echo "── Concurrent stage close does not duplicate synthetic DNF finishes ───"
+
+# Fresh stage with two started, never-finished drivers (both DNF on close).
+sid=$(body -X POST "$BASE/api/stage" -H "content-type: application/json" \
+  -d '{"name":"Concurrency SS"}' | jq -r '.id')
+body -X POST "$BASE/api/stage/$sid/start" -H "content-type: application/json" \
+  -d '{"driver_ids":[1,2]}' > /dev/null
+# Fire several closes at once; only one synthetic DNF per driver may result.
+for _ in 1 2 3 4 5; do
+  curl -s -X POST "$BASE/api/stage/$sid/close" -H "content-type: application/json" >/dev/null &
+done
+wait
+dup=$(body "$BASE/api/stage/$sid/events" \
+  | jq '[.[] | select(.kind=="finish")] | group_by(.tag) | map(length) | max // 0')
+check "no driver has more than one DNF finish row" "1" "$dup"
+
+echo ""
 echo "── Gate sync: idempotent, no error leak, unknown gates skipped ────────"
 
 batch="{\"events\":[

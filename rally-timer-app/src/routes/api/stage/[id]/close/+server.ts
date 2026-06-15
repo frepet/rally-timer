@@ -76,20 +76,17 @@ export async function POST(event: RequestEvent): Promise<Response> {
 
 		if (validFinish) continue; // already has a real finish
 
-		// Skip if a synthetic finish already exists for this driver+stage
-		const [existing] = await sql`
-			SELECT id FROM finish_events
-			WHERE stage_id = ${stageId} AND tag = ${driverInfo.tag} AND dnf = true
-		`;
-		if (existing) continue;
-
 		const finishTs = driverInfo.latestStart + dnfPenaltyMs(classSlowests.get(driverInfo.classId));
 
-		await sql`
+		// ON CONFLICT makes this idempotent and race-safe: a concurrent close
+		// inserting the same synthetic DNF is a no-op rather than a duplicate.
+		const [inserted] = await sql`
 			INSERT INTO finish_events (stage_id, timestamp, tag, dnf)
 			VALUES (${stageId}, ${finishTs}, ${driverInfo.tag}, true)
+			ON CONFLICT (stage_id, tag) WHERE dnf DO NOTHING
+			RETURNING id
 		`;
-		dnfCount++;
+		if (inserted) dnfCount++;
 	}
 
 	// Unassign gate from this stage, capture freed gate IDs
