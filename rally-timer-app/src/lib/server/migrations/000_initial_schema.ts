@@ -1,8 +1,7 @@
-import { sql } from '../db';
+import type { Sql } from '../db';
 
-export async function runMigration() {
-	await sql.begin(async (tx) => {
-		await tx.unsafe(`
+export async function runMigration(sql: Sql) {
+	await sql.unsafe(`
 			CREATE TABLE IF NOT EXISTS classes (
 				id   SERIAL PRIMARY KEY,
 				name TEXT   NOT NULL UNIQUE
@@ -105,6 +104,5 @@ export async function runMigration() {
 			-- Seed default classes
 			INSERT INTO classes (name) VALUES ('Group A'), ('Group B'), ('Group S')
 				ON CONFLICT (name) DO NOTHING;
-		`);
-	});
+	`);
 }

@@ -1,6 +1,6 @@
-import { sql } from '../db';
+import type { Sql } from '../db';
 
-export async function runMigration() {
+export async function runMigration(sql: Sql) {
 	// Stage/rally timing is computed by the domain layer
 	// (src/lib/domain/rallySubmission.ts); the SQL views duplicated that logic
 	// (without penalty support) and have no remaining consumers.

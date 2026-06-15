@@ -1,8 +1,7 @@
-import { sql } from '../db';
+import type { Sql } from '../db';
 
-export async function runMigration() {
-	await sql.begin(async (tx) => {
-		await tx.unsafe(`
+export async function runMigration(sql: Sql) {
+	await sql.unsafe(`
 			ALTER TABLE drivers ADD COLUMN IF NOT EXISTS rating INTEGER NOT NULL DEFAULT 1500;
 
 			CREATE TABLE IF NOT EXISTS rally_driver_ratings (
@@ -14,6 +13,5 @@ export async function runMigration() {
 			);
 
 			CREATE INDEX IF NOT EXISTS rally_driver_ratings_driver_idx ON rally_driver_ratings(driver_uuid);
-		`);
-	});
+	`);
 }

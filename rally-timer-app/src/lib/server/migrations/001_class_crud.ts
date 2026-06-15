@@ -1,8 +1,7 @@
-import { sql } from '../db';
+import type { Sql } from '../db';
 
-export async function runMigration() {
-	await sql.begin(async (tx) => {
-		await tx.unsafe(`
+export async function runMigration(sql: Sql) {
+	await sql.unsafe(`
 			-- Drop FK on rally_results.class_id so historical submitted rallies survive
 			-- class deletion. class_name is already snapshotted on the row, mirroring
 			-- the existing pattern for driver_uuid/driver_name and stage_name.
@@ -23,6 +22,5 @@ export async function runMigration() {
 				ADD CONSTRAINT start_events_driver_id_fkey
 				FOREIGN KEY (driver_id) REFERENCES drivers(id)
 				ON DELETE CASCADE;
-		`);
-	});
+	`);
 }

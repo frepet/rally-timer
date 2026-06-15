@@ -1,6 +1,6 @@
-import { sql } from '../db';
+import type { Sql } from '../db';
 
-export async function runMigration() {
+export async function runMigration(sql: Sql) {
 	// Remove duplicate gate events (same gate, tag, timestamp) keeping only the lowest id.
 	await sql.unsafe(`
 		DELETE FROM gate_events

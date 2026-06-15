@@ -1,6 +1,6 @@
-import { sql } from '../db';
+import type { Sql } from '../db';
 
-export async function runMigration() {
+export async function runMigration(sql: Sql) {
 	await sql.unsafe(`
 		ALTER TABLE rallycross
 			ADD COLUMN IF NOT EXISTS max_per_heat  INTEGER NOT NULL DEFAULT 4,

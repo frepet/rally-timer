@@ -1,7 +1,7 @@
 import postgres from 'postgres';
 import { env } from '$env/dynamic/private';
 
-type Sql = ReturnType<typeof postgres>;
+export type Sql = ReturnType<typeof postgres>;
 
 declare global {
 	var __pgSql__: Sql | undefined;
@@ -50,7 +50,7 @@ import { runMigration as run015 } from './migrations/015_stage_order';
 import { runMigration as run016 } from './migrations/016_drop_stage_time_views';
 import { runMigration as run017 } from './migrations/017_gate_token';
 
-const MIGRATIONS: Array<[name: string, run: () => Promise<void>]> = [
+const MIGRATIONS: Array<[name: string, run: (tx: Sql) => Promise<void>]> = [
 	['000_initial_schema', run000],
 	['001_class_crud', run001],
 	['002_class_start_priority', run002],
@@ -91,7 +91,10 @@ export async function runMigrations(): Promise<void> {
 		const applied = new Set(rows.map((r) => r.name));
 		for (const [name, run] of MIGRATIONS) {
 			if (applied.has(name)) continue;
-			await run();
+			// Run the migration's DDL on the SAME locked transaction connection,
+			// so it is both serialised by the advisory lock and atomic with the
+			// schema_migrations insert that records it.
+			await run(tsql);
 			await tsql`INSERT INTO schema_migrations (name, applied_at) VALUES (${name}, ${Date.now()})`;
 		}
 	});
