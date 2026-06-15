@@ -36,7 +36,12 @@
 	let rxLeaderboard = $state<OverallResult[]>([]);
 	let trainingConfig = $state<TrainingConfig>({ gate_id: null, drivers: [] });
 
-	let bundle: BundleResponse = { drivers: [], stages: [], start_events: [], finish_events: [] };
+	let bundle = $state<BundleResponse>({
+		drivers: [],
+		stages: [],
+		start_events: [],
+		finish_events: []
+	});
 
 	// Auto-detect priority: training (gate assigned) → rallycross (heats exist) → rally
 	const autoView = $derived<View>(

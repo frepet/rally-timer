@@ -182,6 +182,11 @@
 	let eventSource: EventSource | null = null;
 	let lastCapturedTag = $state<string | null>(null);
 	let captureFlash = $state(false);
+	// Tracked so they can be cleared on teardown — a stray reconnect timer
+	// must not reopen an EventSource after the component is destroyed.
+	let flashTimer: ReturnType<typeof setTimeout> | null = null;
+	let autoSubmitTimer: ReturnType<typeof setTimeout> | null = null;
+	let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
 	function startGateCapture() {
 		if (eventSource) return;
@@ -195,10 +200,12 @@
 						newTag = data.tag;
 						lastCapturedTag = data.tag;
 						captureFlash = true;
-						setTimeout(() => (captureFlash = false), 500);
+						if (flashTimer) clearTimeout(flashTimer);
+						flashTimer = setTimeout(() => (captureFlash = false), 500);
 
 						if (autoSubmitEnabled && newName.trim() && newClassId !== '') {
-							setTimeout(() => createDriver(), 100);
+							if (autoSubmitTimer) clearTimeout(autoSubmitTimer);
+							autoSubmitTimer = setTimeout(() => createDriver(), 100);
 						}
 					}
 				}
@@ -210,12 +217,17 @@
 			eventSource?.close();
 			eventSource = null;
 			if (gateCaptureEnabled) {
-				setTimeout(startGateCapture, 3000);
+				if (reconnectTimer) clearTimeout(reconnectTimer);
+				reconnectTimer = setTimeout(startGateCapture, 3000);
 			}
 		};
 	}
 
 	function stopGateCapture() {
+		if (reconnectTimer) clearTimeout(reconnectTimer);
+		if (flashTimer) clearTimeout(flashTimer);
+		if (autoSubmitTimer) clearTimeout(autoSubmitTimer);
+		reconnectTimer = flashTimer = autoSubmitTimer = null;
 		if (eventSource) {
 			eventSource.close();
 			eventSource = null;
