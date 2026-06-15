@@ -32,7 +32,11 @@ export type KCPayload = JWTPayload & {
 
 export async function verifyJwt(token: string): Promise<KCPayload> {
 	const { payload } = await jwtVerify(token, getJwks(), {
-		issuer: getIssuer()
+		issuer: getIssuer(),
+		// Pin Keycloak's RSA signing algorithm — defence-in-depth against
+		// algorithm-substitution even though jose's JWKS resolver already
+		// rejects 'none' and HMAC algorithms.
+		algorithms: ['RS256']
 	});
 	const p = payload as KCPayload;
 	// Signature + issuer alone accept tokens minted for ANY client in the
