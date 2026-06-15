@@ -18,6 +18,7 @@ class Config:
     gate_uuid: str = field(default_factory=lambda: os.getenv("GATE_UUID", ""))
     uuid_file: Path = field(default_factory=lambda: Path(__file__).parent / ".gate_uuid")
     token_file: Path = field(default_factory=lambda: Path(__file__).parent / ".gate_token")
+    key_file: Path = field(default_factory=lambda: Path(__file__).parent / ".gate_key")
     db_file: Path = field(default_factory=lambda: Path(__file__).parent / "queue.sqlite")
     led_pin: int | None = field(default_factory=lambda: int(os.getenv("LED_PIN")) if os.getenv("LED_PIN") else None)
     dedup_led_pin: int | None = field(default_factory=lambda: int(os.getenv("DEDUP_LED_PIN")) if os.getenv("DEDUP_LED_PIN") else None)

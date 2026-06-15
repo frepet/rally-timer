@@ -31,7 +31,7 @@ export async function PATCH(event: RequestEvent): Promise<Response> {
 	const parsed = gateAssignSchema.safeParse(body);
 	if (!parsed.success) return json({ errors: parsed.error.flatten() }, { status: 400 });
 
-	const { stage_id, name } = parsed.data;
+	const { stage_id, name, status } = parsed.data;
 
 	if (stage_id !== undefined) {
 		if (stage_id !== null) {
@@ -45,6 +45,9 @@ export async function PATCH(event: RequestEvent): Promise<Response> {
 	}
 	if (name !== undefined) {
 		await sql`UPDATE gates SET name = ${name} WHERE id = ${id}`;
+	}
+	if (status !== undefined) {
+		await sql`UPDATE gates SET status = ${status} WHERE id = ${id}`;
 	}
 
 	return json({ id, updated: true });

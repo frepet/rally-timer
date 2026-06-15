@@ -1,26 +1,43 @@
 import { json, error, type RequestEvent } from '@sveltejs/kit';
 import { sql } from '../../../lib/server/db';
-import { requireGateToken } from '../../../lib/server/gateAuth';
+import { requireGateCrypto } from '../../../lib/server/gateAuth';
 import { gateEventSchema } from '../../../lib/server/schemas';
 import { emitGateEvent } from '../../../lib/server/gateEvents';
 import { computeLaps } from '../../../lib/domain/rallycross';
 
 export async function POST(event: RequestEvent): Promise<Response> {
+	let rawBody: string;
+	try {
+		rawBody = await event.request.text();
+	} catch {
+		throw error(400, 'Could not read request body');
+	}
+
 	let body: unknown;
 	try {
-		body = await event.request.json();
+		body = JSON.parse(rawBody);
 	} catch {
 		throw error(400, 'Invalid JSON');
 	}
+
 	const parsed = gateEventSchema.safeParse(body);
 	if (!parsed.success) return json({ errors: parsed.error.flatten() }, { status: 400 });
 
 	const { gate_id, timestamp_ms, tag, rssi } = parsed.data;
 	const now = Date.now();
 
-	const [gate] = await sql`SELECT id, stage_id, token FROM gates WHERE id = ${gate_id}`;
+	const [gate] = await sql<
+		{
+			id: string;
+			stage_id: number | null;
+			token: string | null;
+			public_key: string | null;
+			status: string;
+		}[]
+	>`SELECT id, stage_id, token, public_key, status FROM gates WHERE id = ${gate_id}`;
 	if (!gate) throw error(404, 'Gate not registered');
-	requireGateToken(event, gate.token as string | null);
+
+	await requireGateCrypto(event, gate, rawBody);
 
 	const [row] = await sql`
 		INSERT INTO gate_events (gate_id, tag, timestamp, rssi, synced_at)
@@ -40,8 +57,6 @@ export async function POST(event: RequestEvent): Promise<Response> {
 		`;
 	}
 
-	// Auto-close rallycross heat if all entries have finished required laps.
-	// A failure here must not fail the gate event itself — it is already stored.
 	try {
 		await maybeAutoCloseHeat(gate_id, timestamp_ms);
 	} catch (e) {
@@ -54,7 +69,6 @@ export async function POST(event: RequestEvent): Promise<Response> {
 }
 
 async function maybeAutoCloseHeat(gate_id: string, timestamp_ms: number): Promise<void> {
-	// Is this gate the rallycross gate and is there an active heat?
 	const [rx] = await sql<{ gate_id: string | null; cooldown_ms: number }[]>`
 		SELECT gate_id, cooldown_ms FROM rallycross WHERE id = 1
 	`;
@@ -110,7 +124,6 @@ async function maybeAutoCloseHeat(gate_id: string, timestamp_ms: number): Promis
 	});
 
 	if (allDone) {
-		// Guard against a concurrent close: only the first writer wins.
 		await sql`
 			UPDATE rallycross_heats SET closed_at = ${timestamp_ms}
 			WHERE id = ${heat.id} AND closed_at IS NULL

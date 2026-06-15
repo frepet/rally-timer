@@ -1,34 +1,55 @@
 import { json, error, type RequestEvent } from '@sveltejs/kit';
 import { sql } from '../../../lib/server/db';
-import { requireGateToken } from '../../../lib/server/gateAuth';
+import { requireGateCrypto } from '../../../lib/server/gateAuth';
 import { gateSyncSchema } from '../../../lib/server/schemas';
 import { emitGateEvent } from '../../../lib/server/gateEvents';
 import { log } from '../../../lib/server/log';
 
 export async function POST(event: RequestEvent): Promise<Response> {
-	let body: unknown;
+	let rawBody: string;
 	try {
-		body = await event.request.json();
+		rawBody = await event.request.text();
+	} catch {
+		throw error(400, 'Could not read request body');
+	}
+
+	let bodyJson: unknown;
+	try {
+		bodyJson = JSON.parse(rawBody);
 	} catch {
 		throw error(400, 'Invalid JSON');
 	}
-	const parsed = gateSyncSchema.safeParse(body);
+
+	const parsed = gateSyncSchema.safeParse(bodyJson);
 	if (!parsed.success) return json({ errors: parsed.error.flatten() }, { status: 400 });
 
 	const { events } = parsed.data;
 	const now = Date.now();
 
 	// Resolve every distinct gate once (avoids a per-event SELECT) and
-	// authenticate up front: a 401 must reject the whole batch.
+	// authenticate up front: a 401/403 must reject the whole batch.
 	const gateIds = [...new Set(events.map((e) => e.gate_id))];
 	const gateRows = gateIds.length
-		? await sql<{ id: string; stage_id: number | null; token: string | null }[]>`
-				SELECT id, stage_id, token FROM gates WHERE id = ANY(${gateIds})
+		? await sql<
+				{
+					id: string;
+					stage_id: number | null;
+					token: string | null;
+					public_key: string | null;
+					status: string;
+				}[]
+			>`
+				SELECT id, stage_id, token, public_key, status FROM gates WHERE id = ANY(${gateIds})
 			`
 		: [];
 	const gates = new Map(gateRows.map((g) => [g.id, g]));
+
+	// Authenticate each gate.
+	// PKI gates: verify the Ed25519 signature on this request. In practice a
+	// batch is always from one gate, so the signature covers its own events.
+	// Legacy token gates: check the bearer token (backward compat).
 	for (const gate of gateRows) {
-		requireGateToken(event, gate.token);
+		await requireGateCrypto(event, gate, rawBody);
 	}
 
 	let stored = 0;
@@ -44,9 +65,6 @@ export async function POST(event: RequestEvent): Promise<Response> {
 			continue;
 		}
 		try {
-			// The pass and its derived finish are inserted atomically, so a
-			// failure can never leave a stored pass with no finish (which the
-			// gate_events ON CONFLICT would then make unrecoverable on retry).
 			const inserted = await sql.begin(async (tx) => {
 				const tsql = tx as unknown as typeof sql;
 				const [row] = await tsql`
@@ -55,7 +73,7 @@ export async function POST(event: RequestEvent): Promise<Response> {
 					ON CONFLICT (gate_id, tag, timestamp) DO NOTHING
 					RETURNING id
 				`;
-				if (!row) return false; // duplicate — already have this pass
+				if (!row) return false;
 				if (gate.stage_id) {
 					await tsql`
 						INSERT INTO finish_events (stage_id, timestamp, tag)
@@ -82,8 +100,6 @@ export async function POST(event: RequestEvent): Promise<Response> {
 
 	if (stored > 0) {
 		await sql`UPDATE gates SET last_seen = ${now} WHERE id = ANY(${gateIds})`;
-		// NOTIFY is best-effort: a failure must not turn a committed batch into
-		// a 500 that makes the reader re-send already-stored events.
 		for (const e of emit) {
 			try {
 				await emitGateEvent(e);
@@ -93,8 +109,6 @@ export async function POST(event: RequestEvent): Promise<Response> {
 		}
 	}
 
-	// Any transient failure → non-2xx so the reader keeps the batch and retries
-	// (re-sends are idempotent via the gate_events unique constraint).
 	const status = failed > 0 ? 500 : 200;
 	return json({ stored, finish_added: finishAdded, skipped, failed }, { status });
 }

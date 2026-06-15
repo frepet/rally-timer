@@ -39,6 +39,7 @@ class UHFGate:
         self.api = APIClient(
             config.api_base_url,
             config.get_or_create_uuid(),
+            key_file=config.key_file,
             token=config.get_token(),
             on_token=config.save_token,
         )

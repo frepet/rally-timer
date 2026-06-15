@@ -91,6 +91,42 @@ oversize=$(status -X POST "$BASE/api/gate-sync" -H "content-type: application/js
 check "oversized batch rejected (400)"      "400" "$oversize"
 
 echo ""
+echo "── Gate enrollment: PKI registration and admin accept ─────────────────"
+
+PKI_UUID="d1a1a100-0000-4000-8000-000000000099"
+
+# Generate a temporary Ed25519 key pair for tests
+PKI_PUBKEY=$(python3 -c "
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
+k = Ed25519PrivateKey.generate()
+print(k.public_key().public_bytes(Encoding.PEM, PublicFormat.SubjectPublicKeyInfo).decode().strip())
+")
+
+# Register gate with public_key → should be 'pending', status 201.
+# Capture body and HTTP status in one request to avoid double-registration.
+PKI_PUBKEY_JSON=$(echo "$PKI_PUBKEY" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))')
+reg_raw=$(curl -s -w '\n%{http_code}' -X POST "$BASE/api/gate" -H "content-type: application/json" \
+  -d "{\"id\":\"$PKI_UUID\",\"name\":\"pki-test\",\"public_key\":$PKI_PUBKEY_JSON}")
+reg=$(echo "$reg_raw" | head -n -1)
+reg_code=$(echo "$reg_raw" | tail -1)
+check "PKI gate registration returns status=pending" "pending" "$(echo "$reg" | jq -r '.status')"
+check "PKI gate registration status code 201" "201" "$reg_code"
+
+# Gate list includes the PKI gate with status=pending
+gate_status=$(body "$BASE/api/gate" | jq -r --arg id "$PKI_UUID" '.[] | select(.id == $id) | .status')
+check "PKI gate appears in list with status=pending" "pending" "$gate_status"
+
+# Admin accepts the gate (SKIP_AUTH bypasses Keycloak for admin endpoints)
+accept=$(body -X PATCH "$BASE/api/gate/$PKI_UUID" -H "content-type: application/json" \
+  -d '{"status":"accepted"}')
+check "Admin accepts gate" "true" "$(echo "$accept" | jq -r '.updated')"
+
+# Gate list shows accepted
+gate_status_after=$(body "$BASE/api/gate" | jq -r --arg id "$PKI_UUID" '.[] | select(.id == $id) | .status')
+check "PKI gate now shows status=accepted in list" "accepted" "$gate_status_after"
+
+echo ""
 echo "────────────────────────────────────────────────────────────────────────"
 echo "  $pass passed / $((pass + fail)) total"
 if [[ $fail -gt 0 ]]; then echo "  FAILED"; exit 1; fi

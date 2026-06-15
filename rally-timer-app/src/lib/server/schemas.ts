@@ -85,7 +85,8 @@ export const finishUpdateSchema = z
 export const gateRegisterSchema = z.object({
 	id: z.string().uuid(),
 	name: z.string().max(100).optional(),
-	request_token: z.boolean().optional()
+	request_token: z.boolean().optional(),
+	public_key: z.string().max(2000).optional()
 });
 
 export const gateEventSchema = z.object({
@@ -113,7 +114,8 @@ export const gateSyncSchema = z.object({
 
 export const gateAssignSchema = z.object({
 	stage_id: idParam.nullable().optional(),
-	name: z.string().nullable().optional()
+	name: z.string().nullable().optional(),
+	status: z.enum(['accepted', 'rejected']).optional()
 });
 
 export const rallycrossConfigSchema = z.object({
@@ -149,6 +151,7 @@ export const heatManualCloseSchema = z.object({
 export type DriverCreateInput = z.infer<typeof driverCreateSchema>;
 export type DriverActiveInput = z.infer<typeof driverActiveSchema>;
 export type GateRegisterInput = z.infer<typeof gateRegisterSchema>;
+export type GateAssignInput = z.infer<typeof gateAssignSchema>;
 export type GateEventInput = z.infer<typeof gateEventSchema>;
 export type GateSyncInput = z.infer<typeof gateSyncSchema>;
 export type ClassCreateInput = z.infer<typeof classCreateSchema>;

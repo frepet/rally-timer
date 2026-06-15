@@ -9,6 +9,7 @@
 		TableBodyRow,
 		TableBodyCell,
 		Badge,
+		Button,
 		P
 	} from 'flowbite-svelte';
 	import { DotsVerticalOutline, TrashBinOutline } from 'flowbite-svelte-icons';
@@ -27,6 +28,7 @@
 		rally_name: string | null;
 		is_rallycross: boolean;
 		created_at: number;
+		status: string;
 	};
 
 	type ConsoleEntry = {
@@ -46,6 +48,9 @@
 	let nextEntryId = 0;
 	const MAX_LOG = 200;
 
+	const pendingGates = $derived(gates.filter((g) => g.status === 'pending'));
+	const acceptedGates = $derived(gates.filter((g) => g.status !== 'pending'));
+
 	function openMenu(e: MouseEvent, id: string) {
 		e.stopPropagation();
 		if (openMenuId === id) {
@@ -57,7 +62,6 @@
 		openMenuId = id;
 	}
 
-	// Derived: the gate whose menu is currently open (for the fixed-position portal menu)
 	const menuGate = $derived(gates.find((g) => g.id === openMenuId) ?? null);
 
 	function fmtAge(ts: number): string {
@@ -134,6 +138,26 @@
 		await loadGates();
 	}
 
+	async function acceptGate(gate: Gate) {
+		if (!confirm(t.acceptGateConfirm(gate.name ?? gate.id))) return;
+		await kcFetchJSON(`/api/gate/${gate.id}`, {
+			method: 'PATCH',
+			headers: { 'content-type': 'application/json' },
+			body: JSON.stringify({ status: 'accepted' })
+		});
+		await loadGates();
+	}
+
+	async function rejectGate(gate: Gate) {
+		if (!confirm(t.rejectGateConfirm(gate.name ?? gate.id))) return;
+		await kcFetchJSON(`/api/gate/${gate.id}`, {
+			method: 'PATCH',
+			headers: { 'content-type': 'application/json' },
+			body: JSON.stringify({ status: 'rejected' })
+		});
+		await loadGates();
+	}
+
 	function triggerFlash(gateId: string) {
 		flashingGates.add(gateId);
 		setTimeout(() => {
@@ -197,7 +221,7 @@
 
 <svelte:window onclick={() => (openMenuId = null)} />
 
-<!-- Fixed-position dropdown portal — rendered outside the table so it is never clipped -->
+<!-- Fixed-position dropdown portal -->
 {#if menuGate}
 	<div
 		role="menu"
@@ -227,6 +251,48 @@
 {/if}
 
 <div class="w-full space-y-6 p-5">
+	<!-- Pending gates section — only shown when there are pending gates or when admin -->
+	{#if auth.isAdmin && pendingGates.length > 0}
+		<Card class="max-w-none border-amber-300 p-4 dark:border-amber-700 sm:p-6 md:p-8">
+			<div class="mb-4 flex items-center gap-3">
+				<Badge color="yellow" class="text-sm">{pendingGates.length}</Badge>
+				<P class="small-caps text-xl font-semibold tracking-widest text-black dark:text-white"
+					>{t.pendingGatesHeading}</P
+				>
+			</div>
+			<Table hoverable>
+				<TableHead>
+					<TableHeadCell>{t.nameIdHeader}</TableHeadCell>
+					<TableHeadCell>{t.lastSeenHeader}</TableHeadCell>
+					<TableHeadCell class="text-right">{t.actions}</TableHeadCell>
+				</TableHead>
+				<TableBody>
+					{#each pendingGates as gate (gate.id)}
+						<TableBodyRow>
+							<TableBodyCell>
+								<div class="font-medium">{gate.name ?? '—'}</div>
+								<div class="font-mono text-xs opacity-60">{gate.id}</div>
+							</TableBodyCell>
+							<TableBodyCell>
+								<P class="text-sm">{fmtAge(gate.last_seen)}</P>
+							</TableBodyCell>
+							<TableBodyCell class="text-right">
+								<div class="flex items-center justify-end gap-2">
+									<Button size="xs" color="green" onclick={() => acceptGate(gate)}>
+										{t.acceptGate}
+									</Button>
+									<Button size="xs" color="red" onclick={() => rejectGate(gate)}>
+										{t.rejectGate}
+									</Button>
+								</div>
+							</TableBodyCell>
+						</TableBodyRow>
+					{/each}
+				</TableBody>
+			</Table>
+		</Card>
+	{/if}
+
 	<Card class="max-w-none p-4 sm:p-6 md:p-8">
 		<div class="mb-4 flex items-center justify-between">
 			<P class="small-caps text-xl font-semibold tracking-widest text-black dark:text-white"
@@ -235,7 +301,7 @@
 			<P class="text-sm opacity-60">{t.autoUpdates}</P>
 		</div>
 
-		{#if !gates.length}
+		{#if !acceptedGates.length}
 			<P class="opacity-70">{t.noGatesRegistered}</P>
 		{:else}
 			<Table hoverable>
@@ -249,14 +315,16 @@
 					{/if}
 				</TableHead>
 				<TableBody>
-					{#each gates as gate (gate.id)}
+					{#each acceptedGates as gate (gate.id)}
 						<TableBodyRow
 							class={flashingGates.has(gate.id)
 								? 'animate-pulse bg-green-100 dark:bg-green-900'
 								: ''}
 						>
 							<TableBodyCell>
-								{#if isOnline(gate)}
+								{#if gate.status === 'rejected'}
+									<Badge color="red">{t.gateRejected}</Badge>
+								{:else if isOnline(gate)}
 									<Badge color="green">{t.gateOnline}</Badge>
 								{:else}
 									<Badge color="gray">{t.gateOffline}</Badge>

@@ -11,6 +11,7 @@ export async function GET(): Promise<Response> {
 			g.last_seen,
 			g.stage_id,
 			g.created_at,
+			g.status,
 			s.name AS stage_name,
 			EXISTS(SELECT 1 FROM rallycross WHERE gate_id = g.id) AS is_rallycross
 		FROM gates g
