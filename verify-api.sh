@@ -32,9 +32,18 @@ body()   { curl -s "$@"; }
 echo ""
 echo "── Gate event response shape ──────────────────────────────────────────"
 
-# Register a gate (no stage assignment → posting events has no timing side effects)
+# Register a gate with a public key, then accept it (SKIP_AUTH bypasses signing on event endpoints).
+GATE_PUBKEY_JSON=$(python3 -c "
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
+import json
+k = Ed25519PrivateKey.generate()
+print(json.dumps(k.public_key().public_bytes(Encoding.PEM, PublicFormat.SubjectPublicKeyInfo).decode()))
+")
 curl -s -X POST "$BASE/api/gate" -H "content-type: application/json" \
-  -d "{\"id\":\"$GATE_UUID\",\"name\":\"api-test\"}" > /dev/null
+  -d "{\"id\":\"$GATE_UUID\",\"name\":\"api-test\",\"public_key\":$GATE_PUBKEY_JSON}" > /dev/null
+curl -s -X PATCH "$BASE/api/gate/$GATE_UUID" -H "content-type: application/json" \
+  -d '{"status":"accepted"}' > /dev/null
 
 ev=$(body -X POST "$BASE/api/gate-event" -H "content-type: application/json" \
   -d "{\"gate_id\":\"$GATE_UUID\",\"timestamp_ms\":1700000000000,\"tag\":\"APITESTTAG\"}")

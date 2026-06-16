@@ -130,10 +130,17 @@ echo "    Alice id=$id_a  Bob id=$id_b  Charlie id=$id_s  Diana id=$id_d"
 
 echo "==> Registering and assigning finish gate..."
 gate_id="a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+gate_pubkey=$(python3 -c "
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
+import json
+k = Ed25519PrivateKey.generate()
+print(json.dumps(k.public_key().public_bytes(Encoding.PEM, PublicFormat.SubjectPublicKeyInfo).decode()))
+")
 post /api/gate/"$gate_id" \
-  "{\"id\":\"$gate_id\",\"name\":\"SS1 Finish Gate\"}" "${anon[@]}" > /dev/null
+  "{\"id\":\"$gate_id\",\"name\":\"SS1 Finish Gate\",\"public_key\":$gate_pubkey}" "${anon[@]}" > /dev/null
 patch /api/gate/"$gate_id" \
-  "{\"stage_id\":$stage_id}" "${anon[@]}" > /dev/null
+  "{\"status\":\"accepted\",\"stage_id\":$stage_id}" "${anon[@]}" > /dev/null
 echo "    Gate $gate_id assigned to stage $stage_id"
 
 # ---------------------------------------------------------------------------

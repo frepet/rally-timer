@@ -34,20 +34,17 @@ export async function POST(event: RequestEvent): Promise<Response> {
 				{
 					id: string;
 					stage_id: number | null;
-					token: string | null;
 					public_key: string | null;
 					status: string;
 				}[]
 			>`
-				SELECT id, stage_id, token, public_key, status FROM gates WHERE id = ANY(${gateIds})
+				SELECT id, stage_id, public_key, status FROM gates WHERE id = ANY(${gateIds})
 			`
 		: [];
 	const gates = new Map(gateRows.map((g) => [g.id, g]));
 
-	// Authenticate each gate.
-	// PKI gates: verify the Ed25519 signature on this request. In practice a
-	// batch is always from one gate, so the signature covers its own events.
-	// Legacy token gates: check the bearer token (backward compat).
+	// Authenticate each gate via Ed25519. In practice a batch is always from
+	// one gate, so the signature covers its own events.
 	for (const gate of gateRows) {
 		await requireGateCrypto(event, gate, rawBody);
 	}

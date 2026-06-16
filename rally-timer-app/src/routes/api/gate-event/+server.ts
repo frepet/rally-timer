@@ -30,11 +30,10 @@ export async function POST(event: RequestEvent): Promise<Response> {
 		{
 			id: string;
 			stage_id: number | null;
-			token: string | null;
 			public_key: string | null;
 			status: string;
 		}[]
-	>`SELECT id, stage_id, token, public_key, status FROM gates WHERE id = ${gate_id}`;
+	>`SELECT id, stage_id, public_key, status FROM gates WHERE id = ${gate_id}`;
 	if (!gate) throw error(404, 'Gate not registered');
 
 	await requireGateCrypto(event, gate, rawBody);

@@ -1,4 +1,4 @@
-"""Tests for gate configuration: validation and identity/token persistence."""
+"""Tests for gate configuration: validation and UUID persistence."""
 from config import Config
 
 
@@ -13,7 +13,7 @@ def make_config(tmp_path, **env):
         for k in env:
             os.environ.pop(k, None)
     c.uuid_file = tmp_path / ".gate_uuid"
-    c.token_file = tmp_path / ".gate_token"
+    c.key_file = tmp_path / ".gate_key"
     return c
 
 
@@ -45,11 +45,3 @@ class TestIdentityPersistence:
         first = c.get_or_create_uuid()
         assert c.uuid_file.exists()
         assert c.get_or_create_uuid() == first  # stable across calls
-
-    def test_token_round_trip_and_permissions(self, tmp_path):
-        c = make_config(tmp_path)
-        assert c.get_token() is None
-        c.save_token("deadbeef")
-        assert c.get_token() == "deadbeef"
-        # secret on disk must not be world-readable
-        assert (c.token_file.stat().st_mode & 0o077) == 0

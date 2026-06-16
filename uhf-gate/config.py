@@ -17,7 +17,6 @@ class Config:
     ntp_server: str = field(default_factory=lambda: os.getenv("NTP_SERVER", "pool.ntp.org"))
     gate_uuid: str = field(default_factory=lambda: os.getenv("GATE_UUID", ""))
     uuid_file: Path = field(default_factory=lambda: Path(__file__).parent / ".gate_uuid")
-    token_file: Path = field(default_factory=lambda: Path(__file__).parent / ".gate_token")
     key_file: Path = field(default_factory=lambda: Path(__file__).parent / ".gate_key")
     db_file: Path = field(default_factory=lambda: Path(__file__).parent / "queue.sqlite")
     led_pin: int | None = field(default_factory=lambda: int(os.getenv("LED_PIN")) if os.getenv("LED_PIN") else None)
@@ -42,32 +41,16 @@ class Config:
         """Get existing UUID or generate new one."""
         if self.gate_uuid:
             return self.gate_uuid
-        
+
         if self.uuid_file.exists():
             uuid = self.uuid_file.read_text().strip()
             if uuid:
                 return uuid
-        
+
         import uuid
         new_uuid = str(uuid.uuid4())
         self.uuid_file.write_text(new_uuid)
         return new_uuid
-
-    def get_token(self) -> str | None:
-        """Read the persisted gate API token, if any."""
-        if self.token_file.exists():
-            token = self.token_file.read_text().strip()
-            if token:
-                return token
-        return None
-
-    def save_token(self, token: str) -> None:
-        """Persist the gate API token issued by the server at registration."""
-        self.token_file.write_text(token)
-        try:
-            self.token_file.chmod(0o600)
-        except OSError:
-            pass
 
 
 config = Config()

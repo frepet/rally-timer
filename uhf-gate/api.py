@@ -1,9 +1,12 @@
 """HTTP API client for rally-timing."""
-import requests
+import json as _json
 import logging
 import time
 from typing import Optional
 from dataclasses import dataclass
+from pathlib import Path
+
+import requests
 
 from key_manager import load_or_generate_key, get_public_key_pem, sign_request
 
@@ -23,16 +26,7 @@ class QueuedEvent:
 
 
 class APIClient:
-    def __init__(
-        self,
-        base_url: str,
-        gate_uuid: str,
-        key_file,
-        timeout: float = 10.0,
-        # Legacy token params kept for backward compat with tests that pass them
-        token: str | None = None,
-        on_token=None,
-    ):
+    def __init__(self, base_url: str, gate_uuid: str, key_file: Path, timeout: float = 10.0):
         self.base_url = base_url.rstrip("/")
         self.gate_uuid = gate_uuid
         self.timeout = timeout
@@ -41,24 +35,16 @@ class APIClient:
         self._key = load_or_generate_key(key_file)
         self._public_key_pem = get_public_key_pem(self._key)
 
-        # Legacy token support — used if key_file doesn't exist yet was the old flow
-        self.on_token = on_token
-        if token:
-            self.session.headers["Authorization"] = f"Bearer {token}"
-
     def _url(self, path: str) -> str:
         return f"{self.base_url}{path}"
 
     def _signed_headers(self, body: str = "") -> dict:
         """Return Ed25519 auth headers for a request with the given body."""
         ts_str, sig = sign_request(self._key, int(time.time() * 1000), body)
-        return {
-            "X-Gate-Timestamp": ts_str,
-            "X-Gate-Signature": sig,
-        }
+        return {"X-Gate-Timestamp": ts_str, "X-Gate-Signature": sig}
 
     def register(self) -> bool:
-        """Register this gate with the server, sending the public key."""
+        """Register this gate with the server, sending the Ed25519 public key."""
         try:
             response = self.session.post(
                 self._url("/api/gate"),
@@ -107,20 +93,14 @@ class APIClient:
     def post_event(self, tag: str, timestamp_ms: int, rssi: Optional[int] = None) -> bool:
         """Post a single signed event to the API."""
         try:
-            import json as _json
-            body = _json.dumps({
-                "gate_id": self.gate_uuid,
-                "tag": tag,
-                "timestamp_ms": timestamp_ms,
-                "rssi": rssi,
-            }, separators=(",", ":"))
+            body = _json.dumps(
+                {"gate_id": self.gate_uuid, "tag": tag, "timestamp_ms": timestamp_ms, "rssi": rssi},
+                separators=(",", ":"),
+            )
             response = self.session.post(
                 self._url("/api/gate-event"),
                 data=body,
-                headers={
-                    "Content-Type": "application/json",
-                    **self._signed_headers(body),
-                },
+                headers={"Content-Type": "application/json", **self._signed_headers(body)},
                 timeout=self.timeout,
             )
 
@@ -153,7 +133,6 @@ class APIClient:
             return 0, 0
 
         try:
-            import json as _json
             body = _json.dumps(
                 {
                     "events": [
@@ -171,10 +150,7 @@ class APIClient:
             response = self.session.post(
                 self._url("/api/gate-sync"),
                 data=body,
-                headers={
-                    "Content-Type": "application/json",
-                    **self._signed_headers(body),
-                },
+                headers={"Content-Type": "application/json", **self._signed_headers(body)},
                 timeout=self.timeout,
             )
 
@@ -184,9 +160,7 @@ class APIClient:
                 errors = len(data.get("errors", []))
                 return stored, errors
             elif response.status_code in (401, 403):
-                logger.error(
-                    f"Sync rejected ({response.status_code}): {response.text}"
-                )
+                logger.error(f"Sync rejected ({response.status_code}): {response.text}")
                 return None
             else:
                 logger.error(f"Sync failed: {response.status_code} {response.text}")
@@ -205,10 +179,7 @@ class APIClient:
     def test_connection(self) -> bool:
         """Test if we can reach the API."""
         try:
-            response = self.session.get(
-                self._url("/api/gate"),
-                timeout=5.0,
-            )
+            response = self.session.get(self._url("/api/gate"), timeout=5.0)
             return response.status_code == 200
         except requests.RequestException:
             return False
