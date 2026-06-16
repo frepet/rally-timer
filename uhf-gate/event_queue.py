@@ -132,7 +132,7 @@ class EventQueue:
         
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute("""
-                DELETE FROM events WHERE synced = 1 AND synced_at < ?
+                DELETE FROM events WHERE synced = 1 AND synced_at <= ?
             """, (cutoff,))
             
             if cursor.rowcount > 0:
