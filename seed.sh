@@ -130,10 +130,14 @@ echo "    Alice id=$id_a  Bob id=$id_b  Charlie id=$id_s  Diana id=$id_d"
 
 echo "==> Registering and assigning finish gate..."
 gate_id="a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+_SEED_KEY=$(mktemp)
+openssl genpkey -algorithm ed25519 -out "$_SEED_KEY" 2>/dev/null
+gate_pubkey=$(openssl pkey -in "$_SEED_KEY" -pubout 2>/dev/null | jq -Rs .)
+rm -f "$_SEED_KEY"
 post /api/gate/"$gate_id" \
-  "{\"id\":\"$gate_id\",\"name\":\"SS1 Finish Gate\"}" "${anon[@]}" > /dev/null
+  "{\"id\":\"$gate_id\",\"name\":\"SS1 Finish Gate\",\"public_key\":$gate_pubkey}" "${anon[@]}" > /dev/null
 patch /api/gate/"$gate_id" \
-  "{\"stage_id\":$stage_id}" "${anon[@]}" > /dev/null
+  "{\"status\":\"accepted\",\"stage_id\":$stage_id}" "${anon[@]}" > /dev/null
 echo "    Gate $gate_id assigned to stage $stage_id"
 
 # ---------------------------------------------------------------------------

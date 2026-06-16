@@ -59,8 +59,13 @@ check "PATCH max_per_heat = 2"   "2"    "$(echo "$cfg" | jq '.max_per_heat')"
 check "PATCH required_laps = 2"  "2"    "$(echo "$cfg" | jq '.required_laps')"
 check "PATCH cooldown_ms = 5000" "5000" "$(echo "$cfg" | jq '.cooldown_ms')"
 
-# Register and assign gate
-post "/api/gate/$GATE_UUID" "{\"id\":\"$GATE_UUID\",\"name\":\"Test Gate\"}" > /dev/null
+# Register and assign gate (generate a temp Ed25519 key; SKIP_AUTH=true bypasses signing)
+_GATE_KEY=$(mktemp)
+openssl genpkey -algorithm ed25519 -out "$_GATE_KEY" 2>/dev/null
+_GATE_PUBKEY_JSON=$(openssl pkey -in "$_GATE_KEY" -pubout 2>/dev/null | jq -Rs .)
+rm -f "$_GATE_KEY"
+post "/api/gate/$GATE_UUID" "{\"id\":\"$GATE_UUID\",\"name\":\"Test Gate\",\"public_key\":$_GATE_PUBKEY_JSON}" > /dev/null
+curl -sf -X PATCH "$BASE/api/gate/$GATE_UUID" -H "content-type: application/json" -d '{"status":"accepted"}' > /dev/null
 patch /api/rallycross "{\"gate_id\":\"$GATE_UUID\"}" > /dev/null
 cfg=$(get /api/rallycross)
 check "gate assigned to rallycross" "$GATE_UUID" "$(echo "$cfg" | jq -r '.gate_id')"
