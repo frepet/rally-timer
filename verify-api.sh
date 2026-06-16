@@ -33,13 +33,10 @@ echo ""
 echo "── Gate event response shape ──────────────────────────────────────────"
 
 # Register a gate with a public key, then accept it (SKIP_AUTH bypasses signing on event endpoints).
-GATE_PUBKEY_JSON=$(python3 -c "
-from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
-from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
-import json
-k = Ed25519PrivateKey.generate()
-print(json.dumps(k.public_key().public_bytes(Encoding.PEM, PublicFormat.SubjectPublicKeyInfo).decode()))
-")
+_TMP_KEY=$(mktemp)
+openssl genpkey -algorithm ed25519 -out "$_TMP_KEY" 2>/dev/null
+GATE_PUBKEY_JSON=$(openssl pkey -in "$_TMP_KEY" -pubout 2>/dev/null | jq -Rs .)
+rm -f "$_TMP_KEY"
 curl -s -X POST "$BASE/api/gate" -H "content-type: application/json" \
   -d "{\"id\":\"$GATE_UUID\",\"name\":\"api-test\",\"public_key\":$GATE_PUBKEY_JSON}" > /dev/null
 curl -s -X PATCH "$BASE/api/gate/$GATE_UUID" -H "content-type: application/json" \
@@ -105,16 +102,13 @@ echo "── Gate enrollment: PKI registration and admin accept ─────�
 PKI_UUID="d1a1a100-0000-4000-8000-000000000099"
 
 # Generate a temporary Ed25519 key pair for tests
-PKI_PUBKEY=$(python3 -c "
-from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
-from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
-k = Ed25519PrivateKey.generate()
-print(k.public_key().public_bytes(Encoding.PEM, PublicFormat.SubjectPublicKeyInfo).decode().strip())
-")
+_TMP_KEY2=$(mktemp)
+openssl genpkey -algorithm ed25519 -out "$_TMP_KEY2" 2>/dev/null
+PKI_PUBKEY_JSON=$(openssl pkey -in "$_TMP_KEY2" -pubout 2>/dev/null | jq -Rs .)
+rm -f "$_TMP_KEY2"
 
 # Register gate with public_key → should be 'pending', status 201.
 # Capture body and HTTP status in one request to avoid double-registration.
-PKI_PUBKEY_JSON=$(echo "$PKI_PUBKEY" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))')
 reg_raw=$(curl -s -w '\n%{http_code}' -X POST "$BASE/api/gate" -H "content-type: application/json" \
   -d "{\"id\":\"$PKI_UUID\",\"name\":\"pki-test\",\"public_key\":$PKI_PUBKEY_JSON}")
 reg=$(echo "$reg_raw" | head -n -1)
