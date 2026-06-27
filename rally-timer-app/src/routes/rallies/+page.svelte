@@ -12,6 +12,8 @@
 	import { kcFetch } from '../../lib/kcFetch';
 	import { auth } from '../../lib/stores/auth.svelte';
 	import { t } from '../../lib/stores/locale.svelte';
+	import { formatMs } from '../../lib/results';
+	import type { BundleResponse } from '../../lib/types';
 
 	type Stage = { id: number; name: string; event_count: number };
 	type Gate = { id: string; name: string | null; last_seen: number; stage_id: number | null };
@@ -31,6 +33,12 @@
 	let stageGateSelect = $state<Record<number, string>>({});
 	let closeStageStatus = $state<Record<number, string>>({});
 	let allDrivers = $state<Driver[]>([]);
+	let bundle = $state<BundleResponse>({
+		drivers: [],
+		stages: [],
+		start_events: [],
+		finish_events: []
+	});
 
 	// Create stage
 	let newStageName = $state('');
@@ -79,6 +87,11 @@
 
 	async function loadStages() {
 		stages = await fetchJSON<Stage[]>('/api/stage');
+	}
+
+	async function loadBundle() {
+		const res = await kcFetch('/api/bundle');
+		if (res.ok) bundle = await res.json();
 	}
 
 	async function createStage() {
@@ -313,6 +326,78 @@
 		}
 	}
 
+	// --- Fix DNF modal
+	let fixDnfOpen = $state(false);
+
+	type DnfEntry = { driver_name: string; driver_tag: string; stage_name: string; stage_id: number };
+
+	const dnfEntries = $derived<DnfEntry[]>(
+		bundle.finish_events
+			.filter((fe) => fe.dnf)
+			.flatMap((fe) => {
+				const driver = bundle.drivers.find((d) => String(d.rfid_tag) === String(fe.tag));
+				const stage = bundle.stages.find((s) => s.id === fe.stage_id);
+				if (!driver || !stage) return [];
+				return [
+					{
+						driver_name: driver.name,
+						driver_tag: fe.tag,
+						stage_name: stage.name,
+						stage_id: fe.stage_id
+					}
+				];
+			})
+	);
+
+	type FixState = { status: 'idle' | 'fixing' | 'done' | 'error'; message?: string };
+	let fixStates = $state<Record<string, FixState>>({});
+
+	function dnfKey(e: DnfEntry) {
+		return `${e.driver_tag}:${e.stage_id}`;
+	}
+
+	async function fixDnf(entry: DnfEntry) {
+		const key = dnfKey(entry);
+		fixStates = { ...fixStates, [key]: { status: 'fixing' } };
+		const res = await kcFetch('/api/fix-dnf', {
+			method: 'POST',
+			headers: { 'content-type': 'application/json' },
+			body: JSON.stringify({ driver_tag: entry.driver_tag, stage_id: entry.stage_id })
+		});
+		if (res.ok) {
+			const data = await res.json();
+			fixStates = { ...fixStates, [key]: { status: 'done', message: formatMs(data.estimated_ms) } };
+			await loadBundle();
+		} else {
+			const text = await res.text();
+			fixStates = { ...fixStates, [key]: { status: 'error', message: text } };
+		}
+	}
+
+	// --- Add missing DNFs
+	let addMissingStatus = $state<string | null>(null);
+	let addingMissing = $state(false);
+
+	async function addMissingDnfs() {
+		if (!confirm(t.addMissingDnfsConfirm)) return;
+		addingMissing = true;
+		addMissingStatus = null;
+		try {
+			const res = await kcFetch('/api/add-missing-dnfs', { method: 'POST' });
+			if (!res.ok) throw new Error(await res.text());
+			const { startsAdded, dnfsAdded } = (await res.json()) as {
+				startsAdded: number;
+				dnfsAdded: number;
+			};
+			addMissingStatus = t.addMissingDnfsDone(startsAdded, dnfsAdded);
+			await loadBundle();
+		} catch (e) {
+			addMissingStatus = `${t.applyFailed} ${(e as Error).message}`;
+		} finally {
+			addingMissing = false;
+		}
+	}
+
 	// --- Drivers modal
 	let driversModalOpen = $state(false);
 	let driverSearch = $state('');
@@ -329,8 +414,9 @@
 		loadStages();
 		loadAllDrivers();
 		loadGates();
+		loadBundle();
 		const t = setInterval(async () => {
-			await Promise.all([loadStages(), loadGates()]);
+			await Promise.all([loadStages(), loadGates(), loadBundle()]);
 		}, 5000);
 		return () => clearInterval(t);
 	});
@@ -382,6 +468,14 @@
 			</Button>
 			{#if auth.isAdmin}
 				<Button size="sm" color="alternative" onclick={openPenaltyModal}>{t.penaltyButton}</Button>
+				{#if dnfEntries.length > 0}
+					<Button size="sm" color="yellow" onclick={() => (fixDnfOpen = true)}>
+						{t.fixDnfButtonRally} ({dnfEntries.length})
+					</Button>
+				{/if}
+				<Button size="sm" color="alternative" onclick={addMissingDnfs} disabled={addingMissing}>
+					{t.addMissingDnfsButton}
+				</Button>
 				<Button size="sm" color="alternative" onclick={openSubmitModal}>
 					<AwardOutline size="sm" class="mr-1" />
 					{t.submitToChampionshipButton}
@@ -396,6 +490,9 @@
 				</button>
 			{/if}
 		</div>
+		{#if addMissingStatus}
+			<p class="mt-2 text-sm font-medium text-green-600 dark:text-green-400">{addMissingStatus}</p>
+		{/if}
 	</Card>
 
 	<!-- Stages -->
@@ -725,4 +822,45 @@
 			</div>
 		</div>
 	{/if}
+</Modal>
+
+<!-- Fix DNF Modal -->
+<Modal title={t.fixDnfModal} bind:open={fixDnfOpen} size="sm" autoclose={false}>
+	{#if dnfEntries.length === 0}
+		<p class="text-sm text-gray-500 dark:text-gray-400">{t.fixDnfNoDnfs}</p>
+	{:else}
+		<div class="space-y-3">
+			{#each dnfEntries as entry (dnfKey(entry))}
+				{@const state = fixStates[dnfKey(entry)] ?? { status: 'idle' }}
+				<div
+					class="flex items-center justify-between gap-3 rounded border border-gray-200 px-3 py-2 dark:border-gray-700"
+				>
+					<div>
+						<span class="font-medium text-gray-900 dark:text-white">{entry.driver_name}</span>
+						<span class="ml-2 text-sm text-gray-500 dark:text-gray-400">{entry.stage_name}</span>
+						{#if state.status === 'done'}
+							<span class="ml-2 text-sm text-green-600 dark:text-green-400">✓ {state.message}</span>
+						{:else if state.status === 'error'}
+							<span class="ml-2 text-sm text-red-500">{t.fixDnfFailed}{state.message}</span>
+						{/if}
+					</div>
+					<Button
+						size="xs"
+						color={state.status === 'done' ? 'green' : 'primary'}
+						disabled={state.status === 'fixing' || state.status === 'done'}
+						onclick={() => fixDnf(entry)}
+					>
+						{state.status === 'fixing'
+							? t.fixDnfFixing
+							: state.status === 'done'
+								? '✓'
+								: t.fixDnfApply}
+					</Button>
+				</div>
+			{/each}
+		</div>
+	{/if}
+	{#snippet footer()}
+		<Button color="alternative" onclick={() => (fixDnfOpen = false)}>{t.cancel}</Button>
+	{/snippet}
 </Modal>

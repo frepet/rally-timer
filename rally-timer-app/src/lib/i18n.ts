@@ -156,6 +156,12 @@ export const sv = {
 	currentRally: 'Aktuellt rally',
 	activeDriversButton: 'Aktiva förare',
 	penaltyButton: 'Tillägg',
+	fixDnfButtonRally: 'Fix DNF',
+	addMissingDnfsButton: 'Lägg till saknade DNF',
+	addMissingDnfsConfirm:
+		'Lägger till starttider och DNF-händelser för förare som saknas på sträckor de inte deltog i. Fortsätta?',
+	addMissingDnfsDone: (starts: number, dnfs: number) =>
+		`${starts} starter och ${dnfs} DNF-händelser tillagda.`,
 	submitToChampionshipButton: 'Skicka till mästerskap',
 	clearRallyButton: 'Rensa rally',
 	stagesHeading: 'Sträckor',
@@ -527,6 +533,12 @@ export const en: typeof sv = {
 	currentRally: 'Current rally',
 	activeDriversButton: 'Active drivers',
 	penaltyButton: 'Penalty',
+	fixDnfButtonRally: 'Fix DNF',
+	addMissingDnfsButton: 'Add missing DNFs',
+	addMissingDnfsConfirm:
+		'This will add start events and DNFs for drivers missing from stages they did not participate in. Continue?',
+	addMissingDnfsDone: (starts: number, dnfs: number) =>
+		`Added ${starts} starts and ${dnfs} DNF events.`,
 	submitToChampionshipButton: 'Submit to championship',
 	clearRallyButton: 'Clear rally',
 	stagesHeading: 'Stages',
