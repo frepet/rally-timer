@@ -57,8 +57,10 @@ export async function initKeycloak() {
 				await keycloak.updateToken(-1);
 				updateAuth();
 			} catch {
-				// Refresh token expired or revoked
+				// Refresh token expired or revoked — reset adapter state so
+				// kcFetch won't see authenticated=true with an unusable token
 				clearStorage();
+				keycloak.clearToken();
 			}
 		} else {
 			// No stored tokens — initialise without redirect; user can click Login.
