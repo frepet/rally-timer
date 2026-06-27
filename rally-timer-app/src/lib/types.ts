@@ -47,6 +47,7 @@ export type BundleResponse = {
 		stage_id: number;
 		ts: number;
 		tag: string;
+		dnf: boolean;
 		penalty_ms: number;
 	}[];
 };

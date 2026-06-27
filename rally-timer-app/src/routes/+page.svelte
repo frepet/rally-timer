@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
+	import { Button, Modal } from 'flowbite-svelte';
 	import { kcFetch } from '../lib/kcFetch';
 	import { startLiveRefresh } from '../lib/liveRefresh';
 	import type { BundleResponse } from '../lib/types';
@@ -10,6 +11,7 @@
 	import type { OverallResult } from '../lib/domain/rallycross';
 	import { buildRxDisplay } from '../lib/domain/rallycrossDisplay';
 	import type { TrainingDriverResult } from '../lib/domain/training';
+	import { formatMs } from '../lib/results';
 	import { auth } from '../lib/stores/auth.svelte';
 	import { t } from '../lib/stores/locale.svelte';
 
@@ -105,11 +107,52 @@
 	onDestroy(() => {
 		stopLive?.();
 	});
+
+	// --- Fix DNF modal
+	let fixDnfOpen = $state(false);
+
+	type DnfEntry = { driver_name: string; driver_tag: string; stage_name: string; stage_id: number };
+
+	const dnfEntries = $derived<DnfEntry[]>(
+		bundle.finish_events
+			.filter((fe) => fe.dnf)
+			.flatMap((fe) => {
+				const driver = bundle.drivers.find((d) => String(d.rfid_tag) === String(fe.tag));
+				const stage = bundle.stages.find((s) => s.id === fe.stage_id);
+				if (!driver || !stage) return [];
+				return [{ driver_name: driver.name, driver_tag: fe.tag, stage_name: stage.name, stage_id: fe.stage_id }];
+			})
+	);
+
+	type FixState = { status: 'idle' | 'fixing' | 'done' | 'error'; message?: string };
+	let fixStates = $state<Record<string, FixState>>({});
+
+	function dnfKey(e: DnfEntry) {
+		return `${e.driver_tag}:${e.stage_id}`;
+	}
+
+	async function fixDnf(entry: DnfEntry) {
+		const key = dnfKey(entry);
+		fixStates = { ...fixStates, [key]: { status: 'fixing' } };
+		const res = await kcFetch('/api/fix-dnf', {
+			method: 'POST',
+			headers: { 'content-type': 'application/json' },
+			body: JSON.stringify({ driver_tag: entry.driver_tag, stage_id: entry.stage_id })
+		});
+		if (res.ok) {
+			const data = await res.json();
+			fixStates = { ...fixStates, [key]: { status: 'done', message: formatMs(data.estimated_ms) } };
+			await loadAll();
+		} else {
+			const text = await res.text();
+			fixStates = { ...fixStates, [key]: { status: 'error', message: text } };
+		}
+	}
 </script>
 
 <div class="w-full space-y-8 p-5">
 	{#if auth.isAdmin}
-		<div class="mx-auto flex w-full max-w-5xl items-center gap-3">
+		<div class="mx-auto flex w-full max-w-5xl flex-wrap items-center gap-3">
 			<span class="text-sm text-gray-500 dark:text-gray-400">{t.viewPickerLabel}:</span>
 			<div class="flex overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
 				{#each [null, 'rally', 'rallycross', 'training'] as const as v (v ?? 'auto')}
@@ -135,6 +178,11 @@
 					</button>
 				{/each}
 			</div>
+			{#if activeView === 'rally' && dnfEntries.length > 0}
+				<Button size="sm" color="yellow" onclick={() => (fixDnfOpen = true)}>
+					{t.fixDnfButton} ({dnfEntries.length})
+				</Button>
+			{/if}
 		</div>
 	{/if}
 
@@ -171,3 +219,38 @@
 		{/if}
 	</div>
 </div>
+
+<!-- Fix DNF Modal -->
+<Modal title={t.fixDnfModal} bind:open={fixDnfOpen} size="sm" autoclose={false}>
+	{#if dnfEntries.length === 0}
+		<p class="text-sm text-gray-500 dark:text-gray-400">{t.fixDnfNoDnfs}</p>
+	{:else}
+		<div class="space-y-3">
+			{#each dnfEntries as entry (dnfKey(entry))}
+				{@const state = fixStates[dnfKey(entry)] ?? { status: 'idle' }}
+				<div class="flex items-center justify-between gap-3 rounded border border-gray-200 px-3 py-2 dark:border-gray-700">
+					<div>
+						<span class="font-medium text-gray-900 dark:text-white">{entry.driver_name}</span>
+						<span class="ml-2 text-sm text-gray-500 dark:text-gray-400">{entry.stage_name}</span>
+						{#if state.status === 'done'}
+							<span class="ml-2 text-sm text-green-600 dark:text-green-400">✓ {state.message}</span>
+						{:else if state.status === 'error'}
+							<span class="ml-2 text-sm text-red-500">{t.fixDnfFailed}{state.message}</span>
+						{/if}
+					</div>
+					<Button
+						size="xs"
+						color={state.status === 'done' ? 'green' : 'primary'}
+						disabled={state.status === 'fixing' || state.status === 'done'}
+						onclick={() => fixDnf(entry)}
+					>
+						{state.status === 'fixing' ? t.fixDnfFixing : state.status === 'done' ? '✓' : t.fixDnfApply}
+					</Button>
+				</div>
+			{/each}
+		</div>
+	{/if}
+	{#snippet footer()}
+		<Button color="alternative" onclick={() => (fixDnfOpen = false)}>{t.cancel}</Button>
+	{/snippet}
+</Modal>

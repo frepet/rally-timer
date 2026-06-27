@@ -358,7 +358,16 @@ export const sv = {
 	viewRally: 'Rally',
 	viewRallycross: 'Rallycross',
 	viewTraining: 'Träning',
-	viewAutoHint: (detected: string) => `Automatisk — visar ${detected}`
+	viewAutoHint: (detected: string) => `Automatisk — visar ${detected}`,
+
+	// Fix DNF modal
+	fixDnfButton: 'Fix DNF',
+	fixDnfModal: 'Fixa missade målgångar',
+	fixDnfNoDnfs: 'Inga DNF hittades i nuvarande rallydata.',
+	fixDnfEstimate: (ms: number) => `Uppskattad tid: ${ms} ms`,
+	fixDnfApply: 'Tillämpa',
+	fixDnfFixing: 'Fixar…',
+	fixDnfFailed: 'Misslyckades: '
 };
 
 export const en: typeof sv = {
@@ -720,5 +729,14 @@ export const en: typeof sv = {
 	viewRally: 'Rally',
 	viewRallycross: 'Rallycross',
 	viewTraining: 'Training',
-	viewAutoHint: (detected: string) => `Auto — showing ${detected}`
+	viewAutoHint: (detected: string) => `Auto — showing ${detected}`,
+
+	// Fix DNF modal
+	fixDnfButton: 'Fix DNF',
+	fixDnfModal: 'Fix missed finishes',
+	fixDnfNoDnfs: 'No DNFs found in current rally data.',
+	fixDnfEstimate: (ms: number) => `Estimated time: ${ms} ms`,
+	fixDnfApply: 'Apply',
+	fixDnfFixing: 'Fixing…',
+	fixDnfFailed: 'Failed: '
 };
