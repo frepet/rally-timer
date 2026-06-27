@@ -120,7 +120,14 @@
 				const driver = bundle.drivers.find((d) => String(d.rfid_tag) === String(fe.tag));
 				const stage = bundle.stages.find((s) => s.id === fe.stage_id);
 				if (!driver || !stage) return [];
-				return [{ driver_name: driver.name, driver_tag: fe.tag, stage_name: stage.name, stage_id: fe.stage_id }];
+				return [
+					{
+						driver_name: driver.name,
+						driver_tag: fe.tag,
+						stage_name: stage.name,
+						stage_id: fe.stage_id
+					}
+				];
 			})
 	);
 
@@ -228,7 +235,9 @@
 		<div class="space-y-3">
 			{#each dnfEntries as entry (dnfKey(entry))}
 				{@const state = fixStates[dnfKey(entry)] ?? { status: 'idle' }}
-				<div class="flex items-center justify-between gap-3 rounded border border-gray-200 px-3 py-2 dark:border-gray-700">
+				<div
+					class="flex items-center justify-between gap-3 rounded border border-gray-200 px-3 py-2 dark:border-gray-700"
+				>
 					<div>
 						<span class="font-medium text-gray-900 dark:text-white">{entry.driver_name}</span>
 						<span class="ml-2 text-sm text-gray-500 dark:text-gray-400">{entry.stage_name}</span>
@@ -244,7 +253,11 @@
 						disabled={state.status === 'fixing' || state.status === 'done'}
 						onclick={() => fixDnf(entry)}
 					>
-						{state.status === 'fixing' ? t.fixDnfFixing : state.status === 'done' ? '✓' : t.fixDnfApply}
+						{state.status === 'fixing'
+							? t.fixDnfFixing
+							: state.status === 'done'
+								? '✓'
+								: t.fixDnfApply}
 					</Button>
 				</div>
 			{/each}
