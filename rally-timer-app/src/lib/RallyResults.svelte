@@ -46,7 +46,7 @@
 	</p>
 	{#if rallyRows.length}
 		<div>
-			{#each rallyRows as r, i (r.driver_name)}
+			{#each rallyRows as r, i (r.driver_uuid)}
 				<div
 					class="grid grid-cols-[1.5rem_1fr_auto] items-start gap-x-3 rounded px-2 py-1 {i % 2 === 0
 						? 'bg-gray-50 dark:bg-gray-700/40'
@@ -144,7 +144,7 @@
 	{#if activeStage}
 		{#if activeRows.length}
 			<div>
-				{#each activeRows as r, i (r.driver_name)}
+				{#each activeRows as r, i (r.driver_uuid)}
 					<div
 						class="grid grid-cols-[2.25rem_1fr_auto] items-start gap-x-3 rounded px-2 py-1 {i %
 							2 ===
