@@ -253,7 +253,7 @@
 <div class="w-full space-y-6 p-5">
 	<!-- Pending gates section — only shown when there are pending gates or when admin -->
 	{#if auth.isAdmin && pendingGates.length > 0}
-		<Card class="max-w-none border-amber-300 p-4 dark:border-amber-700 sm:p-6 md:p-8">
+		<Card class="max-w-none border-amber-300 p-4 sm:p-6 md:p-8 dark:border-amber-700">
 			<div class="mb-4 flex items-center gap-3">
 				<Badge color="yellow" class="text-sm">{pendingGates.length}</Badge>
 				<P class="small-caps text-xl font-semibold tracking-widest text-black dark:text-white"

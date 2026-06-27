@@ -112,7 +112,7 @@ describe('computeRallyRatings', () => {
 		expect(finalRatings.get('b')).toBe(BASE);
 	});
 
-	it('DNF counts as a loss against all finishers', () => {
+	it('DNF driver gets no rating change, and finisher gets no free points from the DNF', () => {
 		const stages = [
 			makeStage('SS1', [
 				{ uuid: 'a', driverName: 'Alice', className: 'A', stage_ms: 5000 },
@@ -120,8 +120,8 @@ describe('computeRallyRatings', () => {
 			])
 		];
 		const { finalRatings } = computeRallyRatings(stages);
-		expect(finalRatings.get('a')).toBeGreaterThan(BASE);
-		expect(finalRatings.get('b')).toBeLessThan(BASE);
+		expect(finalRatings.get('a')).toBe(BASE);
+		expect(finalRatings.get('b')).toBe(BASE);
 	});
 
 	it('both DNFs result in no rating change', () => {
@@ -134,6 +134,29 @@ describe('computeRallyRatings', () => {
 		const { finalRatings } = computeRallyRatings(stages);
 		expect(finalRatings.get('a')).toBe(BASE);
 		expect(finalRatings.get('b')).toBe(BASE);
+	});
+
+	it('driver who DNFs one stage still earns rating on stages they completed', () => {
+		// Alice completes both stages. Bob completes SS1 but DNFs SS2.
+		// SS1: Alice vs Bob — both finish, normal Elo applies.
+		// SS2: Bob DNFs — neither driver gets rating change from that stage.
+		const ss1 = makeStage('SS1', [
+			{ uuid: 'a', driverName: 'Alice', className: 'A', stage_ms: 5000 },
+			{ uuid: 'b', driverName: 'Bob', className: 'A', stage_ms: 8000 }
+		]);
+		const ss2 = makeStage('SS2', [
+			{ uuid: 'a', driverName: 'Alice', className: 'A', stage_ms: 5000 },
+			{ uuid: 'b', driverName: 'Bob', className: 'A', stage_ms: 9999999, dnf: true }
+		]);
+		const { finalRatings, stageDeltas } = computeRallyRatings([ss1, ss2]);
+		// Alice wins SS1, so she should be above BASE
+		expect(finalRatings.get('a')).toBeGreaterThan(BASE);
+		// Bob loses SS1 but SS2 DNF gives him nothing — he should be below BASE
+		expect(finalRatings.get('b')).toBeLessThan(BASE);
+		// SS2 should produce zero deltas since Bob DNFs
+		const ss2Deltas = stageDeltas.get('SS2')!;
+		expect(ss2Deltas.get('a')).toBe(0);
+		expect(ss2Deltas.get('b')).toBe(0);
 	});
 
 	it('ratings carry over between stages within a rally', () => {

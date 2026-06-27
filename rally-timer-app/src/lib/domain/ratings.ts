@@ -13,14 +13,11 @@ export type RallyRatings = {
 
 // Binary win/loss scaled by time margin so close finishes yield near-zero change.
 // Winner is always actual=1 > expected, so winners never get a negative delta.
+// Callers must skip pairs where either driver DNF'd before calling this.
 function pairScoreAndK(
 	a: DisplayStageRow,
 	b: DisplayStageRow
 ): { actualA: number; effectiveK: number } {
-	if (a.dnf && b.dnf) return { actualA: 0.5, effectiveK: K_FACTOR };
-	if (a.dnf) return { actualA: 0, effectiveK: K_FACTOR };
-	if (b.dnf) return { actualA: 1, effectiveK: K_FACTOR };
-
 	const winner_ms = Math.min(a.stage_ms, b.stage_ms);
 	const gap_ms = Math.abs(a.stage_ms - b.stage_ms);
 	// Equal times mean no information; non-positive times are corrupt data.
@@ -40,6 +37,8 @@ function processGroup(
 		for (let j = i + 1; j < rows.length; j++) {
 			const a = rows[i];
 			const b = rows[j];
+			// Skip pairs where either driver DNF'd — DNFs carry no rating information.
+			if (a.dnf || b.dnf) continue;
 			const rA = ratings.get(a.driver_uuid) ?? BASE_RATING;
 			const rB = ratings.get(b.driver_uuid) ?? BASE_RATING;
 			const expectedA = 1 / (1 + Math.pow(10, (rB - rA) / 400));
