@@ -6,7 +6,6 @@
 	import RallyResults from '../lib/RallyResults.svelte';
 	import RallycrossLeaderboard from '../lib/RallycrossLeaderboard.svelte';
 	import TrainingResults from '../lib/TrainingResults.svelte';
-	import { type DisplayRallyRow, type StageData } from '../lib/results';
 	import { buildStageData, buildRallyRows } from '../lib/domain/summary';
 	import type { OverallResult } from '../lib/domain/rallycross';
 	import { buildRxDisplay } from '../lib/domain/rallycrossDisplay';
@@ -30,8 +29,6 @@
 	let pinnedView = $state<View | null>(null);
 	let savingView = $state(false);
 
-	let rallyRows = $state<DisplayRallyRow[]>([]);
-	let stageData = $state<StageData[]>([]);
 	let rxConfig = $state<RallycrossConfig>({ heats: [], active_heat: null });
 	let rxLeaderboard = $state<OverallResult[]>([]);
 	let trainingConfig = $state<TrainingConfig>({ gate_id: null, drivers: [] });
@@ -42,6 +39,11 @@
 		start_events: [],
 		finish_events: []
 	});
+
+	const stageData = $derived(
+		buildStageData(bundle.drivers, bundle.stages, bundle.start_events, bundle.finish_events)
+	);
+	const rallyRows = $derived(buildRallyRows(stageData));
 
 	// Auto-detect priority: training (gate assigned) → rallycross (heats exist) → rally
 	const autoView = $derived<View>(
@@ -72,13 +74,6 @@
 			const s = await settingsRes.json();
 			pinnedView = s.pinned_view ?? null;
 		}
-		stageData = buildStageData(
-			bundle.drivers,
-			bundle.stages,
-			bundle.start_events,
-			bundle.finish_events
-		);
-		rallyRows = buildRallyRows(stageData);
 	}
 
 	async function setPinnedView(view: View | null) {
