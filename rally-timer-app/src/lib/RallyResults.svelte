@@ -9,11 +9,13 @@
 	let {
 		rallyRows,
 		stages,
-		ratings = null
+		ratings = null,
+		initialRatings = null
 	}: {
 		rallyRows: DisplayRallyRow[];
 		stages: StageData[];
 		ratings?: RallyRatings | null;
+		initialRatings?: Map<string, number> | null;
 	} = $props();
 
 	function defaultStage(stages: StageData[]): string | null {
@@ -99,8 +101,12 @@
 						{#if ratings}
 							{@const finalRating = ratings.finalRatings.get(r.driver_uuid)}
 							{#if finalRating != null}
+								{@const initRating = initialRatings?.get(r.driver_uuid) ?? 1500}
+								{@const ratingDelta = finalRating - initRating}
 								<span class="whitespace-nowrap text-violet-600 dark:text-violet-400"
-									><span class="mr-1 opacity-70">{t.ratingLabel}</span>{finalRating}</span
+									><span class="mr-1 opacity-70">{t.ratingLabel}</span>{finalRating}<span
+										class="ml-1 opacity-70">({fmtDelta(ratingDelta)})</span
+									></span
 								>
 							{/if}
 						{/if}

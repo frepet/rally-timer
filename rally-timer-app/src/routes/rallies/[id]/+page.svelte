@@ -77,6 +77,11 @@
 	{#if isRx && rxDisplay}
 		<RallycrossLeaderboard standings={rxDisplay.standings} heats={rxDisplay.heats} />
 	{:else}
-		<RallyResults {rallyRows} {stages} ratings={driverRatingsEnabled ? ratings : null} />
+		<RallyResults
+			{rallyRows}
+			{stages}
+			ratings={driverRatingsEnabled ? ratings : null}
+			initialRatings={driverRatingsEnabled ? initialRatings : null}
+		/>
 	{/if}
 </div>
