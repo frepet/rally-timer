@@ -28,9 +28,11 @@ export async function POST(event: RequestEvent): Promise<Response> {
 	// Elapsed time is always finish_ts - start_ts = penalty, so the absolute start
 	// timestamp does not affect the computed elapsed time for the synthetic DNF finish.
 	await sql`
-		INSERT INTO start_events (stage_id, driver_id, ts_ms)
-		SELECT * FROM ${sql(
-			missing.map((m) => ({ stage_id: m.stage_id, driver_id: m.driver_id, ts_ms: now }))
+		INSERT INTO start_events ${sql(
+			missing.map((m) => ({ stage_id: m.stage_id, driver_id: m.driver_id, ts_ms: now })),
+			'stage_id',
+			'driver_id',
+			'ts_ms'
 		)}
 	`;
 
