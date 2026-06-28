@@ -244,6 +244,7 @@
 	}
 
 	async function pressStop() {
+		cancelBeeps();
 		await kcFetch(`/api/stage/${stageId}/stop`, { method: 'POST' });
 	}
 

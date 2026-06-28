@@ -87,7 +87,7 @@ export function buildStageData(
 		const hasStarts = starts.some((se) => se.stage_id === stage.id);
 		const status: StageStatus = stage.is_closed ? 'closed' : hasStarts ? 'live' : 'upcoming';
 
-		return { name: stage.name, status, rows };
+		return { id: stage.id, name: stage.name, status, rows };
 	});
 }
 

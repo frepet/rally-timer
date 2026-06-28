@@ -34,7 +34,47 @@
 		if (activeStage == null && stages.length) activeStage = defaultStage(stages);
 	});
 
-	const activeRows = $derived(stages.find((s) => s.name === activeStage)?.rows ?? []);
+	const activeStageData = $derived(stages.find((s) => s.name === activeStage) ?? null);
+	const activeRows = $derived(activeStageData?.rows ?? []);
+
+	type StartEntry = { id: number; name: string; class_name: string };
+	type ScheduleData = {
+		server_now_ms: number;
+		scheduled: { driver_id: number; ts_ms: number; name: string; class_name: string }[];
+		remaining: { driver_id: number; name: string; class_name: string }[];
+	};
+
+	let scheduleData = $state<ScheduleData>({ server_now_ms: 0, scheduled: [], remaining: [] });
+
+	$effect(() => {
+		const stageId = activeStageData?.id;
+		const status = activeStageData?.status;
+		if (stageId != null && status !== 'closed') {
+			fetch(`/api/stage/${stageId}/schedule`)
+				.then((r) => (r.ok ? r.json() : { server_now_ms: 0, scheduled: [], remaining: [] }))
+				.then((data: ScheduleData) => {
+					scheduleData = data;
+				});
+		} else {
+			scheduleData = { server_now_ms: 0, scheduled: [], remaining: [] };
+		}
+	});
+
+	// Future scheduled (haven't started yet per server clock) + unscheduled remaining.
+	// Drivers with a past start_event are on the stage; they leave the list and appear
+	// in results when they cross the finish.
+	const startOrder = $derived.by(() => {
+		const nowMs = scheduleData.server_now_ms || Date.now();
+		const toEntry = (d: { driver_id: number; name: string; class_name: string }): StartEntry => ({
+			id: d.driver_id,
+			name: d.name,
+			class_name: d.class_name
+		});
+		return [
+			...scheduleData.scheduled.filter((s) => s.ts_ms > nowMs).map(toEntry),
+			...scheduleData.remaining.map(toEntry)
+		];
+	});
 
 	function fmtDelta(delta: number): string {
 		return delta >= 0 ? `+${delta}` : `${delta}`;
@@ -148,6 +188,27 @@
 	</div>
 
 	{#if activeStage}
+		{#if activeStageData?.status !== 'closed' && startOrder.length > 0}
+			<p class="mb-2 mt-1 text-sm font-semibold opacity-60">{t.startOrder}</p>
+			<div class="mb-4">
+				{#each startOrder as entry, i (entry.id)}
+					<div
+						class="grid grid-cols-[2.25rem_1fr] gap-x-3 rounded px-2 py-1 {i % 2 === 0
+							? 'bg-gray-50 dark:bg-gray-700/40'
+							: ''}"
+					>
+						<span class="self-center text-right text-sm font-semibold text-gray-500 dark:text-gray-400"
+							>{i + 1}</span
+						>
+						<div class="flex flex-wrap items-baseline gap-x-1.5 font-sans">
+							<span class="font-medium text-gray-900 dark:text-white">{entry.name}</span>
+							<span class="text-sm font-normal opacity-60">{entry.class_name}</span>
+						</div>
+					</div>
+				{/each}
+			</div>
+			<p class="mb-2 text-sm font-semibold opacity-60">{t.resultsSubheading}</p>
+		{/if}
 		{#if activeRows.length}
 			<div>
 				{#each activeRows as r, i (r.driver_uuid)}

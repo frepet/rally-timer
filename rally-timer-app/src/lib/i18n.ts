@@ -63,6 +63,7 @@ export const sv = {
 	noResultsYet: 'Inga resultat än.',
 	noStagesYet: 'Inga sträckor än.',
 	noStageResultsYet: 'Inga sträckaresultat än.',
+	resultsSubheading: 'Resultat',
 	ratingLabel: 'Rating',
 	ratingDeltaLabel: 'Δ Rating',
 
@@ -445,6 +446,7 @@ export const en: typeof sv = {
 	noResultsYet: 'No results yet.',
 	noStagesYet: 'No stages yet.',
 	noStageResultsYet: 'No stage results yet.',
+	resultsSubheading: 'Results',
 	ratingLabel: 'Rating',
 	ratingDeltaLabel: 'Δ Rating',
 

@@ -26,6 +26,7 @@ export type DisplayStageRow = {
 export type StageStatus = 'upcoming' | 'live' | 'closed';
 
 export type StageData = {
+	id?: number;
 	name: string;
 	status: StageStatus;
 	rows: DisplayStageRow[];
