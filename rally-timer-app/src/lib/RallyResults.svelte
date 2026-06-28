@@ -37,7 +37,6 @@
 	const activeStageData = $derived(stages.find((s) => s.name === activeStage) ?? null);
 	const activeRows = $derived(activeStageData?.rows ?? []);
 
-	type StartEntry = { id: number; name: string; class_name: string; started: boolean };
 	type ScheduleData = {
 		server_now_ms: number;
 		scheduled: { driver_id: number; ts_ms: number; name: string; class_name: string }[];
@@ -194,7 +193,7 @@
 
 	{#if activeStage}
 		{#if activeStageData?.status !== 'closed' && startOrder.some((e) => !e.started)}
-			<p class="mb-2 mt-1 text-sm font-semibold opacity-60">{t.startOrder}</p>
+			<p class="mt-1 mb-2 text-sm font-semibold opacity-60">{t.startOrder}</p>
 			<div class="mb-4">
 				{#each startOrder as entry, i (entry.id)}
 					{#if !entry.started}
