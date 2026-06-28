@@ -248,8 +248,8 @@ export const sv = {
 	speechNextDriver: (name: string) => `Nästa förare: ${name}`,
 	speechNextClass: (cls: string, count: number) => `Nästa klass: ${cls}, ${count} förare`,
 	speechNoMoreDrivers: 'Inga fler förare',
-	speechStageStarted: 'Etappen startad',
-	speechStageStopped: 'Etappen stoppad',
+	speechStageStarted: 'Sträckan startad',
+	speechStageStopped: 'Sträckan stoppad',
 	speechGo: 'kör',
 
 	// Rallycross - common
