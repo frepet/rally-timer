@@ -8,8 +8,8 @@ import { buildStageTimes } from '../domain/rallySubmission';
 
 /**
  * Compute the start order for a stage: every active driver that has no
- * `start_event` on this stage yet, sorted by class priority and inverse
- * cumulative rally time (slowest first within a class).
+ * `start_event` on this stage yet, sorted by class priority and cumulative
+ * rally time (leader first — fastest within a class starts first).
  *
  * Shared by the start-order endpoint (preview) and the start endpoint
  * (which schedules these drivers). Totals are produced by the same domain

@@ -56,22 +56,22 @@ describe('computeStartOrder', () => {
 		expect(result.map((d) => d.class_name)).toEqual(['A', 'A', 'B', 'B']);
 	});
 
-	it('within a class, unranked drivers go first sorted by name', () => {
+	it('within a class, ranked drivers go first, unranked follow sorted by name', () => {
 		const result = computeStartOrder([
 			driver({ id: 1, name: 'Charlie', total_ms: 210000 }),
 			driver({ id: 2, name: 'Bob', total_ms: null }),
 			driver({ id: 3, name: 'Alice', total_ms: null })
 		]);
-		expect(result.map((d) => d.name)).toEqual(['Alice', 'Bob', 'Charlie']);
+		expect(result.map((d) => d.name)).toEqual(['Charlie', 'Alice', 'Bob']);
 	});
 
-	it('within a class, ranked drivers follow slowest first (inverse leaderboard)', () => {
+	it('within a class, ranked drivers lead fastest first (leader first)', () => {
 		const result = computeStartOrder([
 			driver({ id: 1, name: 'Alice', total_ms: 210000 }),
 			driver({ id: 2, name: 'Bob', total_ms: 250000 }),
 			driver({ id: 3, name: 'Carol', total_ms: 230000 })
 		]);
-		expect(result.map((d) => d.name)).toEqual(['Bob', 'Carol', 'Alice']);
+		expect(result.map((d) => d.name)).toEqual(['Alice', 'Carol', 'Bob']);
 	});
 
 	it('breaks equal total_ms ties by name ascending', () => {
@@ -82,7 +82,7 @@ describe('computeStartOrder', () => {
 		expect(result.map((d) => d.name)).toEqual(['Alice', 'Bob']);
 	});
 
-	it('Norway rally — Group A (priority 5) starts before Group N (priority 1); within each, unranked then slowest-first', () => {
+	it('Norway rally — Group A (priority 5) starts before Group N (priority 1); within each, fastest first then unranked', () => {
 		const drivers: StartOrderDriver[] = [
 			driver({
 				id: 1,
@@ -126,7 +126,7 @@ describe('computeStartOrder', () => {
 			})
 		];
 		const result = computeStartOrder(drivers);
-		expect(result.map((d) => d.name)).toEqual(['Erik', 'Alice', 'Diana', 'Mia', 'Liam']);
+		expect(result.map((d) => d.name)).toEqual(['Diana', 'Alice', 'Erik', 'Liam', 'Mia']);
 	});
 
 	it('does not mutate the input array', () => {

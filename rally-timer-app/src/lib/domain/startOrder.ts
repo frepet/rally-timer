@@ -24,11 +24,13 @@ export function computeStartOrder(drivers: StartOrderDriver[]): StartOrderEntry[
 		if (a.class_name !== b.class_name) {
 			return a.class_name.localeCompare(b.class_name);
 		}
+		// Leader first: drivers with a time start ahead of those without, and
+		// among them the fastest (lowest cumulative time) starts first.
 		const aRanked = a.total_ms !== null;
 		const bRanked = b.total_ms !== null;
-		if (aRanked !== bRanked) return aRanked ? 1 : -1;
+		if (aRanked !== bRanked) return aRanked ? -1 : 1;
 		if (aRanked && bRanked && a.total_ms !== b.total_ms) {
-			return (b.total_ms as number) - (a.total_ms as number);
+			return (a.total_ms as number) - (b.total_ms as number);
 		}
 		return a.name.localeCompare(b.name);
 	});
