@@ -1,30 +1,32 @@
-import { json, type RequestEvent } from '@sveltejs/kit';
+import { json, error, type RequestEvent } from '@sveltejs/kit';
 import { sql } from '../../../../../lib/server/db';
 import { throwIfNotAdmin } from '../../../../../lib/server/keycloak';
+import { loadStartOrder } from '../../../../../lib/server/startOrderQuery';
+import { buildStartSchedule } from '../../../../../lib/domain/startSchedule';
+import { emitStageFlow } from '../../../../../lib/server/stageFlow';
+import { stageStartSchema } from '../../../../../lib/server/schemas';
 
 export async function POST(event: RequestEvent): Promise<Response> {
 	await throwIfNotAdmin(event);
 	const stageId = Number(event.params.id);
-	const body = (await event.request.json()) as { driver_id?: unknown; driver_ids?: unknown };
+	if (!stageId) throw error(400, 'Invalid stage id');
 
-	const wantsBulk = Array.isArray(body.driver_ids);
-	const rawIds: unknown[] = wantsBulk
-		? (body.driver_ids as unknown[])
-		: body.driver_id != null
-			? [body.driver_id]
-			: [];
-	const driverIds = Array.from(
-		new Set(rawIds.map((v) => Number(v)).filter((n) => Number.isFinite(n) && n > 0))
-	);
+	const parsed = stageStartSchema.safeParse(await event.request.json());
+	if (!parsed.success) return json({ errors: parsed.error.flatten() }, { status: 400 });
+	const { gap_seconds, lead_in_seconds, whole_class } = parsed.data;
 
-	if (!stageId || driverIds.length === 0)
-		return json({ error: 'stageId & driver_id(s) required' }, { status: 400 });
+	// Schedule every driver that has not started yet. The `loadStartOrder` query
+	// filters out drivers with an existing start_event, so pressing Start twice
+	// (or two admins racing) schedules each driver at most once.
+	const order = await loadStartOrder(stageId);
+	if (order.length === 0) return json({ scheduled: [] }, { status: 200 });
 
-	const ts_ms = Date.now();
+	const startAtMs = Date.now() + lead_in_seconds * 1000;
+	const schedule = buildStartSchedule(order, startAtMs, gap_seconds * 1000, whole_class);
 
 	const rows = await sql`
 		INSERT INTO start_events ${sql(
-			driverIds.map((id) => ({ stage_id: stageId, driver_id: id, ts_ms })),
+			schedule.map((s) => ({ stage_id: stageId, driver_id: s.driver_id, ts_ms: s.ts_ms })),
 			'stage_id',
 			'driver_id',
 			'ts_ms'
@@ -32,5 +34,7 @@ export async function POST(event: RequestEvent): Promise<Response> {
 		RETURNING id, stage_id, driver_id, ts_ms
 	`;
 
-	return json(wantsBulk ? rows : rows[0], { status: 201 });
+	await emitStageFlow({ stage_id: stageId, action: 'start' });
+
+	return json({ scheduled: rows }, { status: 201 });
 }

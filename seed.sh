@@ -43,16 +43,13 @@ patch() {
   curl -sf -X PATCH "$BASE$url" -d "$data" "$@"
 }
 
-# Record a start for a driver, then backdate it to the given timestamp.
+# Record a start for a driver at the given timestamp.
 # Prints the new start_event id.
 start_at() {
   local stage_id="$1" driver_id="$2" ts="$3"
   local row
-  row=$(post /api/stage/"$stage_id"/start "{\"driver_id\":$driver_id}" "${auth[@]}")
-  local id
-  id=$(echo "$row" | jq -r '.id')
-  patch /api/start/"$id" "{\"timestamp\":$ts}" "${auth[@]}" > /dev/null
-  echo "$id"
+  row=$(post /api/start "{\"stage_id\":$stage_id,\"driver_id\":$driver_id,\"ts_ms\":$ts}" "${auth[@]}")
+  echo "$row" | jq -r '.id'
 }
 
 # Send a finish gate event.

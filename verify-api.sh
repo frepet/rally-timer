@@ -62,8 +62,10 @@ echo "── Concurrent stage close does not duplicate synthetic DNF finishes �
 # Fresh stage with two started, never-finished drivers (both DNF on close).
 sid=$(body -X POST "$BASE/api/stage" -H "content-type: application/json" \
   -d '{"name":"Concurrency SS"}' | jq -r '.id')
-body -X POST "$BASE/api/stage/$sid/start" -H "content-type: application/json" \
-  -d '{"driver_ids":[1,2]}' > /dev/null
+body -X POST "$BASE/api/start" -H "content-type: application/json" \
+  -d "{\"stage_id\":$sid,\"driver_id\":1}" > /dev/null
+body -X POST "$BASE/api/start" -H "content-type: application/json" \
+  -d "{\"stage_id\":$sid,\"driver_id\":2}" > /dev/null
 # Fire several closes at once; only one synthetic DNF per driver may result.
 for _ in 1 2 3 4 5; do
   curl -s -X POST "$BASE/api/stage/$sid/close" -H "content-type: application/json" >/dev/null &

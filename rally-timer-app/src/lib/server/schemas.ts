@@ -147,6 +147,18 @@ export const heatManualCloseSchema = z.object({
 	finish_order: z.array(z.number().int().positive()).min(1)
 });
 
+export const stageStartSchema = z.object({
+	gap_seconds: z.number().positive().max(600),
+	lead_in_seconds: z.number().nonnegative().max(600).optional().default(10),
+	whole_class: z.boolean().optional().default(false)
+});
+
+export const startEventCreateSchema = z.object({
+	stage_id: idParam,
+	driver_id: idParam,
+	ts_ms: z.number().int().positive().optional()
+});
+
 export type DriverCreateInput = z.infer<typeof driverCreateSchema>;
 export type DriverActiveInput = z.infer<typeof driverActiveSchema>;
 export type GateRegisterInput = z.infer<typeof gateRegisterSchema>;
@@ -167,6 +179,8 @@ export const settingsSchema = z.object({
 	pinned_view: z.enum(['rally', 'rallycross', 'training']).nullable()
 });
 
+export type StageStartInput = z.infer<typeof stageStartSchema>;
+export type StartEventCreateInput = z.infer<typeof startEventCreateSchema>;
 export type RallycrossConfigInput = z.infer<typeof rallycrossConfigSchema>;
 export type TrainingConfigInput = z.infer<typeof trainingConfigSchema>;
 export type SettingsInput = z.infer<typeof settingsSchema>;

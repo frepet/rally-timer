@@ -17,6 +17,7 @@
 	import { kcFetch } from '../../../../lib/kcFetch';
 	import type { BundleResponse } from '../../../../lib/types';
 	import { t } from '../../../../lib/stores/locale.svelte';
+	import { auth } from '../../../../lib/stores/auth.svelte';
 	import {
 		primeAudio,
 		getAudioCurrentTime,
@@ -24,33 +25,48 @@
 		closeAudio
 	} from '../../../../lib/beep';
 
-	type Driver = { id: number; name: string; class_name?: string; tag: string };
+	type ScheduledStart = { driver_id: number; ts_ms: number; name: string; class_name: string };
+	type RemainingDriver = { driver_id: number; name: string; class_name: string };
 	type Gate = { id: string; name: string | null; stage_id: number | null };
 
 	let stageId = $state<number>(0);
 	let stageName = $state<string>('');
 
-	let drivers = $state<Driver[]>([]);
+	// Authoritative sequence from the server. The client never writes start
+	// events during the countdown — it only renders this schedule against the
+	// (clock-corrected) current time and drives its own beeps/speech.
+	let schedule = $state<ScheduledStart[]>([]);
+	let remaining = $state<RemainingDriver[]>([]);
 	let gates = $state<Gate[]>([]);
-	let idx = $state(0);
-	let running = $state(false);
-	let paused = $state(false);
+
+	// server_now - client_now, so corrected time agrees across every unit.
+	let clockOffsetMs = 0;
+	let nowMs = $state(Date.now());
+
+	let soundEnabled = $state(false);
 	let gapSeconds = $state(10);
+	let leadInSeconds = $state(10);
 	let startWholeClass = $state(false);
-	let remainingMs = $state(0);
+
 	const leds = $state([0, 0, 0, 0, 0]);
-	let timer: ReturnType<typeof setInterval> | undefined;
+	let tickTimer: ReturnType<typeof setInterval> | undefined;
 	let gatePoller: ReturnType<typeof setInterval> | undefined;
+	let flowSource: EventSource | undefined;
 
-	// Wall-clock timing: remainingMs is derived from targetTime each tick,
-	// so the countdown never drifts regardless of setInterval jitter.
-	let targetTime: number | null = null;
-	let pausedRemaining: number | null = null;
-	let lastWhole = -1;
-
-	// Beeps are scheduled via Web Audio API (sample-accurate) rather than
-	// detected from the poll loop, so they are always evenly spaced.
+	// Beeps are scheduled via Web Audio (sample-accurate). `beepArmedTs` tracks
+	// which start slot we have already scheduled beeps for so the tick loop does
+	// not reschedule every frame. `spokenTs` does the same for speech.
+	let beepArmedTs: number | null = null;
+	let spokenTs: number | null = null;
+	let announcedNoMore = false;
 	let pendingOscs: OscillatorNode[] = [];
+
+	const correctedNow = () => Date.now() + clockOffsetMs;
+
+	const future = $derived(schedule.filter((s) => s.ts_ms > nowMs));
+	const nextEntry = $derived(future[0] ?? null);
+	const remainingMs = $derived(nextEntry ? Math.max(0, nextEntry.ts_ms - nowMs) : 0);
+	const hasGate = $derived(gates.some((g) => g.stage_id === stageId));
 
 	function cancelBeeps() {
 		for (const osc of pendingOscs) {
@@ -63,15 +79,16 @@
 		pendingOscs = [];
 	}
 
-	function scheduleCountdown(gapSec: number) {
-		cancelBeeps();
+	// Schedule the 5..1 countdown + GO beep so the GO lands exactly at `tsMs`
+	// (server clock). Uses the audio clock offset by the time remaining.
+	function scheduleCountdownTo(tsMs: number) {
+		const leadSec = (tsMs - correctedNow()) / 1000;
+		if (leadSec <= 0) return;
 		const t0 = getAudioCurrentTime();
 		for (let i = 5; i >= 1; i--) {
-			if (gapSec >= i) {
-				pendingOscs.push(scheduleBeepAt(t0 + gapSec - i, 880, 0.35));
-			}
+			if (leadSec >= i) pendingOscs.push(scheduleBeepAt(t0 + leadSec - i, 880, 0.35));
 		}
-		pendingOscs.push(scheduleBeepAt(t0 + gapSec, 1000, 0.6, 0.6));
+		pendingOscs.push(scheduleBeepAt(t0 + leadSec, 1000, 0.6, 0.6));
 	}
 
 	function createUtterance(text: string) {
@@ -83,51 +100,26 @@
 		return utter;
 	}
 
-	async function loadQueue() {
-		stageId = Number($page.params.stageId);
-		const [bundleRes, orderRes] = await Promise.all([
-			kcFetch('/api/bundle'),
-			kcFetch(`/api/stage/${stageId}/start-order`)
-		]);
-		if (!bundleRes.ok || !orderRes.ok) return;
-		const bundle = (await bundleRes.json()) as BundleResponse;
-		const ordered = (await orderRes.json()) as {
-			id: number;
-			name: string;
-			rfid_tag: string;
-			class_id: number;
-			class_name: string;
-		}[];
-		const stage = bundle.stages.find((s) => s.id === stageId);
-		stageName = stage?.name ?? `#${stageId}`;
-		drivers = ordered.map((d) => ({
-			id: d.id,
-			name: d.name,
-			tag: d.rfid_tag,
-			class_name: d.class_name
-		}));
-		idx = 0;
+	function speak(text: string) {
+		if (!soundEnabled) return;
+		speechSynthesis.speak(createUtterance(text));
 	}
 
-	async function loadGates() {
-		const res = await kcFetch('/api/gate');
-		if (!res.ok) return;
-		gates = await res.json();
+	function speakNext(group: ScheduledStart[]) {
+		if (group.length > 1) {
+			speak(t.speechNextClass(group[0].class_name ?? '', group.length));
+		} else if (group.length === 1) {
+			speak(t.speechNextDriver(group[0].name));
+		}
 	}
-
-	const hasGate = $derived(gates.some((g) => g.stage_id === stageId));
-	const activeClass = $derived(drivers[idx]?.class_name ?? '');
-	const remainingInClass = $derived(
-		activeClass ? drivers.slice(idx).filter((d) => d.class_name === activeClass).length : 0
-	);
 
 	function setLED(step: number) {
-		if (step < 0 || step > 5) {
-			leds.fill(3);
+		if (step === 0) {
+			leds.fill(2); // all green — GO
 			return;
 		}
-		if (step === 0) {
-			leds.fill(2);
+		if (step < 1 || step > 5) {
+			leds.fill(0); // off / idle
 			return;
 		}
 		leds[0] = step >= 1 ? 1 : 0;
@@ -137,167 +129,152 @@
 		leds[4] = step >= 5 ? 1 : 0;
 	}
 
-	async function launchCurrentDriver() {
-		if (!drivers[idx]) return;
-		const launchedClass = drivers[idx].class_name;
-		let count = 1;
-		if (startWholeClass) {
-			while (idx + count < drivers.length && drivers[idx + count].class_name === launchedClass) {
-				count++;
+	// Arm beeps/speech for the imminent start and update the LED bar. Runs every
+	// tick but is idempotent: it only (re)schedules when the target slot changes.
+	function evaluate() {
+		nowMs = correctedNow();
+		const fut = schedule.filter((s) => s.ts_ms > nowMs);
+		const next = fut[0] ?? null;
+
+		if (next) {
+			announcedNoMore = false;
+			if (beepArmedTs !== next.ts_ms) {
+				pendingOscs = []; // drop refs to already-played beeps from the previous slot
+				scheduleCountdownTo(next.ts_ms);
+				beepArmedTs = next.ts_ms;
+			}
+			if (spokenTs !== next.ts_ms) {
+				speakNext(fut.filter((s) => s.ts_ms === next.ts_ms));
+				spokenTs = next.ts_ms;
+			}
+		} else {
+			beepArmedTs = null;
+			if (!announcedNoMore && spokenTs !== null && remaining.length === 0) {
+				speak(t.speechNoMoreDrivers);
+				announcedNoMore = true;
 			}
 		}
-		const body =
-			count > 1
-				? { driver_ids: drivers.slice(idx, idx + count).map((d) => d.id) }
-				: { driver_id: drivers[idx].id };
+
+		// LED bar: brief green flash right after each start (GO), otherwise the
+		// amber countdown to the next start.
+		const lastStartedTs = schedule.reduce<number | null>(
+			(max, s) => (s.ts_ms <= nowMs && (max === null || s.ts_ms > max) ? s.ts_ms : max),
+			null
+		);
+		if (lastStartedTs !== null && nowMs - lastStartedTs < 1500) {
+			setLED(0);
+		} else if (next) {
+			const whole = Math.ceil((next.ts_ms - nowMs) / 1000);
+			setLED(whole > 5 ? 6 : whole);
+		} else {
+			setLED(6);
+		}
+	}
+
+	async function loadSchedule() {
+		const res = await kcFetch(`/api/stage/${stageId}/schedule`);
+		if (!res.ok) return;
+		const data = (await res.json()) as {
+			server_now_ms: number;
+			scheduled: ScheduledStart[];
+			remaining: RemainingDriver[];
+		};
+		clockOffsetMs = data.server_now_ms - Date.now();
+		schedule = data.scheduled;
+		remaining = data.remaining;
+		// Re-arm beeps against the (possibly new) schedule and fresh clock offset.
+		// Speech only re-fires if the imminent slot's timestamp actually changed.
+		cancelBeeps();
+		beepArmedTs = null;
+		evaluate();
+	}
+
+	async function loadMeta() {
+		const bundleRes = await kcFetch('/api/bundle');
+		if (!bundleRes.ok) return;
+		const bundle = (await bundleRes.json()) as BundleResponse;
+		stageName = bundle.stages.find((s) => s.id === stageId)?.name ?? `#${stageId}`;
+	}
+
+	async function loadGates() {
+		const res = await kcFetch('/api/gate');
+		if (!res.ok) return;
+		gates = await res.json();
+	}
+
+	function connectFlow() {
+		flowSource = new EventSource(`/api/stage/${stageId}/flow/stream`);
+		flowSource.onopen = () => {
+			loadSchedule();
+		};
+		flowSource.onmessage = (e) => {
+			try {
+				const data = JSON.parse(e.data) as { action: 'start' | 'stop' };
+				if (data.action === 'start') speak(t.speechStageStarted);
+				else if (data.action === 'stop') speak(t.speechStageStopped);
+			} catch {
+				/* ignore malformed payload */
+			}
+			loadSchedule();
+		};
+	}
+
+	async function enableSound() {
+		await primeAudio();
+		// Warm up speech synthesis inside the user gesture so later utterances
+		// (driven by the schedule, not a click) are allowed to play.
+		speechSynthesis.speak(createUtterance(''));
+		soundEnabled = true;
+		beepArmedTs = null;
+		spokenTs = null;
+		evaluate();
+	}
+
+	async function pressStart() {
 		await kcFetch(`/api/stage/${stageId}/start`, {
 			method: 'POST',
 			headers: { 'content-type': 'application/json' },
-			body: JSON.stringify(body)
+			body: JSON.stringify({
+				gap_seconds: gapSeconds,
+				lead_in_seconds: leadInSeconds,
+				whole_class: startWholeClass
+			})
 		});
-		idx += count;
-		if (idx < drivers.length) {
-			if (drivers[idx].class_name !== launchedClass) {
-				paused = true;
-				speechSynthesis.speak(
-					createUtterance(t.speechClassDone(launchedClass ?? '', drivers[idx].class_name ?? ''))
-				);
-			} else {
-				speechSynthesis.speak(createUtterance(t.speechNextDriver(drivers[idx].name)));
-			}
-		} else {
-			speechSynthesis.speak(createUtterance(t.speechNoMoreDrivers));
-		}
+		// The 'start' flow event refreshes every connected unit, including this one.
 	}
 
-	function tick() {
-		if (!running || paused || targetTime === null) return;
-
-		const now = Date.now();
-		const remaining = targetTime - now;
-		remainingMs = Math.max(0, remaining);
-
-		const whole = Math.ceil(remaining / 1000);
-		if (whole !== lastWhole) {
-			lastWhole = whole;
-			if (whole >= 1 && whole <= 5) {
-				setLED(whole);
-			}
-		}
-
-		if (remaining <= 0) {
-			targetTime = null;
-			setLED(0); // all green
-			pendingOscs = []; // GO beep is now playing; release refs so cancelBeeps() can't cut it off
-
-			launchCurrentDriver().then(() => {
-				if (!running) return;
-				if (idx < drivers.length) {
-					// Brief green flash, then start next countdown
-					setTimeout(() => {
-						if (!running || paused) return;
-						targetTime = Date.now() + gapSeconds * 1000;
-						lastWhole = -1;
-						setLED(6);
-						scheduleCountdown(gapSeconds);
-					}, 1500);
-				} else {
-					stop();
-					setTimeout(() => setLED(6), 2000);
-				}
-			});
-		}
-	}
-
-	async function start() {
-		if (!drivers.length || running) return;
-		// Speak synchronously within the user gesture — Chrome blocks speech synthesis
-		// if the first call comes after an await.
-		if (startWholeClass && drivers[idx]) {
-			speechSynthesis.speak(
-				createUtterance(t.speechNextClass(drivers[idx].class_name ?? '', remainingInClass))
-			);
-		} else {
-			speechSynthesis.speak(createUtterance(t.speechNextDriver(drivers[idx].name)));
-		}
-		await primeAudio();
-		running = true;
-		paused = false;
-		targetTime = Date.now() + gapSeconds * 1000;
-		lastWhole = -1;
-		setLED(6);
-		if (timer) clearInterval(timer);
-		timer = setInterval(tick, 50);
-		scheduleCountdown(gapSeconds);
-	}
-
-	function pause() {
-		if (running && !paused && targetTime !== null) {
-			pausedRemaining = Math.max(0, targetTime - Date.now());
-			targetTime = null;
-			paused = true;
-			cancelBeeps();
-		}
-	}
-
-	function resume() {
-		if (running && paused && pausedRemaining !== null) {
-			const remaining = pausedRemaining;
-			targetTime = Date.now() + remaining;
-			pausedRemaining = null;
-			lastWhole = -1;
-			paused = false;
-			scheduleCountdown(remaining / 1000);
-		}
-	}
-
-	function restart() {
-		cancelBeeps();
-		running = false;
-		paused = false;
-		idx = 0;
-		targetTime = null;
-		pausedRemaining = null;
-		remainingMs = 0;
-		lastWhole = -1;
-		setLED(6);
-		if (timer) clearInterval(timer);
-		timer = undefined;
-		speechSynthesis.cancel();
-	}
-
-	function stop() {
-		cancelBeeps();
-		running = false;
-		paused = false;
-		targetTime = null;
-		if (timer) clearInterval(timer);
-		timer = undefined;
+	async function pressStop() {
+		await kcFetch(`/api/stage/${stageId}/stop`, { method: 'POST' });
 	}
 
 	onMount(() => {
-		loadQueue();
+		stageId = Number($page.params.stageId);
+		loadMeta();
+		loadSchedule();
 		loadGates();
+		connectFlow();
 		gatePoller = setInterval(loadGates, 5000);
+		tickTimer = setInterval(evaluate, 100);
 	});
 
 	onDestroy(() => {
 		if (gatePoller) clearInterval(gatePoller);
-		if (timer) clearInterval(timer);
+		if (tickTimer) clearInterval(tickTimer);
+		flowSource?.close();
+		cancelBeeps();
 		closeAudio();
 	});
 </script>
 
 <div class="flex w-full flex-col gap-6 p-6">
-	<!-- Current + Next two -->
+	<!-- Current + countdown -->
 	<Card class="flex w-full flex-col p-5">
 		<div class="flex flex-wrap items-baseline justify-between gap-2">
 			<P class="text-xl font-semibold">{stageName}</P>
-			{#if activeClass}
+			{#if nextEntry}
 				<P class="text-xl font-semibold">
-					{t.activeClassLabel} <span class="text-blue-600 dark:text-blue-400">{activeClass}</span>
-					<span class="text-sm font-normal opacity-70">({remainingInClass} {t.remainingLabel})</span
-					>
+					{t.activeClassLabel}
+					<span class="text-blue-600 dark:text-blue-400">{nextEntry.class_name}</span>
 				</P>
 			{/if}
 		</div>
@@ -329,15 +306,17 @@
 		<!-- Current -->
 		<div class="md:col-span-2">
 			<P class="text-4xl font-extrabold tracking-wide">
-				{#if drivers[idx]}
-					{drivers[idx].name} <br />
-				{:else}
+				{#if nextEntry}
+					{nextEntry.name} <br />
+				{:else if remaining.length === 0}
 					{t.noMoreDrivers}
+				{:else}
+					—
 				{/if}
 			</P>
 			<P class="text-2xl tracking-wide italic">
-				{#if drivers[idx]}
-					{drivers[idx].class_name || ''}
+				{#if nextEntry}
+					{nextEntry.class_name || ''}
 				{/if}
 			</P>
 		</div>
@@ -347,10 +326,8 @@
 	<Card class="p-3">
 		<div class="">
 			<P class="text-sm opacity-70">{t.upNext}</P>
-			<P class="text-xl">{drivers[idx + 1]?.name} — {drivers[idx + 1]?.class_name || ''}</P>
-			<P class="text-lg opacity-80">
-				{drivers[idx + 2]?.name} — {drivers[idx + 2]?.class_name || ''}
-			</P>
+			<P class="text-xl">{future[1]?.name ?? ''} — {future[1]?.class_name ?? ''}</P>
+			<P class="text-lg opacity-80">{future[2]?.name ?? ''} — {future[2]?.class_name ?? ''}</P>
 		</div>
 	</Card>
 
@@ -364,15 +341,22 @@
 				<TableHeadCell>{t.classColumn}</TableHeadCell>
 			</TableHead>
 			<TableBody>
-				{#each drivers as driver, i (driver.id)}
+				{#each schedule as entry, i (entry.driver_id)}
 					<TableBodyRow
-						class={i < idx
+						class={entry.ts_ms <= nowMs
 							? 'line-through opacity-40'
-							: i === idx
+							: nextEntry && entry.ts_ms === nextEntry.ts_ms
 								? 'bg-amber-50 font-bold dark:bg-amber-900/30'
 								: ''}
 					>
 						<TableBodyCell>{i + 1}</TableBodyCell>
+						<TableBodyCell>{entry.name}</TableBodyCell>
+						<TableBodyCell>{entry.class_name || ''}</TableBodyCell>
+					</TableBodyRow>
+				{/each}
+				{#each remaining as driver, i (driver.driver_id)}
+					<TableBodyRow class="opacity-70">
+						<TableBodyCell>{schedule.length + i + 1}</TableBodyCell>
 						<TableBodyCell>{driver.name}</TableBodyCell>
 						<TableBodyCell>{driver.class_name || ''}</TableBodyCell>
 					</TableBodyRow>
@@ -381,27 +365,34 @@
 		</Table>
 	</Card>
 
-	<!-- Queue controls -->
+	<!-- Controls -->
 	<Card class="p-3">
 		<div class="flex flex-col items-center justify-between">
-			<div class="flex w-full flex-row items-center gap-2 p-2">
-				<label for="gap" class="text-sm opacity-70"><P>{t.gapSecondsLabel}</P></label>
-				<Input id="gap" type="number" min="1" class="w-20 rounded p-2" bind:value={gapSeconds} />
-			</div>
-			<div class="flex w-full flex-row items-center gap-2 p-2">
-				<Toggle bind:checked={startWholeClass} disabled={running}>
-					{t.startWholeClassLabel}
-				</Toggle>
-			</div>
-			{#if !hasGate}
-				<P class="px-2 text-sm text-yellow-600 dark:text-yellow-400">{t.noGateForStage}</P>
+			{#if !soundEnabled}
+				<div class="flex w-full flex-row items-center gap-2 p-2">
+					<Button size="sm" color="alternative" onclick={enableSound}>
+						{t.enableSoundButton}
+					</Button>
+				</div>
 			{/if}
-			<div class="flex w-full flex-wrap gap-2 p-2">
-				<Button size="sm" onclick={start} disabled={running || !hasGate}>{t.startButton}</Button>
-				<Button size="sm" onclick={pause} disabled={!running || paused}>{t.pauseButton}</Button>
-				<Button size="sm" onclick={resume} disabled={!running || !paused}>{t.resumeButton}</Button>
-				<Button size="sm" color="red" onclick={restart}>{t.restartButton}</Button>
-			</div>
+			{#if auth.isAdmin}
+				<div class="flex w-full flex-row items-center gap-2 p-2">
+					<label for="gap" class="text-sm opacity-70"><P>{t.gapSecondsLabel}</P></label>
+					<Input id="gap" type="number" min="1" class="w-20 rounded p-2" bind:value={gapSeconds} />
+				</div>
+				<div class="flex w-full flex-row items-center gap-2 p-2">
+					<Toggle bind:checked={startWholeClass}>
+						{t.startWholeClassLabel}
+					</Toggle>
+				</div>
+				{#if !hasGate}
+					<P class="px-2 text-sm text-yellow-600 dark:text-yellow-400">{t.noGateForStage}</P>
+				{/if}
+				<div class="flex w-full flex-wrap gap-2 p-2">
+					<Button size="sm" onclick={pressStart} disabled={!hasGate}>{t.startButton}</Button>
+					<Button size="sm" color="red" onclick={pressStop}>{t.stopButton}</Button>
+				</div>
+			{/if}
 		</div>
 	</Card>
 </div>
