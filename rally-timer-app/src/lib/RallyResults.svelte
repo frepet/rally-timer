@@ -37,7 +37,7 @@
 	const activeStageData = $derived(stages.find((s) => s.name === activeStage) ?? null);
 	const activeRows = $derived(activeStageData?.rows ?? []);
 
-	type StartEntry = { id: number; name: string; class_name: string };
+	type StartEntry = { id: number; name: string; class_name: string; started: boolean };
 	type ScheduleData = {
 		server_now_ms: number;
 		scheduled: { driver_id: number; ts_ms: number; name: string; class_name: string }[];
@@ -60,19 +60,24 @@
 		}
 	});
 
-	// Future scheduled (haven't started yet per server clock) + unscheduled remaining.
-	// Drivers with a past start_event are on the stage; they leave the list and appear
-	// in results when they cross the finish.
+	// All scheduled drivers (past + future) in order, plus unscheduled remaining.
+	// Drivers whose ts_ms has passed are marked started=true and rendered invisible
+	// so their slot stays in the list and later entries keep their original position number.
 	const startOrder = $derived.by(() => {
 		const nowMs = scheduleData.server_now_ms || Date.now();
-		const toEntry = (d: { driver_id: number; name: string; class_name: string }): StartEntry => ({
-			id: d.driver_id,
-			name: d.name,
-			class_name: d.class_name
-		});
 		return [
-			...scheduleData.scheduled.filter((s) => s.ts_ms > nowMs).map(toEntry),
-			...scheduleData.remaining.map(toEntry)
+			...scheduleData.scheduled.map((s) => ({
+				id: s.driver_id,
+				name: s.name,
+				class_name: s.class_name,
+				started: s.ts_ms <= nowMs
+			})),
+			...scheduleData.remaining.map((r) => ({
+				id: r.driver_id,
+				name: r.name,
+				class_name: r.class_name,
+				started: false
+			}))
 		];
 	});
 
@@ -188,23 +193,26 @@
 	</div>
 
 	{#if activeStage}
-		{#if activeStageData?.status !== 'closed' && startOrder.length > 0}
+		{#if activeStageData?.status !== 'closed' && startOrder.some((e) => !e.started)}
 			<p class="mb-2 mt-1 text-sm font-semibold opacity-60">{t.startOrder}</p>
 			<div class="mb-4">
 				{#each startOrder as entry, i (entry.id)}
-					<div
-						class="grid grid-cols-[2.25rem_1fr] gap-x-3 rounded px-2 py-1 {i % 2 === 0
-							? 'bg-gray-50 dark:bg-gray-700/40'
-							: ''}"
-					>
-						<span class="self-center text-right text-sm font-semibold text-gray-500 dark:text-gray-400"
-							>{i + 1}</span
+					{#if !entry.started}
+						<div
+							class="grid grid-cols-[2.25rem_1fr] gap-x-3 rounded px-2 py-1 {i % 2 === 0
+								? 'bg-gray-50 dark:bg-gray-700/40'
+								: ''}"
 						>
-						<div class="flex flex-wrap items-baseline gap-x-1.5 font-sans">
-							<span class="font-medium text-gray-900 dark:text-white">{entry.name}</span>
-							<span class="text-sm font-normal opacity-60">{entry.class_name}</span>
+							<span
+								class="self-center text-right text-sm font-semibold text-gray-500 dark:text-gray-400"
+								>{i + 1}</span
+							>
+							<div class="flex flex-wrap items-baseline gap-x-1.5 font-sans">
+								<span class="font-medium text-gray-900 dark:text-white">{entry.name}</span>
+								<span class="text-sm font-normal opacity-60">{entry.class_name}</span>
+							</div>
 						</div>
-					</div>
+					{/if}
 				{/each}
 			</div>
 			<p class="mb-2 text-sm font-semibold opacity-60">{t.resultsSubheading}</p>
