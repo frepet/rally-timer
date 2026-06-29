@@ -20,6 +20,7 @@
 	import { auth } from '../../../../lib/stores/auth.svelte';
 	import {
 		primeAudio,
+		playBeep,
 		getAudioCurrentTime,
 		scheduleBeepAt,
 		closeAudio
@@ -44,6 +45,11 @@
 	let nowMs = $state(Date.now());
 
 	let soundEnabled = $state(false);
+	// Independent from the start-sequence sound: a confirmation chime when a car
+	// passes this stage's (finish) gate. Decoupled from the countdown scheduler.
+	let finishBeepEnabled = $state(false);
+	const FINISH_DEBOUNCE_MS = 3000;
+	const lastFinishBeepByTag: Record<string, number> = {};
 	let gapSeconds = $state(10);
 	let leadInSeconds = $state(10);
 	let startWholeClass = $state(false);
@@ -230,6 +236,20 @@
 		evaluate();
 	}
 
+	// Distinct descending two-tone so it can't be confused with the countdown
+	// beeps (880 Hz) or the GO tone (1000 Hz). playBeep resumes the context, so
+	// this works even if the start-sequence sound was never enabled.
+	function playFinishChime() {
+		playBeep(523, 0.12, 0.5);
+		setTimeout(() => playBeep(392, 0.18, 0.5), 140);
+	}
+
+	async function toggleFinishBeep(enabled: boolean) {
+		finishBeepEnabled = enabled;
+		// Unlock audio inside this user gesture so later (event-driven) chimes play.
+		if (enabled) await primeAudio();
+	}
+
 	async function pressStart() {
 		await kcFetch(`/api/stage/${stageId}/start`, {
 			method: 'POST',
@@ -264,6 +284,32 @@
 		flowSource?.close();
 		cancelBeeps();
 		closeAudio();
+	});
+
+	// Finish confirmation: while enabled, listen to the global gate-event stream
+	// and chime only for passages on this stage's gate. The effect re-runs only
+	// when the toggle flips; reads of `gates`/`stageId` happen inside the (async)
+	// message handler, so they don't re-open the connection on every poll.
+	$effect(() => {
+		if (!finishBeepEnabled) return;
+		const es = new EventSource('/api/gate-events/stream');
+		es.onmessage = (e) => {
+			try {
+				const data = JSON.parse(e.data) as { gate_id?: string; tag?: string };
+				if (!data.gate_id) return;
+				const isFinishGate = gates.some((g) => g.id === data.gate_id && g.stage_id === stageId);
+				if (!isFinishGate) return;
+
+				const tag = data.tag ?? '';
+				const now = Date.now();
+				if (now - (lastFinishBeepByTag[tag] ?? 0) < FINISH_DEBOUNCE_MS) return;
+				lastFinishBeepByTag[tag] = now;
+				playFinishChime();
+			} catch {
+				/* ignore malformed payload */
+			}
+		};
+		return () => es.close();
 	});
 </script>
 
@@ -376,6 +422,15 @@
 					</Button>
 				</div>
 			{/if}
+			<div class="flex w-full flex-col gap-1 p-2">
+				<Toggle
+					checked={finishBeepEnabled}
+					onchange={(e) => toggleFinishBeep((e.currentTarget as HTMLInputElement).checked)}
+				>
+					{t.finishBeepLabel}
+				</Toggle>
+				<P class="text-xs opacity-60">{t.finishBeepHint}</P>
+			</div>
 			{#if auth.isAdmin}
 				<div class="flex w-full flex-row items-center gap-2 p-2">
 					<label for="gap" class="text-sm opacity-70"><P>{t.gapSecondsLabel}</P></label>
