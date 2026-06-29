@@ -14,9 +14,13 @@
 		Input,
 		Select,
 		Toggle,
-		Badge
+		Badge,
+		Tabs,
+		TabItem,
+		P
 	} from 'flowbite-svelte';
 	import { TrashBinOutline } from 'flowbite-svelte-icons';
+	import { auth } from '../../lib/stores/auth.svelte';
 	import { t } from '../../lib/stores/locale.svelte';
 
 	type Driver = {
@@ -38,6 +42,15 @@
 	let { data }: PageProps = $props();
 	let drivers: Driver[] = $state(untrack(() => data.drivers as Driver[]));
 	const apiPath = '/api/driver';
+
+	// Group drivers by class for the tabbed view (mirrors the championship page)
+	const driversByClass = $derived.by(() => {
+		const names = [...new Set(drivers.map((d) => d.class_name ?? '—'))].sort();
+		return names.map((cls) => ({
+			cls,
+			list: drivers.filter((d) => (d.class_name ?? '—') === cls)
+		}));
+	});
 
 	// Create form
 	let newName = $state('');
@@ -258,187 +271,206 @@
 </script>
 
 <div class="w-full space-y-6 p-5">
-	<Card class="max-w-none p-4 sm:p-6 md:p-8">
-		<p class="small-caps mb-4 text-xl font-semibold tracking-widest text-black dark:text-white">
-			{t.addDriver}
-		</p>
+	{#if auth.isAdmin}
+		<Card class="max-w-none p-4 sm:p-6 md:p-8">
+			<p class="small-caps mb-4 text-xl font-semibold tracking-widest text-black dark:text-white">
+				{t.addDriver}
+			</p>
 
-		<div class="grid grid-cols-1 gap-3 md:grid-cols-4">
-			<div>
-				<label for="newName" class="mb-2 block text-sm font-medium text-gray-900 dark:text-white"
-					>{t.name}</label
-				>
-				<Input
-					id="newName"
-					bind:value={newName}
-					placeholder={t.driverName}
-					onkeydown={(e) => e.key === 'Enter' && createDriver()}
-				/>
-			</div>
-
-			<div>
-				<label for="newClass" class="mb-2 block text-sm font-medium text-gray-900 dark:text-white"
-					>{t.classLabel}</label
-				>
-				<Select id="newClass" bind:value={newClassId}>
-					<option value="" disabled selected>{t.selectClass}</option>
-					{#each classes as c (c.id)}
-						<option value={c.id}>{c.name}</option>
-					{/each}
-				</Select>
-			</div>
-
-			<div>
-				<label for="newTag" class="mb-2 block text-sm font-medium text-gray-900 dark:text-white"
-					>{t.rfidTag}</label
-				>
-				<Input
-					id="newTag"
-					bind:elementRef={tagInputEl}
-					bind:value={newTag}
-					placeholder={gateCaptureEnabled && selectedGateId ? t.waitingForGate : t.scanTag}
-					class={captureFlash ? 'ring-2 ring-green-500' : ''}
-					disabled={!!(gateCaptureEnabled && selectedGateId)}
-					onkeydown={(e) => e.key === 'Enter' && createDriver()}
-				/>
-			</div>
-
-			<div>
-				<label for="gateSelect" class="mb-2 block text-sm font-medium text-gray-900 dark:text-white"
-					>{t.gateCapture}</label
-				>
-				<div class="flex items-center gap-2">
-					<Select
-						id="gateSelect"
-						bind:value={selectedGateId}
-						class="flex-1"
-						disabled={gateCaptureEnabled}
+			<div class="grid grid-cols-1 gap-3 md:grid-cols-4">
+				<div>
+					<label for="newName" class="mb-2 block text-sm font-medium text-gray-900 dark:text-white"
+						>{t.name}</label
 					>
-						<option value={null}>{t.manualEntry}</option>
-						{#each gates.filter((g) => !g.stage_id) as g (g.id)}
-							<option value={g.id}>
-								{g.name ?? g.id.slice(0, 8)}
-								{isGateOnline(g) ? '🟢' : '⚫'}
-							</option>
+					<Input
+						id="newName"
+						bind:value={newName}
+						placeholder={t.driverName}
+						onkeydown={(e) => e.key === 'Enter' && createDriver()}
+					/>
+				</div>
+
+				<div>
+					<label for="newClass" class="mb-2 block text-sm font-medium text-gray-900 dark:text-white"
+						>{t.classLabel}</label
+					>
+					<Select id="newClass" bind:value={newClassId}>
+						<option value="" disabled selected>{t.selectClass}</option>
+						{#each classes as c (c.id)}
+							<option value={c.id}>{c.name}</option>
 						{/each}
 					</Select>
-					<Toggle bind:checked={gateCaptureEnabled} disabled={!selectedGateId} />
 				</div>
-				{#if selectedGate}
-					<div class="mt-1 flex items-center gap-2 text-xs">
-						{#if isGateOnline(selectedGate)}
-							<Badge color="green" class="text-xs">{t.gateOnline}</Badge>
-						{:else}
-							<Badge color="gray" class="text-xs">{t.gateOffline}</Badge>
-						{/if}
-						<Toggle bind:checked={autoSubmitEnabled} size="small" />
-						<span class="opacity-70">{t.addAutomatically}</span>
+
+				<div>
+					<label for="newTag" class="mb-2 block text-sm font-medium text-gray-900 dark:text-white"
+						>{t.rfidTag}</label
+					>
+					<Input
+						id="newTag"
+						bind:elementRef={tagInputEl}
+						bind:value={newTag}
+						placeholder={gateCaptureEnabled && selectedGateId ? t.waitingForGate : t.scanTag}
+						class={captureFlash ? 'ring-2 ring-green-500' : ''}
+						disabled={!!(gateCaptureEnabled && selectedGateId)}
+						onkeydown={(e) => e.key === 'Enter' && createDriver()}
+					/>
+				</div>
+
+				<div>
+					<label
+						for="gateSelect"
+						class="mb-2 block text-sm font-medium text-gray-900 dark:text-white"
+						>{t.gateCapture}</label
+					>
+					<div class="flex items-center gap-2">
+						<Select
+							id="gateSelect"
+							bind:value={selectedGateId}
+							class="flex-1"
+							disabled={gateCaptureEnabled}
+						>
+							<option value={null}>{t.manualEntry}</option>
+							{#each gates.filter((g) => !g.stage_id) as g (g.id)}
+								<option value={g.id}>
+									{g.name ?? g.id.slice(0, 8)}
+									{isGateOnline(g) ? '🟢' : '⚫'}
+								</option>
+							{/each}
+						</Select>
+						<Toggle bind:checked={gateCaptureEnabled} disabled={!selectedGateId} />
 					</div>
-				{/if}
+					{#if selectedGate}
+						<div class="mt-1 flex items-center gap-2 text-xs">
+							{#if isGateOnline(selectedGate)}
+								<Badge color="green" class="text-xs">{t.gateOnline}</Badge>
+							{:else}
+								<Badge color="gray" class="text-xs">{t.gateOffline}</Badge>
+							{/if}
+							<Toggle bind:checked={autoSubmitEnabled} size="small" />
+							<span class="opacity-70">{t.addAutomatically}</span>
+						</div>
+					{/if}
+				</div>
 			</div>
-		</div>
 
-		{#if lastCapturedTag && gateCaptureEnabled}
-			<div class="mt-2 text-sm text-green-600 dark:text-green-400">
-				{t.lastCaptured} <span class="font-mono font-bold">{lastCapturedTag}</span>
-			</div>
-		{/if}
-
-		<div class="mt-4 flex justify-end gap-3">
-			{#if gateCaptureEnabled && selectedGateId}
-				<Button
-					color="yellow"
-					class="w-32"
-					onclick={() => {
-						gateCaptureEnabled = false;
-						newTag = '';
-					}}
-				>
-					{t.cancelCapture}
-				</Button>
+			{#if lastCapturedTag && gateCaptureEnabled}
+				<div class="mt-2 text-sm text-green-600 dark:text-green-400">
+					{t.lastCaptured} <span class="font-mono font-bold">{lastCapturedTag}</span>
+				</div>
 			{/if}
-			<Button class="w-32" onclick={createDriver}>{t.add}</Button>
-		</div>
-	</Card>
+
+			<div class="mt-4 flex justify-end gap-3">
+				{#if gateCaptureEnabled && selectedGateId}
+					<Button
+						color="yellow"
+						class="w-32"
+						onclick={() => {
+							gateCaptureEnabled = false;
+							newTag = '';
+						}}
+					>
+						{t.cancelCapture}
+					</Button>
+				{/if}
+				<Button class="w-32" onclick={createDriver}>{t.add}</Button>
+			</div>
+		</Card>
+	{/if}
 
 	<Card class="max-w-none p-4 sm:p-6 md:p-8">
 		<div class="mb-2 flex items-center gap-2">
 			<p class="small-caps flex-1 text-xl font-semibold tracking-widest text-black dark:text-white">
 				{t.driversHeading}
 			</p>
-			<Button color="red" class="w-32" onclick={clearAll}>{t.clearAll}</Button>
+			{#if auth.isAdmin}
+				<Button color="red" class="w-32" onclick={clearAll}>{t.clearAll}</Button>
+			{/if}
 		</div>
 
-		<Table hoverable={true}>
-			<TableHead>
-				<TableHeadCell>{t.name}</TableHeadCell>
-				<TableHeadCell>{t.classLabel}</TableHeadCell>
-				<TableHeadCell>{t.tag}</TableHeadCell>
-				<TableHeadCell>{t.ratingLabel}</TableHeadCell>
-				<TableHeadCell class="flex justify-end">{t.actions}</TableHeadCell>
-			</TableHead>
+		{#if drivers.length === 0}
+			<P class="text-gray-500 dark:text-gray-400">{t.noDrivers}</P>
+		{:else}
+			<Tabs style="underline" class="m-0" classes={{ content: 'p-0' }}>
+				{#each driversByClass as group (group.cls)}
+					<TabItem title={group.cls} open={group.cls === driversByClass[0].cls} class="p-0">
+						<div class="pt-4">
+							<Table hoverable={true}>
+								<TableHead>
+									<TableHeadCell>{t.name}</TableHeadCell>
+									{#if auth.isAdmin}
+										<TableHeadCell>{t.tag}</TableHeadCell>
+									{/if}
+									<TableHeadCell>{t.ratingLabel}</TableHeadCell>
+									{#if auth.isAdmin}
+										<TableHeadCell class="flex justify-end">{t.actions}</TableHeadCell>
+									{/if}
+								</TableHead>
 
-			<TableBody>
-				{#each drivers as d (d.id)}
-					<TableBodyRow>
-						<!-- Name -->
-						<TableBodyCell>
-							{#if editingId === d.id}
-								<Input
-									aria-label={t.driverName}
-									bind:value={editName}
-									onkeydown={(e) => e.key === 'Enter' && saveEdit(d.id)}
-								/>
-							{:else}
-								{d.name}
-							{/if}
-						</TableBodyCell>
+								<TableBody>
+									{#each group.list as d (d.id)}
+										<TableBodyRow>
+											<!-- Name (+ class selector while editing) -->
+											<TableBodyCell>
+												{#if auth.isAdmin && editingId === d.id}
+													<div class="flex flex-col gap-2">
+														<Input
+															aria-label={t.driverName}
+															bind:value={editName}
+															onkeydown={(e) => e.key === 'Enter' && saveEdit(d.id)}
+														/>
+														<Select aria-label={t.driverClassAriaLabel} bind:value={editClassId}>
+															<option value="" disabled>{t.selectClass}</option>
+															{#each classes as c (c.id)}
+																<option value={c.id}>{c.name}</option>
+															{/each}
+														</Select>
+													</div>
+												{:else}
+													{d.name}
+												{/if}
+											</TableBodyCell>
 
-						<!-- Class -->
-						<TableBodyCell>
-							{#if editingId === d.id}
-								<Select aria-label={t.driverClassAriaLabel} bind:value={editClassId}>
-									<option value="" disabled>{t.selectClass}</option>
-									{#each classes as c (c.id)}
-										<option value={c.id}>{c.name}</option>
+											{#if auth.isAdmin}
+												<!-- Tag -->
+												<TableBodyCell>
+													{#if editingId === d.id}
+														<Input
+															aria-label={t.rfidTag}
+															bind:value={editTag}
+															onkeydown={(e) => e.key === 'Enter' && saveEdit(d.id)}
+														/>
+													{:else}
+														{d.tag}
+													{/if}
+												</TableBodyCell>
+											{/if}
+
+											<!-- Rating -->
+											<TableBodyCell class="font-mono">{d.rating}</TableBodyCell>
+
+											{#if auth.isAdmin}
+												<!-- Actions -->
+												<TableBodyCell class="flex justify-end gap-2">
+													{#if editingId === d.id}
+														<Button size="xs" onclick={() => saveEdit(d.id)}>{t.save}</Button>
+														<Button size="xs" color="light" onclick={cancelEdit}>{t.cancel}</Button>
+													{:else}
+														<Button size="xs" onclick={() => startEdit(d)}>{t.edit}</Button>
+														<Button size="xs" color="red" onclick={() => deleteOne(d.id)}
+															><TrashBinOutline size="xs" /></Button
+														>
+													{/if}
+												</TableBodyCell>
+											{/if}
+										</TableBodyRow>
 									{/each}
-								</Select>
-							{:else}
-								{d.class_name ?? d.class_id}
-							{/if}
-						</TableBodyCell>
-
-						<!-- Tag -->
-						<TableBodyCell>
-							{#if editingId === d.id}
-								<Input
-									aria-label={t.rfidTag}
-									bind:value={editTag}
-									onkeydown={(e) => e.key === 'Enter' && saveEdit(d.id)}
-								/>
-							{:else}
-								{d.tag}
-							{/if}
-						</TableBodyCell>
-
-						<!-- Rating -->
-						<TableBodyCell class="font-mono">{d.rating}</TableBodyCell>
-
-						<!-- Actions -->
-						<TableBodyCell class="flex justify-end gap-2">
-							{#if editingId === d.id}
-								<Button size="xs" onclick={() => saveEdit(d.id)}>{t.save}</Button>
-								<Button size="xs" color="light" onclick={cancelEdit}>{t.cancel}</Button>
-							{:else}
-								<Button size="xs" onclick={() => startEdit(d)}>{t.edit}</Button>
-								<Button size="xs" color="red" onclick={() => deleteOne(d.id)}
-									><TrashBinOutline size="xs" /></Button
-								>
-							{/if}
-						</TableBodyCell>
-					</TableBodyRow>
+								</TableBody>
+							</Table>
+						</div>
+					</TabItem>
 				{/each}
-			</TableBody>
-		</Table>
+			</Tabs>
+		{/if}
 	</Card>
 </div>
