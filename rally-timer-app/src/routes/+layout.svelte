@@ -128,13 +128,13 @@
 		<NavLi href="/" class={navClass('/', true)}>{t.navResults}</NavLi>
 		<NavLi href="/championships" class={navClass('/championships')}>{t.navChampionships}</NavLi>
 		<NavLi href="/rules" class={navClass('/rules')}>{t.navRules}</NavLi>
+		<NavLi href="/drivers" class={navClass('/drivers')}>{t.navDrivers}</NavLi>
 		<NavLi href="/about" class={navClass('/about')}>{t.navAbout}</NavLi>
 		{#if auth.isAdmin}
 			<NavLi>|</NavLi>
 			<NavLi href="/rallies" class={navClass('/rallies')}>{t.navRally}</NavLi>
 			<NavLi href="/rallycross" class={navClass('/rallycross')}>{t.navRallycross}</NavLi>
 			<NavLi href="/training" class={navClass('/training')}>{t.navTraining}</NavLi>
-			<NavLi href="/drivers" class={navClass('/drivers')}>{t.navDrivers}</NavLi>
 			<NavLi href="/classes" class={navClass('/classes')}>{t.navClasses}</NavLi>
 			<NavLi href="/gates" class={navClass('/gates')}>{t.navGates}</NavLi>
 		{/if}
