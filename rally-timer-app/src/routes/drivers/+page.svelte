@@ -48,7 +48,7 @@
 		const names = [...new Set(drivers.map((d) => d.class_name ?? '—'))].sort();
 		return names.map((cls) => ({
 			cls,
-			list: drivers.filter((d) => (d.class_name ?? '—') === cls)
+			list: drivers.filter((d) => (d.class_name ?? '—') === cls).sort((a, b) => b.rating - a.rating)
 		}));
 	});
 
