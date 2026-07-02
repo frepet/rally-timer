@@ -4,8 +4,13 @@ import { throwIfNotAdmin } from '../../../lib/server/keycloak';
 import { championshipCreateSchema } from '../../../lib/server/schemas';
 
 export async function GET(): Promise<Response> {
-	const rows = await sql`SELECT id, name, created_at FROM championships ORDER BY created_at`;
-	return json(rows.map((r) => ({ ...r, created_at: Number(r.created_at) })));
+	const rows = await sql`
+		SELECT c.id, c.name, c.created_at,
+		       (s.default_championship_id = c.id) AS is_default
+		FROM championships c, settings s
+		ORDER BY c.created_at
+	`;
+	return json(rows.map((r) => ({ ...r, created_at: Number(r.created_at), is_default: Boolean(r.is_default) })));
 }
 
 export async function POST(event: RequestEvent): Promise<Response> {
