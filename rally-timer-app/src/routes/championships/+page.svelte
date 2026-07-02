@@ -138,7 +138,8 @@
 	async function toggleDefault() {
 		if (!selectedId) return;
 		try {
-			await kcFetchJSON(`/api/championship/${selectedId}/default`, { method: 'PUT' });
+			const res = await kcFetch(`/api/championship/${selectedId}/default`, { method: 'PUT' });
+			if (!res.ok) throw new Error(await res.text());
 			await loadChampionships();
 		} catch (e) {
 			alert('Error: ' + (e as Error).message);
