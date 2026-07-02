@@ -127,8 +127,8 @@
 	<NavUl>
 		<NavLi href="/" class={navClass('/', true)}>{t.navResults}</NavLi>
 		<NavLi href="/championships" class={navClass('/championships')}>{t.navChampionships}</NavLi>
-		<NavLi href="/rules" class={navClass('/rules')}>{t.navRules}</NavLi>
 		<NavLi href="/drivers" class={navClass('/drivers')}>{t.navDrivers}</NavLi>
+		<NavLi href="/rules" class={navClass('/rules')}>{t.navRules}</NavLi>
 		<NavLi href="/about" class={navClass('/about')}>{t.navAbout}</NavLi>
 		{#if auth.isAdmin}
 			<NavLi>|</NavLi>
