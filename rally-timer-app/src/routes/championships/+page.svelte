@@ -17,14 +17,20 @@
 		Tabs,
 		TabItem
 	} from 'flowbite-svelte';
-	import { TrashBinOutline, PlusOutline, PenOutline } from 'flowbite-svelte-icons';
+	import {
+		TrashBinOutline,
+		PlusOutline,
+		PenOutline,
+		StarOutline,
+		StarSolid
+	} from 'flowbite-svelte-icons';
 	import { kcFetch } from '../../lib/kcFetch';
 	import { auth } from '../../lib/stores/auth.svelte';
 	import { t } from '../../lib/stores/locale.svelte';
 	import { formatMs } from '../../lib/results';
 	import { groupStandingsByClass } from '../../lib/domain/standings';
 
-	type Championship = { id: string; name: string; created_at: number };
+	type Championship = { id: string; name: string; created_at: number; is_default: boolean };
 	type StandingRow = {
 		driver_uuid: string;
 		driver_name: string;
@@ -68,7 +74,10 @@
 		championships = await fetchJSON<Championship[]>('/api/championship');
 		if (!selectedId && championships.length) {
 			const idParam = page.url.searchParams.get('id');
-			const initial = championships.find((c) => c.id === idParam) ?? championships[0];
+			const initial =
+				championships.find((c) => c.id === idParam) ??
+				championships.find((c) => c.is_default) ??
+				championships[0];
 			await selectChampionship(initial.id);
 		}
 	}
@@ -124,6 +133,16 @@
 			rallies = [];
 		}
 		await loadChampionships();
+	}
+
+	async function toggleDefault() {
+		if (!selectedId) return;
+		try {
+			await kcFetchJSON(`/api/championship/${selectedId}/default`, { method: 'PUT' });
+			await loadChampionships();
+		} catch (e) {
+			alert('Error: ' + (e as Error).message);
+		}
 	}
 
 	// Rename championship
@@ -200,6 +219,19 @@
 					onclick={openRenameModal}
 				>
 					<PenOutline size="sm" />
+				</button>
+				<button
+					class="rounded p-2 hover:bg-gray-100 dark:hover:bg-gray-700 {selectedChamp?.is_default
+						? 'text-yellow-400'
+						: 'text-gray-500'}"
+					title={selectedChamp?.is_default ? t.unstarChampionship : t.starChampionship}
+					onclick={toggleDefault}
+				>
+					{#if selectedChamp?.is_default}
+						<StarSolid size="sm" />
+					{:else}
+						<StarOutline size="sm" />
+					{/if}
 				</button>
 				<button
 					class="rounded p-2 text-red-500 hover:bg-gray-100 dark:hover:bg-gray-700"
