@@ -163,6 +163,8 @@
 	{/if}
 </Card>
 
+<br />
+
 <!-- Stage tabs + leaderboard -->
 <Card class="max-w-none p-4 sm:p-6 md:p-8 dark:bg-surface-850">
 	<p class="small-caps mb-4 text-xl font-semibold tracking-widest text-black dark:text-white">
