@@ -53,6 +53,7 @@ import { runMigration as run018 } from './migrations/018_finish_events_dnf_uniqu
 import { runMigration as run019 } from './migrations/019_gate_enrollment';
 import { runMigration as run020 } from './migrations/020_drop_gate_token';
 import { runMigration as run021 } from './migrations/021_start_events_stage_ts_index';
+import { runMigration as run022 } from './migrations/022_championship_default';
 
 const MIGRATIONS: Array<[name: string, run: (tx: Sql) => Promise<void>]> = [
 	['000_initial_schema', run000],
@@ -76,7 +77,8 @@ const MIGRATIONS: Array<[name: string, run: (tx: Sql) => Promise<void>]> = [
 	['018_finish_events_dnf_unique', run018],
 	['019_gate_enrollment', run019],
 	['020_drop_gate_token', run020],
-	['021_start_events_stage_ts_index', run021]
+	['021_start_events_stage_ts_index', run021],
+	['022_championship_default', run022]
 ];
 
 const MIGRATION_LOCK_ID = 72727201;
