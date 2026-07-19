@@ -105,11 +105,14 @@ describe('aggregateRallyResults', () => {
 });
 
 describe('compareRallyDrivers', () => {
-	const base = { driver_name: 'Alice', finished_stages: 2, total_ms: 30000, is_dnf: false };
+	const base = { driver_name: 'Alice', finished_stages: 2, total_ms: 30000 };
 
-	it('non-DNF ranks before DNF', () => {
-		expect(compareRallyDrivers(base, { ...base, is_dnf: true })).toBeLessThan(0);
-		expect(compareRallyDrivers({ ...base, is_dnf: true }, base)).toBeGreaterThan(0);
+	it('a DNF driver with lower total_ms ranks before a clean driver — dnf does not demote', () => {
+		// The DNF penalty time is already included in total_ms; dnf must not be a sort key.
+		const dnfDriver = { ...base, driver_name: 'Bob', total_ms: 25000, is_dnf: true };
+		const cleanDriver = { ...base, is_dnf: false };
+		expect(compareRallyDrivers(dnfDriver, cleanDriver)).toBeLessThan(0);
+		expect(compareRallyDrivers(cleanDriver, dnfDriver)).toBeGreaterThan(0);
 	});
 
 	it('more finished_stages ranks higher regardless of total_ms', () => {

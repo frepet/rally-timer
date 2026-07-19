@@ -135,6 +135,11 @@
 						<span class="whitespace-nowrap"
 							><span class="mr-1 opacity-50">{t.stagesStatLabel}</span>{r.finished_stages}</span
 						>
+						{#if r.dnf_count > 0}
+							<span class="font-semibold whitespace-nowrap text-red-600 dark:text-red-400"
+								>{t.dnfStatLabel(r.dnf_count)}</span
+							>
+						{/if}
 						{#if r.penalty_ms > 0}
 							<span class="whitespace-nowrap text-amber-600 dark:text-amber-400"
 								><span class="mr-1 opacity-70">{t.penaltyLabel}</span>+{formatMs(

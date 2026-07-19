@@ -492,8 +492,8 @@ describe('buildStageData — DNF handling', () => {
 		expect(rows[1].dnf).toBe(true);
 	});
 
-	it('DNF stages do not count toward finished_stages', () => {
-		// 2 stages: Alice finishes both, Bob finishes SS1 and DNFs SS2
+	it('penalized DNF stages count toward finished_stages and are tallied in dnf_count', () => {
+		// 2 stages: Alice finishes both, Bob finishes SS1 and DNFs SS2 with a penalty time
 		const stageData = buildStageData(
 			[driver(1, 'Alice', 'A', 'tagA'), driver(2, 'Bob', 'A', 'tagB')],
 			[stage(1), stage(2)],
@@ -509,7 +509,32 @@ describe('buildStageData — DNF handling', () => {
 		const alice = rows.find((r) => r.driver_name === 'Alice')!;
 		const bob = rows.find((r) => r.driver_name === 'Bob')!;
 		expect(alice.finished_stages).toBe(2);
-		expect(bob.finished_stages).toBe(1); // SS2 was DNF — not counted
+		expect(alice.dnf_count).toBe(0);
+		expect(bob.finished_stages).toBe(2); // SS2 DNF has a penalty time — still a completed stage
+		expect(bob.dnf_count).toBe(1);
 		expect(bob.dnf).toBe(true);
+	});
+
+	it('DNF driver with a lower penalized total ranks above a clean driver with equal stages', () => {
+		// Alice: SS1=10000, SS2=10000 → total 20000, clean
+		// Bob: SS1=4000, SS2 DNF penalty=12000 → total 16000 — the +30s-style penalty is
+		// already in his total, so he outranks Alice on time despite the DNF.
+		const stageData = buildStageData(
+			[driver(1, 'Alice', 'A', 'tagA'), driver(2, 'Bob', 'A', 'tagB')],
+			[stage(1), stage(2)],
+			[start(1, 1, 0), start(2, 1, 0), start(1, 2, 50000), start(2, 2, 50000)],
+			[
+				finish(1, 'tagA', 10000, false),
+				finish(1, 'tagB', 4000, false),
+				finish(2, 'tagA', 60000, false),
+				finish(2, 'tagB', 62000, true) // synthetic DNF finish → 12000ms
+			]
+		);
+		const rows = buildRallyRows(stageData);
+		expect(rows[0].driver_name).toBe('Bob');
+		expect(rows[0].position).toBe(1);
+		expect(rows[0].dnf).toBe(true);
+		expect(rows[1].driver_name).toBe('Alice');
+		expect(rows[1].position).toBe(2);
 	});
 });

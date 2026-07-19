@@ -45,15 +45,15 @@ describe('rankRallyResultsByClass', () => {
 		expect(byPosition.map((r) => r.driver_name)).toEqual(['Alice', 'Bob']);
 	});
 
-	it('places DNF drivers after all non-DNF drivers', () => {
+	it('ranks a DNF driver by total_ms like everyone else — the penalty time is the punishment', () => {
 		const result = rankRallyResultsByClass([
 			row({ driver_name: 'Bob', total_ms: 440000 }),
-			row({ driver_name: 'Diana', total_ms: 999999, is_dnf: true }),
+			row({ driver_name: 'Diana', total_ms: 400000, is_dnf: true }),
 			row({ driver_name: 'Alice', total_ms: 423000 })
 		]);
 		const byPosition = [...result].sort((a, b) => a.position - b.position);
-		expect(byPosition.map((r) => r.driver_name)).toEqual(['Alice', 'Bob', 'Diana']);
-		expect(byPosition[2].is_dnf).toBe(true);
+		expect(byPosition.map((r) => r.driver_name)).toEqual(['Diana', 'Alice', 'Bob']);
+		expect(byPosition[0].is_dnf).toBe(true);
 	});
 
 	it('partitions positions independently per (rally_id, class_id)', () => {
@@ -81,11 +81,11 @@ describe('rankRallyResultsByClass', () => {
 		expect(byPosition.map((r) => r.driver_name)).toEqual(['Alice', 'Bob']);
 	});
 
-	it('multiple DNF drivers share trailing positions in name order', () => {
+	it('DNF drivers with equal totals order by name among themselves', () => {
 		const result = rankRallyResultsByClass([
 			row({ driver_name: 'Alice', total_ms: 423000 }),
-			row({ driver_name: 'Charlie', total_ms: 0, is_dnf: true }),
-			row({ driver_name: 'Bob', total_ms: 0, is_dnf: true })
+			row({ driver_name: 'Charlie', total_ms: 500000, is_dnf: true }),
+			row({ driver_name: 'Bob', total_ms: 500000, is_dnf: true })
 		]);
 		const byPosition = [...result].sort((a, b) => a.position - b.position);
 		expect(byPosition.map((r) => r.driver_name)).toEqual(['Alice', 'Bob', 'Charlie']);

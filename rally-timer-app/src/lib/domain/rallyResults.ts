@@ -21,19 +21,20 @@ export type RallyDriverResult = {
 	is_dnf: boolean;
 };
 
-type Rankable = Pick<
-	RallyDriverResult,
-	'is_dnf' | 'finished_stages' | 'total_ms' | 'driver_name'
-> & { driver_uuid?: string };
+type Rankable = Pick<RallyDriverResult, 'finished_stages' | 'total_ms' | 'driver_name'> & {
+	driver_uuid?: string;
+};
 
 /**
  * Canonical ranking comparator for rally results.
- * DNF drivers rank after all non-DNF drivers.
- * Among non-DNF: more finished stages rank higher; ties broken by total_ms asc,
- * then name asc, then driver_uuid so equal names still order deterministically.
+ * DNF status is NOT a sort key: a DNF stage already carries a penalty time
+ * (slowest in class + 30s) inside total_ms, so DNF drivers compete on time.
+ * More finished stages rank higher (progress order for live rallies; once all
+ * stages are closed everyone has a time in every stage, so this key ties out);
+ * ties broken by total_ms asc, then name asc, then driver_uuid so equal names
+ * still order deterministically.
  */
 export function compareRallyDrivers(a: Rankable, b: Rankable): number {
-	if (a.is_dnf !== b.is_dnf) return a.is_dnf ? 1 : -1;
 	if (a.finished_stages !== b.finished_stages) return b.finished_stages - a.finished_stages;
 	if (a.total_ms !== b.total_ms) return a.total_ms - b.total_ms;
 	const byName = a.driver_name.localeCompare(b.driver_name);

@@ -9,6 +9,7 @@ export type DisplayRallyRow = {
 	delta_prev: number | null;
 	position: number;
 	dnf: boolean;
+	dnf_count: number;
 };
 
 export type DisplayStageRow = {

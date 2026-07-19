@@ -100,7 +100,7 @@ export function buildRallyRows(stageData: StageData[]): DisplayRallyRow[] {
 			total: number;
 			penalty: number;
 			finished: number;
-			dnf: boolean;
+			dnfCount: number;
 		}
 	>();
 
@@ -112,12 +112,13 @@ export function buildRallyRows(stageData: StageData[]): DisplayRallyRow[] {
 				total: 0,
 				penalty: 0,
 				finished: 0,
-				dnf: false
+				dnfCount: 0
 			};
 			existing.total += row.stage_ms;
 			existing.penalty += row.penalty_ms;
-			if (!row.dnf) existing.finished++;
-			if (row.dnf) existing.dnf = true;
+			// A DNF row still has a penalty time, so it counts as a completed stage.
+			existing.finished++;
+			if (row.dnf) existing.dnfCount++;
 			totals.set(row.driver_uuid, existing);
 		}
 	}
@@ -132,10 +133,11 @@ export function buildRallyRows(stageData: StageData[]): DisplayRallyRow[] {
 		delta_p1: null,
 		delta_prev: null,
 		position: 0,
-		dnf: v.dnf
+		dnf: v.dnfCount > 0,
+		dnf_count: v.dnfCount
 	}));
 
-	rows.sort((a, b) => compareRallyDrivers({ ...a, is_dnf: a.dnf }, { ...b, is_dnf: b.dnf }));
+	rows.sort(compareRallyDrivers);
 	assignPositionsAndDeltas(rows, (r) => r.total_ms);
 	return rows;
 }
