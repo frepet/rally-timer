@@ -233,6 +233,9 @@ export const sv = {
 
 	// Stage start page
 	activeClassLabel: 'Aktiv klass:',
+	nextClassLabel: 'Nästa klass:',
+	classDoneWaitingForStart: 'Klassen klar — tryck Start för nästa klass',
+	nextClassPreview: 'Nästa klass',
 	remainingLabel: 'kvar',
 	noMoreDrivers: 'Inga fler förare',
 	upNext: 'Näst på tur',
@@ -620,6 +623,9 @@ export const en: typeof sv = {
 
 	// Stage start page
 	activeClassLabel: 'Active class:',
+	nextClassLabel: 'Next class:',
+	classDoneWaitingForStart: 'Class done — press Start for the next class',
+	nextClassPreview: 'Next class',
 	remainingLabel: 'remaining',
 	noMoreDrivers: 'No more drivers',
 	upNext: 'Up next',

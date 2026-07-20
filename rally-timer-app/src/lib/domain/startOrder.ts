@@ -43,3 +43,15 @@ export function computeStartOrder(drivers: StartOrderDriver[]): StartOrderEntry[
 		class_name: d.class_name
 	}));
 }
+
+/**
+ * Take only the leading run of `order` that belongs to the next class due to
+ * start (the class of the first entry). `order` must already be sorted by
+ * `computeStartOrder`, so that class's drivers are contiguous at the front.
+ */
+export function nextClassBatch(order: StartOrderEntry[]): StartOrderEntry[] {
+	if (order.length === 0) return [];
+	const classId = order[0].class_id;
+	const end = order.findIndex((d) => d.class_id !== classId);
+	return end === -1 ? order : order.slice(0, end);
+}

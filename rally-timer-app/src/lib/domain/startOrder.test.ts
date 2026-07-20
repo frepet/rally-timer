@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeStartOrder, type StartOrderDriver } from './startOrder';
+import { computeStartOrder, nextClassBatch, type StartOrderDriver } from './startOrder';
 
 function driver(
 	overrides: Partial<StartOrderDriver> & { id: number; name: string }
@@ -137,5 +137,29 @@ describe('computeStartOrder', () => {
 		const snapshot = input.map((d) => d.id);
 		computeStartOrder(input);
 		expect(input.map((d) => d.id)).toEqual(snapshot);
+	});
+});
+
+describe('nextClassBatch', () => {
+	it('returns empty array for no drivers', () => {
+		expect(nextClassBatch([])).toEqual([]);
+	});
+
+	it('returns only the leading class when multiple classes are queued', () => {
+		const order = computeStartOrder([
+			driver({ id: 1, name: 'Alice', class_id: 1, class_name: 'A', class_start_priority: 5 }),
+			driver({ id: 2, name: 'Bob', class_id: 2, class_name: 'B', class_start_priority: 1 }),
+			driver({ id: 3, name: 'Carol', class_id: 1, class_name: 'A', class_start_priority: 5 }),
+			driver({ id: 4, name: 'Dan', class_id: 2, class_name: 'B', class_start_priority: 1 })
+		]);
+		expect(nextClassBatch(order).map((d) => d.name)).toEqual(['Alice', 'Carol']);
+	});
+
+	it('returns everything when only one class remains', () => {
+		const order = computeStartOrder([
+			driver({ id: 1, name: 'Alice', class_id: 1, class_name: 'A' }),
+			driver({ id: 2, name: 'Bob', class_id: 1, class_name: 'A' })
+		]);
+		expect(nextClassBatch(order).map((d) => d.name)).toEqual(['Alice', 'Bob']);
 	});
 });

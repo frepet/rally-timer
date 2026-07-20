@@ -65,6 +65,7 @@
 	let beepArmedTs: number | null = null;
 	let spokenTs: number | null = null;
 	let announcedNoMore = false;
+	let announcedClassDone = false;
 	let pendingOscs: OscillatorNode[] = [];
 
 	const correctedNow = () => Date.now() + clockOffsetMs;
@@ -73,6 +74,24 @@
 	const nextEntry = $derived(future[0] ?? null);
 	const remainingMs = $derived(nextEntry ? Math.max(0, nextEntry.ts_ms - nowMs) : 0);
 	const hasGate = $derived(gates.some((g) => g.stage_id === stageId));
+	// The most recently started entry — used to name the class that just
+	// finished when the queue empties but more classes are waiting.
+	const lastStarted = $derived(
+		schedule.reduce<ScheduledStart | null>(
+			(best, s) => (s.ts_ms <= nowMs && (!best || s.ts_ms > best.ts_ms) ? s : best),
+			null
+		)
+	);
+	// True once a class has fully started and the next Start press is needed to
+	// begin the next one (there are more drivers queued, but none scheduled).
+	const classComplete = $derived(!nextEntry && schedule.length > 0 && remaining.length > 0);
+	// How many drivers make up the next (not-yet-started) class specifically,
+	// as opposed to `remaining.length` which spans every class still queued.
+	const nextClassDriverCount = $derived(
+		remaining.length === 0
+			? 0
+			: remaining.filter((d) => d.class_name === remaining[0].class_name).length
+	);
 
 	function cancelBeeps() {
 		for (const osc of pendingOscs) {
@@ -144,6 +163,7 @@
 
 		if (next) {
 			announcedNoMore = false;
+			announcedClassDone = false;
 			if (beepArmedTs !== next.ts_ms) {
 				pendingOscs = []; // drop refs to already-played beeps from the previous slot
 				scheduleCountdownTo(next.ts_ms);
@@ -155,7 +175,14 @@
 			}
 		} else {
 			beepArmedTs = null;
-			if (!announcedNoMore && spokenTs !== null && remaining.length === 0) {
+			if (remaining.length > 0) {
+				// This class's drivers have all been started; the admin must press
+				// Start again to release the next class.
+				if (!announcedClassDone && schedule.length > 0) {
+					speak(t.speechClassDone(lastStarted?.class_name ?? '', remaining[0].class_name));
+					announcedClassDone = true;
+				}
+			} else if (!announcedNoMore && spokenTs !== null) {
 				speak(t.speechNoMoreDrivers);
 				announcedNoMore = true;
 			}
@@ -323,6 +350,11 @@
 					{t.activeClassLabel}
 					<span class="text-blue-600 dark:text-blue-400">{nextEntry.class_name}</span>
 				</P>
+			{:else if classComplete}
+				<P class="text-xl font-semibold">
+					{t.nextClassLabel}
+					<span class="text-blue-600 dark:text-blue-400">{remaining[0].class_name}</span>
+				</P>
 			{/if}
 		</div>
 		<div class="flex flex-wrap items-center">
@@ -355,6 +387,8 @@
 			<P class="text-4xl font-extrabold tracking-wide">
 				{#if nextEntry}
 					{nextEntry.name} <br />
+				{:else if classComplete}
+					{t.classDoneWaitingForStart}
 				{:else if remaining.length === 0}
 					{t.noMoreDrivers}
 				{:else}
@@ -372,9 +406,16 @@
 	<!-- Queue preview -->
 	<Card class="p-3">
 		<div class="">
-			<P class="text-sm opacity-70">{t.upNext}</P>
-			<P class="text-xl">{future[1]?.name ?? ''} — {future[1]?.class_name ?? ''}</P>
-			<P class="text-lg opacity-80">{future[2]?.name ?? ''} — {future[2]?.class_name ?? ''}</P>
+			<P class="text-sm opacity-70">{classComplete ? t.nextClassPreview : t.upNext}</P>
+			{#if classComplete}
+				<P class="text-xl">
+					{remaining[0]?.class_name ?? ''} — {nextClassDriverCount}
+					{t.remainingLabel}
+				</P>
+			{:else}
+				<P class="text-xl">{future[1]?.name ?? ''} — {future[1]?.class_name ?? ''}</P>
+				<P class="text-lg opacity-80">{future[2]?.name ?? ''} — {future[2]?.class_name ?? ''}</P>
+			{/if}
 		</div>
 	</Card>
 
