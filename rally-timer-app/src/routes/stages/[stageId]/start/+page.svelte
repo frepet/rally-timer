@@ -26,8 +26,14 @@
 		closeAudio
 	} from '../../../../lib/beep';
 
-	type ScheduledStart = { driver_id: number; ts_ms: number; name: string; class_name: string };
-	type RemainingDriver = { driver_id: number; name: string; class_name: string };
+	type ScheduledStart = {
+		driver_id: number;
+		ts_ms: number;
+		name: string;
+		class_id: number;
+		class_name: string;
+	};
+	type RemainingDriver = { driver_id: number; name: string; class_id: number; class_name: string };
 	type Gate = { id: string; name: string | null; stage_id: number | null };
 
 	let stageId = $state<number>(0);
@@ -82,15 +88,23 @@
 			null
 		)
 	);
+	// True when the queue has moved on to a genuinely different class from the
+	// one that most recently started — as opposed to `remaining` still holding
+	// the tail of the same class because Stop cut it short before it finished.
+	const nextIsNewClass = $derived(
+		remaining.length > 0 && remaining[0].class_id !== lastStarted?.class_id
+	);
 	// True once a class has fully started and the next Start press is needed to
 	// begin the next one (there are more drivers queued, but none scheduled).
-	const classComplete = $derived(!nextEntry && schedule.length > 0 && remaining.length > 0);
+	const classComplete = $derived(
+		!nextEntry && schedule.length > 0 && remaining.length > 0 && nextIsNewClass
+	);
 	// How many drivers make up the next (not-yet-started) class specifically,
 	// as opposed to `remaining.length` which spans every class still queued.
 	const nextClassDriverCount = $derived(
 		remaining.length === 0
 			? 0
-			: remaining.filter((d) => d.class_name === remaining[0].class_name).length
+			: remaining.filter((d) => d.class_id === remaining[0].class_id).length
 	);
 
 	function cancelBeeps() {
@@ -177,8 +191,10 @@
 			beepArmedTs = null;
 			if (remaining.length > 0) {
 				// This class's drivers have all been started; the admin must press
-				// Start again to release the next class.
-				if (!announcedClassDone && schedule.length > 0) {
+				// Start again to release the next class. If `remaining` still holds
+				// the same class as `lastStarted` (e.g. Stop cut it short before it
+				// finished), it's not actually done — stay quiet.
+				if (!announcedClassDone && schedule.length > 0 && nextIsNewClass) {
 					speak(t.speechClassDone(lastStarted?.class_name ?? '', remaining[0].class_name));
 					announcedClassDone = true;
 				}

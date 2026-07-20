@@ -11,7 +11,7 @@ export async function GET(event: RequestEvent): Promise<Response> {
 	// public so passive display units (no admin login) can stay in sync.
 	const [scheduled, remaining] = await Promise.all([
 		sql`
-			SELECT se.driver_id, se.ts_ms, d.name, c.name AS class_name
+			SELECT se.driver_id, se.ts_ms, d.name, c.id AS class_id, c.name AS class_name
 			FROM start_events se
 			JOIN drivers d ON d.id = se.driver_id AND d.active = true
 			JOIN classes c ON c.id = d.class_id
@@ -27,11 +27,13 @@ export async function GET(event: RequestEvent): Promise<Response> {
 			driver_id: Number(r.driver_id),
 			ts_ms: Number(r.ts_ms),
 			name: r.name as string,
+			class_id: Number(r.class_id),
 			class_name: r.class_name as string
 		})),
 		remaining: remaining.map((d) => ({
 			driver_id: d.id,
 			name: d.name,
+			class_id: d.class_id,
 			class_name: d.class_name
 		}))
 	});
