@@ -16,7 +16,7 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { kcFetch } from '../../../../lib/kcFetch';
 	import type { BundleResponse } from '../../../../lib/types';
-	import { t } from '../../../../lib/stores/locale.svelte';
+	import { t, getLocale } from '../../../../lib/stores/locale.svelte';
 	import { auth } from '../../../../lib/stores/auth.svelte';
 	import {
 		primeAudio,
@@ -132,8 +132,15 @@
 
 	function createUtterance(text: string) {
 		const utter = new SpeechSynthesisUtterance(text);
-		const svVoice = speechSynthesis.getVoices().find((v) => v.lang === 'sv-SE');
-		if (svVoice) utter.voice = svVoice;
+		// Setting `lang` alone steers the engine's pronunciation even when no
+		// exact-match voice is installed, so it must match the text's language.
+		const lang = getLocale() === 'sv' ? 'sv-SE' : 'en-US';
+		utter.lang = lang;
+		const voices = speechSynthesis.getVoices();
+		const voice =
+			voices.find((v) => v.lang === lang) ??
+			voices.find((v) => v.lang.startsWith(lang.split('-')[0]));
+		if (voice) utter.voice = voice;
 		utter.rate = 1;
 		utter.pitch = 1.0;
 		return utter;
