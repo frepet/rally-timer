@@ -12,7 +12,7 @@ export async function GET(): Promise<Response> {
 		`,
 		sql`SELECT id, name, is_closed FROM stages ORDER BY id`,
 		sql`SELECT id, stage_id, driver_id, ts_ms AS ts FROM start_events ORDER BY ts_ms`,
-		sql`SELECT id, stage_id, timestamp AS ts, tag, dnf, penalty_ms FROM finish_events ORDER BY timestamp`
+		sql`SELECT id, stage_id, timestamp AS ts, tag, dnf, penalty_ms, synthetic FROM finish_events ORDER BY timestamp`
 	]);
 
 	return json({ drivers, stages, start_events, finish_events });

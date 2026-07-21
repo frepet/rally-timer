@@ -49,7 +49,7 @@ export async function loadStartOrder(stageId: number): Promise<StartOrderEntry[]
 			JOIN classes c ON c.id = d.class_id
 			JOIN stages  s ON s.id = se.stage_id
 		`,
-		sql`SELECT stage_id, timestamp, tag, dnf, penalty_ms FROM finish_events`
+		sql`SELECT stage_id, timestamp, tag, dnf, penalty_ms, synthetic FROM finish_events`
 	]);
 
 	const stageTimes = buildStageTimes(
@@ -69,7 +69,8 @@ export async function loadStartOrder(stageId: number): Promise<StartOrderEntry[]
 			tag: fe.tag as string,
 			timestamp: Number(fe.timestamp),
 			penalty_ms: Number(fe.penalty_ms ?? 0),
-			dnf: Boolean(fe.dnf)
+			dnf: Boolean(fe.dnf),
+			synthetic: Boolean(fe.synthetic)
 		}))
 	);
 	const totals = new Map<number, number>();

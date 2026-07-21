@@ -26,7 +26,8 @@ function makeStage(
 			delta_p1: null,
 			delta_prev: null,
 			position: 0,
-			dnf: r.dnf ?? false
+			dnf: r.dnf ?? false,
+			synthetic: false
 		}))
 	};
 }

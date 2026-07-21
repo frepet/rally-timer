@@ -29,8 +29,7 @@ export async function GET({ params }: RequestEvent) {
 					SELECT ge.rssi
 					FROM gate_events ge
 					JOIN gates g ON g.id = ge.gate_id
-					WHERE g.stage_id = ${stageId}
-					  AND ge.tag = fe.tag
+					WHERE ge.tag = fe.tag
 					  AND ge.timestamp = fe.timestamp
 					ORDER BY ge.id ASC
 					LIMIT 1

@@ -47,7 +47,7 @@ export async function POST(event: RequestEvent): Promise<Response> {
 	`;
 
 	const rawFinishes = await sql`
-		SELECT stage_id, timestamp, tag, dnf, penalty_ms FROM finish_events
+		SELECT stage_id, timestamp, tag, dnf, penalty_ms, synthetic FROM finish_events
 	`;
 
 	// DNF drivers get elapsed_ms = null unless close-stage was run first, which inserts
@@ -70,7 +70,8 @@ export async function POST(event: RequestEvent): Promise<Response> {
 			tag: fe.tag as string,
 			timestamp: Number(fe.timestamp),
 			penalty_ms: Number(fe.penalty_ms ?? 0),
-			dnf: Boolean(fe.dnf)
+			dnf: Boolean(fe.dnf),
+			synthetic: Boolean(fe.synthetic)
 		}))
 	);
 	const stageTimes = allStageTimes.filter(

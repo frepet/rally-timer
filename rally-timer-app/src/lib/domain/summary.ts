@@ -34,6 +34,7 @@ export type SummaryFinishEvent = {
 	ts: number | string;
 	dnf?: boolean;
 	penalty_ms?: number;
+	synthetic?: boolean;
 };
 
 export function buildStageData(
@@ -60,11 +61,16 @@ export function buildStageData(
 			const elapsed = calculateStageTime(driverStarts, driverFinishes.map(effectiveTs));
 			if (elapsed === null) return [];
 
-			// DNF: all valid finishes (after latest start) are synthetic
+			// DNF: all valid finishes (after latest start) are synthetic DNF placeholders
 			const latestStart =
 				driverStarts.length > 0 ? driverStarts.reduce((max, s) => (s > max ? s : max)) : 0;
 			const validFinishes = driverFinishes.filter((fe) => effectiveTs(fe) >= latestStart);
 			const dnf = !validFinishes.some((fe) => !fe.dnf);
+			const winningFinish = validFinishes.reduce<SummaryFinishEvent | null>(
+				(min, fe) => (min === null || effectiveTs(fe) < effectiveTs(min) ? fe : min),
+				null
+			);
+			const synthetic = !dnf && (winningFinish?.synthetic ?? false);
 
 			return [
 				{
@@ -76,7 +82,8 @@ export function buildStageData(
 					delta_p1: null,
 					delta_prev: null,
 					position: 0,
-					dnf
+					dnf,
+					synthetic
 				}
 			];
 		});

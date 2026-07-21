@@ -8,6 +8,7 @@ export type SubmittedRallyResult = {
 	stage_order?: number;
 	elapsed_ms: number | null;
 	dnf: boolean;
+	synthetic?: boolean;
 };
 
 export function buildStageData(results: SubmittedRallyResult[]): StageData[] {
@@ -31,7 +32,8 @@ export function buildStageData(results: SubmittedRallyResult[]): StageData[] {
 				delta_p1: null,
 				delta_prev: null,
 				position: 0,
-				dnf: r.dnf
+				dnf: r.dnf,
+				synthetic: r.synthetic ?? false
 			}));
 		rows.sort((a, b) => a.stage_ms - b.stage_ms);
 		assignPositionsAndDeltas(rows, (r) => r.stage_ms);

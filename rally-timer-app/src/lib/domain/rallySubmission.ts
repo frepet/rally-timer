@@ -18,6 +18,7 @@ export type FinishRow = {
 	timestamp: number;
 	penalty_ms: number;
 	dnf: boolean;
+	synthetic: boolean;
 };
 
 export type StageTimeResult = {
@@ -30,6 +31,7 @@ export type StageTimeResult = {
 	stage_order: number;
 	elapsed_ms: number | null;
 	dnf: boolean;
+	synthetic: boolean;
 };
 
 export function buildStageTimes(startRows: StartRow[], finishRows: FinishRow[]): StageTimeResult[] {
@@ -96,6 +98,12 @@ export function buildStageTimes(startRows: StartRow[], finishRows: FinishRow[]):
 		// A result is dnf only when the winning finish is a synthetic DNF finish,
 		// i.e. there is no real (dnf=false) valid finish.
 		const dnf = elapsed_ms !== null && !validFinishes.some((fe) => !fe.dnf);
+		// The winning finish is the earliest valid one — same tie-break as calculateStageTime.
+		const winningFinish = validFinishes.reduce<FinishRow | null>(
+			(min, fe) => (min === null || effectiveTs(fe) < effectiveTs(min) ? fe : min),
+			null
+		);
+		const synthetic = elapsed_ms !== null && !dnf && (winningFinish?.synthetic ?? false);
 		return {
 			driver_id: g.driver_id,
 			driver_uuid: g.driver_uuid,
@@ -105,7 +113,8 @@ export function buildStageTimes(startRows: StartRow[], finishRows: FinishRow[]):
 			stage_name: g.stage_name,
 			stage_order: stageOrderMap.get(g.stage_id) ?? 0,
 			elapsed_ms,
-			dnf
+			dnf,
+			synthetic
 		};
 	});
 }

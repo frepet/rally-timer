@@ -22,6 +22,7 @@ export type DisplayStageRow = {
 	delta_prev: number | null;
 	position: number;
 	dnf: boolean;
+	synthetic: boolean;
 };
 
 export type StageStatus = 'upcoming' | 'live' | 'closed';

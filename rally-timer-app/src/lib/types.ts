@@ -49,6 +49,7 @@ export type BundleResponse = {
 		tag: string;
 		dnf: boolean;
 		penalty_ms: number;
+		synthetic: boolean;
 	}[];
 };
 

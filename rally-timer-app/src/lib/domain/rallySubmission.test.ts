@@ -30,13 +30,15 @@ const finishRow = (
 	tag: string,
 	timestamp: number,
 	dnf = false,
-	penalty_ms = 0
+	penalty_ms = 0,
+	synthetic = false
 ) => ({
 	stage_id,
 	tag,
 	timestamp,
 	dnf,
-	penalty_ms
+	penalty_ms,
+	synthetic
 });
 
 describe('buildStageTimes', () => {
@@ -183,5 +185,31 @@ describe('buildStageTimes', () => {
 		// calculateStageTime picks MIN valid finish → 3000
 		expect(result[0].elapsed_ms).toBe(2000);
 		expect(result[0].dnf).toBe(false);
+	});
+
+	it('synthetic is true when the winning finish was fixed via the Fix DNF button', () => {
+		const result = buildStageTimes(
+			[startRow(1, 1, 1000, { driver_tag: 'tagA' })],
+			[finishRow(1, 'tagA', 5000, false, 0, true)]
+		);
+		expect(result[0].dnf).toBe(false);
+		expect(result[0].synthetic).toBe(true);
+	});
+
+	it('synthetic is false for a normal real finish', () => {
+		const result = buildStageTimes(
+			[startRow(1, 1, 1000, { driver_tag: 'tagA' })],
+			[finishRow(1, 'tagA', 5000)]
+		);
+		expect(result[0].synthetic).toBe(false);
+	});
+
+	it('synthetic is false when the winning finish is a dnf placeholder', () => {
+		const result = buildStageTimes(
+			[startRow(1, 1, 1000, { driver_tag: 'tagA' })],
+			[finishRow(1, 'tagA', 31000, true)]
+		);
+		expect(result[0].dnf).toBe(true);
+		expect(result[0].synthetic).toBe(false);
 	});
 });

@@ -57,7 +57,7 @@ export async function POST(event: RequestEvent): Promise<Response> {
 
 	await sql`
 		UPDATE finish_events
-		SET timestamp = ${newTimestamp}, dnf = false
+		SET timestamp = ${newTimestamp}, dnf = false, synthetic = true
 		WHERE id = ${dnfRow.id}
 	`;
 

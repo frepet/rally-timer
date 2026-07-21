@@ -29,7 +29,8 @@ const result = (
 	stage_name: opts.stage_name ?? 'SS1',
 	stage_order: 0,
 	elapsed_ms,
-	dnf: false
+	dnf: false,
+	synthetic: false
 });
 
 describe('applyDnfPenalties', () => {

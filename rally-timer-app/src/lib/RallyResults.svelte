@@ -247,6 +247,11 @@
 						<div class="flex flex-wrap items-baseline gap-x-1.5 font-sans">
 							<span class="font-medium text-gray-900 dark:text-white">{r.driver_name}</span>
 							<span class="text-sm font-normal opacity-60">{r.class_name}</span>
+							{#if r.synthetic}
+								<Badge color="yellow" class="text-xs" title={t.syntheticBadgeTitle}
+									>{t.syntheticBadge}</Badge
+								>
+							{/if}
 						</div>
 						<!-- Result — spans both rows -->
 						<span

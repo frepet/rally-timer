@@ -125,7 +125,8 @@ describe('buildRallyRows', () => {
 						position: 1,
 						delta_p1: 0,
 						delta_prev: null,
-						dnf: false
+						dnf: false,
+						synthetic: false
 					}
 				]
 			}
@@ -152,7 +153,8 @@ describe('buildRallyRows', () => {
 						position: 1,
 						delta_p1: 0,
 						delta_prev: null,
-						dnf: false
+						dnf: false,
+						synthetic: false
 					}
 				]
 			},
@@ -169,7 +171,8 @@ describe('buildRallyRows', () => {
 						position: 1,
 						delta_p1: 0,
 						delta_prev: null,
-						dnf: false
+						dnf: false,
+						synthetic: false
 					}
 				]
 			}
@@ -195,7 +198,8 @@ describe('buildRallyRows', () => {
 						position: 1,
 						delta_p1: 0,
 						delta_prev: null,
-						dnf: false
+						dnf: false,
+						synthetic: false
 					},
 					{
 						driver_uuid: 'uuid-bob',
@@ -206,7 +210,8 @@ describe('buildRallyRows', () => {
 						position: 2,
 						delta_p1: 1000,
 						delta_prev: 1000,
-						dnf: false
+						dnf: false,
+						synthetic: false
 					}
 				]
 			}
@@ -236,7 +241,8 @@ describe('buildRallyRows', () => {
 						position: 1,
 						delta_p1: 0,
 						delta_prev: null,
-						dnf: false
+						dnf: false,
+						synthetic: false
 					},
 					{
 						driver_uuid: 'uuid-bob',
@@ -247,7 +253,8 @@ describe('buildRallyRows', () => {
 						position: 1,
 						delta_p1: 0,
 						delta_prev: null,
-						dnf: false
+						dnf: false,
+						synthetic: false
 					}
 				]
 			},
@@ -264,7 +271,8 @@ describe('buildRallyRows', () => {
 						position: 1,
 						delta_p1: 0,
 						delta_prev: null,
-						dnf: false
+						dnf: false,
+						synthetic: false
 					}
 				]
 			}
@@ -295,7 +303,8 @@ describe('buildRallyRows', () => {
 						position: 1,
 						delta_p1: 0,
 						delta_prev: null,
-						dnf: false
+						dnf: false,
+						synthetic: false
 					},
 					{
 						driver_uuid: 'uuid-bob',
@@ -306,7 +315,8 @@ describe('buildRallyRows', () => {
 						position: 2,
 						delta_p1: 4000,
 						delta_prev: 4000,
-						dnf: false
+						dnf: false,
+						synthetic: false
 					}
 				]
 			},
@@ -323,7 +333,8 @@ describe('buildRallyRows', () => {
 						position: 1,
 						delta_p1: 0,
 						delta_prev: null,
-						dnf: false
+						dnf: false,
+						synthetic: false
 					}
 				]
 			}

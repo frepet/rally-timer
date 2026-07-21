@@ -32,6 +32,7 @@
 			elapsed_ms: number | null;
 			best_lap_ms: number | null;
 			dnf: boolean;
+			synthetic: boolean;
 		}[];
 	};
 
