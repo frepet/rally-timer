@@ -84,6 +84,7 @@ export const sv = {
 	goToManage: 'Gå till Hantera →',
 	driverHeader: 'Förare',
 	pointsHeader: 'Poäng',
+	positionHeader: 'Plac',
 	deleteChampionshipConfirm: (name: string) =>
 		`Ta bort mästerskapet "${name}"? Detta går inte att ångra.`,
 	removeRallyFromChampionshipConfirm: (name: string) =>
@@ -477,6 +478,7 @@ export const en: typeof sv = {
 	goToManage: 'Go to Manage →',
 	driverHeader: 'Driver',
 	pointsHeader: 'Points',
+	positionHeader: 'Pos',
 	deleteChampionshipConfirm: (name: string) =>
 		`Delete championship "${name}"? This cannot be undone.`,
 	removeRallyFromChampionshipConfirm: (name: string) =>

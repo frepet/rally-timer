@@ -1,22 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
-	import {
-		Card,
-		Button,
-		Select,
-		Table,
-		TableHead,
-		TableHeadCell,
-		TableBody,
-		TableBodyRow,
-		TableBodyCell,
-		Input,
-		P,
-		Modal,
-		Tabs,
-		TabItem
-	} from 'flowbite-svelte';
+	import { Card, Button, Select, Input, P, Modal, Tabs, TabItem } from 'flowbite-svelte';
 	import {
 		TrashBinOutline,
 		PlusOutline,
@@ -27,7 +12,6 @@
 	import { kcFetch } from '../../lib/kcFetch';
 	import { auth } from '../../lib/stores/auth.svelte';
 	import { t } from '../../lib/stores/locale.svelte';
-	import { formatMs } from '../../lib/results';
 	import { groupStandingsByClass } from '../../lib/domain/standings';
 
 	type Championship = { id: string; name: string; created_at: number; is_default: boolean };
@@ -310,50 +294,71 @@
 						{#each classes as cls (cls)}
 							<TabItem title={cls} open={cls === classes[0]} class="p-0">
 								<Card class="max-w-none p-4">
-									<Table class="[&_tr]:border-0">
-										<TableHead class="bg-transparent dark:bg-transparent">
-											<TableHeadCell class="w-8 px-2 text-right">#</TableHeadCell>
-											<TableHeadCell>{t.driverHeader}</TableHeadCell>
-											<TableHeadCell class="text-right">{t.pointsHeader}</TableHeadCell>
+									<table
+										class="w-full table-fixed border-collapse text-sm text-gray-500 dark:text-gray-400"
+									>
+										<colgroup>
+											<col class="w-8" />
+											<col class="w-40" />
+											<col class="w-16" />
 											{#each rallies as r (r.id)}
-												<TableHeadCell class="text-right text-xs">{r.name}</TableHeadCell>
+												<col class="w-14" />
+												<col class="w-14" />
 											{/each}
-										</TableHead>
-										<TableBody>
-											{#each standingsByClass[cls] as row, i (row.driver_uuid)}
-												<TableBodyRow
-													class="border-0 {i % 2 === 0
-														? 'bg-gray-50 dark:bg-gray-700/40'
-														: 'bg-white dark:bg-gray-800'}"
+											<col />
+										</colgroup>
+										<thead
+											class="bg-transparent text-xs text-gray-700 uppercase dark:bg-transparent dark:text-gray-400"
+										>
+											<tr>
+												<th rowspan={2} class="px-2 py-3 text-right align-bottom">#</th>
+												<th rowspan={2} class="px-2 py-3 text-left align-bottom"
+													>{t.driverHeader}</th
 												>
-													<TableBodyCell class="w-8 px-2 text-right font-semibold"
-														>{i + 1}</TableBodyCell
+												<th rowspan={2} class="px-2 py-3 text-right align-bottom"
+													>{t.pointsHeader}</th
+												>
+												{#each rallies as r (r.id)}
+													<th colspan={2} class="px-2 py-3 text-center text-xs">{r.name}</th>
+												{/each}
+												<th rowspan={2}></th>
+											</tr>
+											<tr>
+												{#each rallies as r (r.id)}
+													<th class="px-1 py-1 text-right text-xs font-normal whitespace-nowrap"
+														>{t.pointsHeader}</th
 													>
-													<TableBodyCell>{row.driver_name}</TableBodyCell>
-													<TableBodyCell class="text-right font-bold"
-														>{row.total_points}</TableBodyCell
+													<th class="px-1 py-1 text-left text-xs font-normal whitespace-nowrap"
+														>{t.positionHeader}</th
 													>
+												{/each}
+											</tr>
+										</thead>
+										<tbody class="font-medium">
+											{#each standingsByClass[cls] as row, i (row.driver_uuid)}
+												<tr
+													class={i % 2 === 0
+														? 'bg-gray-50 dark:bg-gray-700/40'
+														: 'bg-white dark:bg-gray-800'}
+												>
+													<td class="px-2 py-4 text-right font-semibold">{i + 1}</td>
+													<td class="px-2 py-4">{row.driver_name}</td>
+													<td class="px-2 py-4 text-right font-bold">{row.total_points}</td>
 													{#each rallies as r (r.id)}
 														{@const rp = row.rally_points.find((x) => x.rally_id === r.id)}
-														<TableBodyCell class="text-right font-mono">
-															{#if rp}
-																<div class="flex flex-col items-end leading-tight">
-																	<span title="P{rp.position}">{rp.points}</span>
-																	{#if rp.total_ms !== null}
-																		<span class="text-xs text-gray-400"
-																			>{formatMs(rp.total_ms)}</span
-																		>
-																	{/if}
-																</div>
-															{:else}
-																<span class="opacity-40">—</span>
-															{/if}
-														</TableBodyCell>
+														<td class="px-1 py-4 text-right font-mono whitespace-nowrap"
+															>{rp ? rp.points : ''}</td
+														>
+														<td
+															class="px-1 py-4 text-left font-mono whitespace-nowrap text-gray-400"
+															>{rp ? `P${rp.position}` : ''}</td
+														>
 													{/each}
-												</TableBodyRow>
+													<td></td>
+												</tr>
 											{/each}
-										</TableBody>
-									</Table>
+										</tbody>
+									</table>
 								</Card>
 							</TabItem>
 						{/each}
