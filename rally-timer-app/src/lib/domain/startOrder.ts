@@ -6,6 +6,7 @@ export type StartOrderDriver = {
 	class_name: string;
 	class_start_priority: number;
 	total_ms: number | null;
+	rating: number;
 };
 
 export type StartOrderEntry = {
@@ -32,6 +33,9 @@ export function computeStartOrder(drivers: StartOrderDriver[]): StartOrderEntry[
 		if (aRanked && bRanked && a.total_ms !== b.total_ms) {
 			return (a.total_ms as number) - (b.total_ms as number);
 		}
+		// No times to separate them (typically the first stage): the highest
+		// rated driver starts first.
+		if (a.rating !== b.rating) return b.rating - a.rating;
 		return a.name.localeCompare(b.name);
 	});
 

@@ -10,6 +10,7 @@ function driver(
 		class_name: 'A',
 		class_start_priority: 0,
 		total_ms: null,
+		rating: 1500,
 		...overrides
 	};
 }
@@ -56,13 +57,38 @@ describe('computeStartOrder', () => {
 		expect(result.map((d) => d.class_name)).toEqual(['A', 'A', 'B', 'B']);
 	});
 
-	it('within a class, ranked drivers go first, unranked follow sorted by name', () => {
+	it('within a class, ranked drivers go first, unranked follow by rating', () => {
 		const result = computeStartOrder([
-			driver({ id: 1, name: 'Charlie', total_ms: 210000 }),
-			driver({ id: 2, name: 'Bob', total_ms: null }),
-			driver({ id: 3, name: 'Alice', total_ms: null })
+			driver({ id: 1, name: 'Charlie', total_ms: 210000, rating: 1400 }),
+			driver({ id: 2, name: 'Bob', total_ms: null, rating: 1500 }),
+			driver({ id: 3, name: 'Alice', total_ms: null, rating: 1600 })
 		]);
 		expect(result.map((d) => d.name)).toEqual(['Charlie', 'Alice', 'Bob']);
+	});
+
+	it('orders unranked drivers by rating descending, not alphabetically', () => {
+		const result = computeStartOrder([
+			driver({ id: 1, name: 'Alice', rating: 1450 }),
+			driver({ id: 2, name: 'Bob', rating: 1700 }),
+			driver({ id: 3, name: 'Carol', rating: 1550 })
+		]);
+		expect(result.map((d) => d.name)).toEqual(['Bob', 'Carol', 'Alice']);
+	});
+
+	it('breaks equal rating ties by name ascending', () => {
+		const result = computeStartOrder([
+			driver({ id: 1, name: 'Bob', rating: 1500 }),
+			driver({ id: 2, name: 'Alice', rating: 1500 })
+		]);
+		expect(result.map((d) => d.name)).toEqual(['Alice', 'Bob']);
+	});
+
+	it('ignores rating once drivers have a cumulative time', () => {
+		const result = computeStartOrder([
+			driver({ id: 1, name: 'Alice', total_ms: 250000, rating: 1800 }),
+			driver({ id: 2, name: 'Bob', total_ms: 210000, rating: 1200 })
+		]);
+		expect(result.map((d) => d.name)).toEqual(['Bob', 'Alice']);
 	});
 
 	it('within a class, ranked drivers lead fastest first (leader first)', () => {

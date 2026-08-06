@@ -9,7 +9,8 @@ import { buildStageTimes } from '../domain/rallySubmission';
 /**
  * Compute the start order for a stage: every active driver that has no
  * `start_event` on this stage yet, sorted by class priority and cumulative
- * rally time (leader first — fastest within a class starts first).
+ * rally time (leader first — fastest within a class starts first). Drivers
+ * without a time yet (the first stage) are ordered by rating, highest first.
  *
  * Shared by the start-order endpoint (preview) and the start endpoint
  * (which schedules these drivers). Totals are produced by the same domain
@@ -23,6 +24,7 @@ export async function loadStartOrder(stageId: number): Promise<StartOrderEntry[]
 				d.name,
 				d.tag                 AS rfid_tag,
 				d.class_id,
+				d.rating,
 				c.name                AS class_name,
 				c.start_priority      AS class_start_priority
 			FROM drivers d
@@ -86,7 +88,8 @@ export async function loadStartOrder(stageId: number): Promise<StartOrderEntry[]
 		class_id: Number(r.class_id),
 		class_name: r.class_name,
 		class_start_priority: Number(r.class_start_priority),
-		total_ms: totals.get(Number(r.id)) ?? null
+		total_ms: totals.get(Number(r.id)) ?? null,
+		rating: Number(r.rating)
 	}));
 
 	return computeStartOrder(drivers);
