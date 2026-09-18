@@ -24,11 +24,10 @@ nano .env
 ## Configuration (.env)
 
 ```env
-API_BASE_URL=http://localhost:5173
-SERVER_URL=http://rally-timer-dev.peteri.se  # Use this for production
+API_BASE_URL=https://rally-dev.peteri.se
 SERIAL_PORT=/dev/ttyUSB0  # Auto-detects if empty
 DEDUP_SECONDS=2
-RSSI_THRESHOLD=200
+RSSI_THRESHOLD=-65
 NTP_SERVER=pool.ntp.org
 ```
 

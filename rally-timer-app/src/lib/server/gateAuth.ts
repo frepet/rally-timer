@@ -85,8 +85,8 @@ export async function requireGateCrypto(
 /**
  * Register or re-register a gate.
  * Gates must always supply a public_key (Ed25519 SPKI PEM).
- * New gates are created as 'pending'; re-registration updates last_seen and name
- * while preserving the existing status.
+ * New gates are created as 'pending'; re-registration refreshes last_seen and
+ * the public key while preserving the admin-managed name and status.
  */
 export async function registerGate(
 	event: RequestEvent,
@@ -107,7 +107,6 @@ export async function registerGate(
 
 	await sql`
 		UPDATE gates SET
-			name      = COALESCE(${name ?? null}, name),
 			last_seen = ${now},
 			public_key = ${publicKey}
 		WHERE id = ${id}

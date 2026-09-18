@@ -17,7 +17,7 @@ Python app running on a Raspberry Pi at each timing gate. Reads RFID EPC tags fr
 
 ## Deployment
 
-The web app runs on a personal Kubernetes cluster (`fph-cluster`) at **https://rally-timer-dev.peteri.se**.
+The web app runs on a personal Kubernetes cluster (`fph-cluster`) at **https://rally-dev.peteri.se**.
 
 Images are built automatically via GitHub Actions on push to `dev` and deployed by ArgoCD Image Updater — no manual steps needed.
 
