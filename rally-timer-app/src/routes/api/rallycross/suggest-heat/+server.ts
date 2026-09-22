@@ -1,11 +1,13 @@
-import { json } from '@sveltejs/kit';
+import { requireEvent } from '$lib/server/eventContext';
+import { json, type RequestEvent } from '@sveltejs/kit';
 import { sql } from '../../../../lib/server/db';
 import { fetchStartedHeatResults } from '../../../../lib/server/rallycrossData';
 import { buildOverallLeaderboard, suggestNextHeatGroups } from '../../../../lib/domain/rallycross';
 
-export async function GET(): Promise<Response> {
+export async function GET(event: RequestEvent): Promise<Response> {
+	const appEvent = await requireEvent(event.url, 'rallycross');
 	const [cfg] = await sql<{ gate_id: string | null; cooldown_ms: number; max_per_heat: number }[]>`
-		SELECT gate_id, cooldown_ms, max_per_heat FROM rallycross WHERE id = 1
+		SELECT gate_id, cooldown_ms, max_per_heat FROM rallycross WHERE event_id = ${appEvent.id}
 	`;
 
 	// Get all active drivers not yet in any heat — they go at the bottom of standings
@@ -22,11 +24,11 @@ export async function GET(): Promise<Response> {
 		       d.uuid::text AS driver_uuid
 		FROM drivers d
 		JOIN classes c ON c.id = d.class_id
-		WHERE d.active = true
+		JOIN event_participants ep ON ep.driver_id = d.id AND ep.event_id = ${appEvent.id}
 		ORDER BY c.start_priority DESC, d.name
 	`;
 
-	const allHeatResults = await fetchStartedHeatResults(cfg);
+	const allHeatResults = await fetchStartedHeatResults(cfg, appEvent.id);
 	const overall = buildOverallLeaderboard(allHeatResults);
 
 	// Drivers not in any heat yet — append them after those who have run

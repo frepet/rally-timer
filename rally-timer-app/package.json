@@ -14,7 +14,8 @@
 		"format": "prettier --write .",
 		"lint": "prettier --check . && eslint .",
 		"test": "vitest run",
-		"test:watch": "vitest"
+		"test:watch": "vitest",
+		"test:events": "node scripts/verify-events.mjs"
 	},
 	"devDependencies": {
 		"@eslint/compat": "^1.2.5",

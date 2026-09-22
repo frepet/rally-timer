@@ -1,4 +1,5 @@
 <script lang="ts">
+	let { data } = $props();
 	import {
 		Card,
 		Button,
@@ -246,7 +247,7 @@
 	}
 
 	async function loadMeta() {
-		const bundleRes = await kcFetch('/api/bundle');
+		const bundleRes = await kcFetch(`/api/bundle?event_id=${data.eventId}`);
 		if (!bundleRes.ok) return;
 		const bundle = (await bundleRes.json()) as BundleResponse;
 		stageName = bundle.stages.find((s) => s.id === stageId)?.name ?? `#${stageId}`;

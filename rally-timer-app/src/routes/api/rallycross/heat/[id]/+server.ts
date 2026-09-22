@@ -1,5 +1,7 @@
+import { assertEventSelection } from '$lib/server/eventSelection';
+import { requireHeatEvent } from '$lib/server/eventContext';
 import { json, error, type RequestEvent } from '@sveltejs/kit';
-import { sql } from '../../../../../lib/server/db';
+import { sql as db } from '../../../../../lib/server/db';
 import { throwIfNotAdmin } from '../../../../../lib/server/keycloak';
 
 type EntryRow = {
@@ -15,6 +17,8 @@ type EntryRow = {
 };
 
 export async function GET(event: RequestEvent): Promise<Response> {
+	const appEvent = await requireHeatEvent(Number(event.params.id));
+	assertEventSelection(event.url, appEvent.id);
 	const heatId = Number(event.params.id);
 	if (!heatId) throw error(400, 'Invalid heat id');
 
@@ -70,17 +74,24 @@ export async function GET(event: RequestEvent): Promise<Response> {
 }
 
 export async function DELETE(event: RequestEvent): Promise<Response> {
-	await throwIfNotAdmin(event);
-	const heatId = Number(event.params.id);
-	if (!heatId) throw error(400, 'Invalid heat id');
+	return db.begin(async (tx) => {
+		const sql = tx as unknown as typeof db;
+		await throwIfNotAdmin(event);
+		const appEvent = await requireHeatEvent(Number(event.params.id), true, sql);
+		assertEventSelection(event.url, appEvent.id);
+		const heatId = Number(event.params.id);
+		if (!heatId) throw error(400, 'Invalid heat id');
 
-	const [heat] = await sql<{ id: number }[]>`
+		const [heat] = await sql<{ id: number }[]>`
 		SELECT id FROM rallycross_heats WHERE id = ${heatId}
 	`;
-	if (!heat) throw error(404, 'Värmelopp hittades inte');
+		if (!heat) throw error(404, 'Värmelopp hittades inte');
 
-	await sql`DELETE FROM rallycross_heat_entries WHERE heat_id = ${heatId}`;
-	await sql`DELETE FROM rallycross_heats WHERE id = ${heatId}`;
+		await sql`DELETE FROM rallycross_heat_entries WHERE heat_id = ${heatId}`;
+		await sql`DELETE FROM rallycross_heats WHERE id = ${heatId}`;
 
-	return json({ deleted: true });
+		return json({ deleted: true });
+	});
 }
+
+const sql = db;

@@ -15,7 +15,8 @@
  */
 export function startLiveRefresh(
 	refresh: () => void | Promise<void>,
-	fallbackMs = 10000
+	fallbackMs = 10000,
+	eventId?: number
 ): () => void {
 	let debounce: ReturnType<typeof setTimeout> | null = null;
 	let running = false;
@@ -38,7 +39,11 @@ export function startLiveRefresh(
 		}
 	}
 
-	const source = new EventSource('/api/gate-events/stream');
+	const source = new EventSource(
+		eventId === undefined
+			? '/api/gate-events/stream'
+			: `/api/gate-events/stream?event_id=${eventId}`
+	);
 	source.onmessage = () => {
 		if (debounce) clearTimeout(debounce);
 		debounce = setTimeout(run, 150);

@@ -1,13 +1,16 @@
 import type { RequestHandler } from '@sveltejs/kit';
+import { requireEvent } from '$lib/server/eventContext';
 import { addGateEventListener } from '../../../../lib/server/gateEvents';
 
-export const GET: RequestHandler = () => {
+export const GET: RequestHandler = async ({ url }) => {
+	const eventId = url.searchParams.has('event_id') ? (await requireEvent(url)).id : null;
 	const encoder = new TextEncoder();
 	let unsubscribe: (() => void) | null = null;
 
 	const stream = new ReadableStream({
 		start(controller) {
 			unsubscribe = addGateEventListener((data) => {
+				if (eventId !== null && data.event_id !== eventId) return;
 				try {
 					controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
 				} catch {

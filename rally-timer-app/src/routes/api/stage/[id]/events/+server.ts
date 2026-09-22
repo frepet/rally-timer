@@ -1,9 +1,13 @@
+import { assertEventSelection } from '$lib/server/eventSelection';
+import { requireStageEvent } from '$lib/server/eventContext';
 import { json } from '@sveltejs/kit';
 import type { RequestEvent } from './$types';
 import { sql } from '../../../../../lib/server/db';
 
-export async function GET({ params }: RequestEvent) {
-	const stageId = Number(params.id);
+export async function GET(event: RequestEvent) {
+	const appEvent = await requireStageEvent(Number(event.params.id));
+	assertEventSelection(event.url, appEvent.id);
+	const stageId = Number(event.params.id);
 	const rows = await sql`
 		SELECT * FROM (
 			SELECT

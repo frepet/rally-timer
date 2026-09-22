@@ -7,9 +7,12 @@ export type TrainingConfig = {
 	started_at: number | null;
 };
 
-export async function fetchTrainingConfig(): Promise<TrainingConfig> {
-	const [row] = await sql<TrainingConfig[]>`
-		SELECT gate_id, cooldown_ms, started_at FROM training WHERE id = 1
+export async function fetchTrainingConfig(
+	eventId: number,
+	tx: typeof sql = sql
+): Promise<TrainingConfig> {
+	const [row] = await tx<TrainingConfig[]>`
+		SELECT gate_id, cooldown_ms, started_at FROM training WHERE event_id = ${eventId}
 	`;
 	if (!row) throw new Error('Training row missing');
 	return {
@@ -23,9 +26,10 @@ export async function fetchTrainingConfig(): Promise<TrainingConfig> {
 // joined to drivers (by tag), and shapes them into per-driver inputs ready
 // for the domain functions. Passes without a known driver are skipped.
 export async function fetchTrainingDriverInputs(
-	cfg: TrainingConfig
+	cfg: TrainingConfig,
+	eventId: number
 ): Promise<TrainingDriverInput[]> {
-	if (!cfg.gate_id || cfg.started_at === null) return [];
+	if (cfg.started_at === null) return [];
 
 	type PassRow = {
 		gate_event_id: number;
@@ -48,9 +52,11 @@ export async function fetchTrainingDriverInputs(
 		       d.class_id   AS class_id,
 		       c.name       AS class_name
 		FROM gate_events ge
-		LEFT JOIN drivers d ON d.tag = ge.tag
+		JOIN gate_event_events gee ON gee.gate_event_id = ge.id
+		JOIN drivers d ON d.tag = ge.tag
+		JOIN event_participants ep ON ep.driver_id = d.id AND ep.event_id = ${eventId}
 		LEFT JOIN classes c ON c.id = d.class_id
-		WHERE ge.gate_id = ${cfg.gate_id}
+		WHERE gee.event_id = ${eventId}
 		  AND ge.timestamp >= ${cfg.started_at}
 		ORDER BY ge.timestamp ASC
 	`;

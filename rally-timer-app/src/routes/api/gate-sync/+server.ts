@@ -3,6 +3,7 @@ import { sql } from '../../../lib/server/db';
 import { requireGateCrypto } from '../../../lib/server/gateAuth';
 import { gateSyncSchema } from '../../../lib/server/schemas';
 import { emitGateEvent } from '../../../lib/server/gateEvents';
+import { captureGatePass } from '$lib/server/eventGates';
 import { log } from '../../../lib/server/log';
 
 export async function POST(event: RequestEvent): Promise<Response> {
@@ -71,13 +72,8 @@ export async function POST(event: RequestEvent): Promise<Response> {
 					RETURNING id
 				`;
 				if (!row) return false;
-				if (gate.stage_id) {
-					await tsql`
-						INSERT INTO finish_events (stage_id, timestamp, tag)
-						VALUES (${gate.stage_id}, ${evt.timestamp_ms}, ${evt.tag})
-					`;
+				if (await captureGatePass(tsql, evt.gate_id, row.id, evt.timestamp_ms, evt.tag))
 					finishAdded++;
-				}
 				return true;
 			});
 			if (inserted) {

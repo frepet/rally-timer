@@ -18,7 +18,10 @@
 
 <div class="mx-auto w-full max-w-4xl space-y-6 p-5">
 	<div class="flex items-center gap-4">
-		<a href="/rallycross" class="text-sm text-blue-600 hover:underline dark:text-blue-400">
+		<a
+			href={`/events/${data.heat.event_id}/manage`}
+			class="text-sm text-blue-600 hover:underline dark:text-blue-400"
+		>
 			{t.rxEventsBack}
 		</a>
 		<p class="text-2xl font-bold">{t.rxEventsPageTitle(data.heat.number)}</p>

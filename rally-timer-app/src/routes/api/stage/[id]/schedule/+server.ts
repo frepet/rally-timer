@@ -1,8 +1,12 @@
+import { assertEventSelection } from '$lib/server/eventSelection';
+import { requireStageEvent } from '$lib/server/eventContext';
 import { json, error, type RequestEvent } from '@sveltejs/kit';
 import { sql } from '../../../../../lib/server/db';
 import { loadStartOrder } from '../../../../../lib/server/startOrderQuery';
 
 export async function GET(event: RequestEvent): Promise<Response> {
+	const appEvent = await requireStageEvent(Number(event.params.id));
+	assertEventSelection(event.url, appEvent.id);
 	const stageId = Number(event.params.id);
 	if (!Number.isInteger(stageId) || stageId <= 0) throw error(400, 'Invalid id');
 
@@ -13,7 +17,7 @@ export async function GET(event: RequestEvent): Promise<Response> {
 		sql`
 			SELECT se.driver_id, se.ts_ms, d.name, c.id AS class_id, c.name AS class_name
 			FROM start_events se
-			JOIN drivers d ON d.id = se.driver_id AND d.active = true
+			JOIN drivers d ON d.id = se.driver_id
 			JOIN classes c ON c.id = d.class_id
 			WHERE se.stage_id = ${stageId}
 			ORDER BY se.ts_ms, d.name

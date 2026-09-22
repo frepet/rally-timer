@@ -1,4 +1,4 @@
-import { sql } from './db';
+import { sql as db } from './db';
 import { buildHeatLeaderboard, type HeatEntry, type HeatResult } from '../domain/rallycross';
 
 type HeatRow = {
@@ -13,7 +13,9 @@ type Cfg = { gate_id: string | null; cooldown_ms: number };
 
 async function fetchEntriesForHeat(
 	heat: HeatRow,
-	cfg: Cfg
+	cfg: Cfg,
+	eventId: number,
+	sql: typeof db = db
 ): Promise<Array<HeatEntry & { driver_uuid: string }>> {
 	const isManual = heat.started_at === null;
 	const upperTs = heat.closed_at ?? Number.MAX_SAFE_INTEGER;
@@ -42,13 +44,13 @@ async function fetchEntriesForHeat(
 	`;
 
 	// One query for all entries' gate passes instead of one per entry.
-	const timed = rows.filter((e) => !isManual && cfg.gate_id && e.ts_ms !== null);
+	const timed = rows.filter((e) => !isManual && e.ts_ms !== null);
 	const passesByTag = new Map<string, number[]>();
 	if (timed.length > 0) {
 		const minStart = Math.min(...timed.map((e) => Number(e.ts_ms)));
 		const allPasses = await sql<{ tag: string; timestamp: number }[]>`
 			SELECT tag, timestamp FROM gate_events
-			WHERE gate_id = ${cfg.gate_id!}
+			WHERE id IN (SELECT gate_event_id FROM gate_event_events WHERE event_id = ${eventId})
 			  AND tag = ANY(${timed.map((e) => e.tag)})
 			  AND timestamp >= ${minStart}
 			  AND timestamp <= ${upperTs}
@@ -64,9 +66,7 @@ async function fetchEntriesForHeat(
 	return rows.map((e) => {
 		const ts = Number(e.ts_ms ?? 0);
 		const passes =
-			!isManual && cfg.gate_id && e.ts_ms !== null
-				? (passesByTag.get(e.tag) ?? []).filter((p) => p >= ts)
-				: [];
+			!isManual && e.ts_ms !== null ? (passesByTag.get(e.tag) ?? []).filter((p) => p >= ts) : [];
 		return {
 			driver_id: e.driver_id,
 			driver_name: e.driver_name,
@@ -97,16 +97,18 @@ function toHeatResultsWithUuid(
 
 /** Fetches results for all closed heats (gate events bounded by closed_at). */
 export async function fetchClosedHeatResults(
-	cfg: Cfg
+	cfg: Cfg,
+	eventId: number,
+	sql: typeof db = db
 ): Promise<Array<HeatResult & { driver_uuid: string }>> {
 	const heats = await sql<HeatRow[]>`
 		SELECT id, number, required_laps, started_at, closed_at
-		FROM rallycross_heats WHERE closed_at IS NOT NULL ORDER BY number
+		FROM rallycross_heats WHERE event_id = ${eventId} AND closed_at IS NOT NULL ORDER BY number
 	`;
 	return (
 		await Promise.all(
 			heats.map(async (heat) => {
-				const entries = await fetchEntriesForHeat(heat, cfg);
+				const entries = await fetchEntriesForHeat(heat, cfg, eventId, sql);
 				return toHeatResultsWithUuid(entries, heat, cfg.cooldown_ms);
 			})
 		)
@@ -115,16 +117,18 @@ export async function fetchClosedHeatResults(
 
 /** Fetches results for all started heats (including live; gate events unbounded above). */
 export async function fetchStartedHeatResults(
-	cfg: Cfg
+	cfg: Cfg,
+	eventId: number,
+	sql: typeof db = db
 ): Promise<Array<HeatResult & { driver_uuid: string }>> {
 	const heats = await sql<HeatRow[]>`
 		SELECT id, number, required_laps, started_at, closed_at
-		FROM rallycross_heats WHERE started_at IS NOT NULL ORDER BY number
+		FROM rallycross_heats WHERE event_id = ${eventId} AND started_at IS NOT NULL ORDER BY number
 	`;
 	return (
 		await Promise.all(
 			heats.map(async (heat) => {
-				const entries = await fetchEntriesForHeat(heat, cfg);
+				const entries = await fetchEntriesForHeat(heat, cfg, eventId, sql);
 				return toHeatResultsWithUuid(entries, heat, cfg.cooldown_ms);
 			})
 		)

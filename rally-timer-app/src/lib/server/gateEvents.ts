@@ -1,6 +1,7 @@
 import { sql } from './db';
 
 export type GateEventPayload = {
+	event_id?: number | null;
 	gate_id: string;
 	tag: string;
 	rssi: number | null;
@@ -49,7 +50,10 @@ function ensureListening() {
 }
 
 export async function emitGateEvent(data: GateEventPayload) {
-	await sql.notify('gate_events', JSON.stringify(data));
+	const [owner] = await sql<
+		{ event_id: number }[]
+	>`SELECT gee.event_id FROM gate_event_events gee JOIN gate_events ge ON ge.id=gee.gate_event_id WHERE ge.gate_id=${data.gate_id} AND ge.tag=${data.tag} AND ge.timestamp=${data.timestamp_ms} ORDER BY gee.event_id LIMIT 1`;
+	await sql.notify('gate_events', JSON.stringify({ ...data, event_id: owner?.event_id ?? null }));
 }
 
 export function addGateEventListener(listener: Listener): () => void {

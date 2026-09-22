@@ -1,6 +1,8 @@
+import { assertEventSelection } from '$lib/server/eventSelection';
+import { requireStageEvent } from '$lib/server/eventContext';
 import { json, error, type RequestEvent } from '@sveltejs/kit';
 import { z } from 'zod';
-import { sql } from '../../../lib/server/db';
+import { sql as db } from '../../../lib/server/db';
 import { throwIfNotAdmin } from '../../../lib/server/keycloak';
 import { estimateDnfTime } from '../../../lib/domain/dnfEstimation';
 
@@ -10,39 +12,43 @@ const fixDnfSchema = z.object({
 });
 
 export async function POST(event: RequestEvent): Promise<Response> {
-	await throwIfNotAdmin(event);
+	return db.begin(async (tx) => {
+		const sql = tx as unknown as typeof db;
+		await throwIfNotAdmin(event);
 
-	let body: unknown;
-	try {
-		body = await event.request.json();
-	} catch {
-		throw error(400, 'Invalid JSON');
-	}
+		let body: unknown;
+		try {
+			body = await event.request.json();
+		} catch {
+			throw error(400, 'Invalid JSON');
+		}
 
-	const parsed = fixDnfSchema.safeParse(body);
-	if (!parsed.success) throw error(400, parsed.error.message);
-	const { driver_tag, stage_id } = parsed.data;
+		const parsed = fixDnfSchema.safeParse(body);
+		if (!parsed.success) throw error(400, parsed.error.message);
+		const { driver_tag, stage_id } = parsed.data;
+		const appEvent = await requireStageEvent(stage_id, true, sql);
+		assertEventSelection(event.url, appEvent.id);
 
-	// Fetch all non-DNF finish events with computed elapsed times
-	const allFinishes = await sql`
+		// Fetch all non-DNF finish events with computed elapsed times
+		const allFinishes = await sql`
 		SELECT fe.tag AS driver_tag, fe.stage_id, (fe.timestamp - se.ts_ms) AS elapsed_ms
 		FROM finish_events fe
 		JOIN start_events se ON se.stage_id = fe.stage_id
 		JOIN drivers d ON d.tag = fe.tag AND d.id = se.driver_id
-		WHERE fe.dnf = false
+		WHERE fe.dnf = false AND fe.stage_id IN (SELECT id FROM stages WHERE event_id = ${appEvent.id})
 	`;
 
-	const results = allFinishes.map((r) => ({
-		driver_tag: String(r.driver_tag),
-		stage_id: Number(r.stage_id),
-		elapsed_ms: Number(r.elapsed_ms)
-	}));
+		const results = allFinishes.map((r) => ({
+			driver_tag: String(r.driver_tag),
+			stage_id: Number(r.stage_id),
+			elapsed_ms: Number(r.elapsed_ms)
+		}));
 
-	const estimated = estimateDnfTime(driver_tag, stage_id, results);
-	if (estimated === null) throw error(422, 'Not enough data to estimate time');
+		const estimated = estimateDnfTime(driver_tag, stage_id, results);
+		if (estimated === null) throw error(422, 'Not enough data to estimate time');
 
-	// Get the DNF finish event and the driver's start time for this stage
-	const [dnfRow] = await sql`
+		// Get the DNF finish event and the driver's start time for this stage
+		const [dnfRow] = await sql`
 		SELECT fe.id, se.ts_ms AS start_ts
 		FROM finish_events fe
 		JOIN drivers d ON d.tag = fe.tag
@@ -51,15 +57,16 @@ export async function POST(event: RequestEvent): Promise<Response> {
 		LIMIT 1
 	`;
 
-	if (!dnfRow) throw error(404, 'DNF finish event not found');
+		if (!dnfRow) throw error(404, 'DNF finish event not found');
 
-	const newTimestamp = Number(dnfRow.start_ts) + estimated;
+		const newTimestamp = Number(dnfRow.start_ts) + estimated;
 
-	await sql`
+		await sql`
 		UPDATE finish_events
 		SET timestamp = ${newTimestamp}, dnf = false, synthetic = true
 		WHERE id = ${dnfRow.id}
 	`;
 
-	return json({ estimated_ms: estimated, new_timestamp: newTimestamp });
+		return json({ estimated_ms: estimated, new_timestamp: newTimestamp });
+	});
 }

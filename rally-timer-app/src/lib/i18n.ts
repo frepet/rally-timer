@@ -1,4 +1,22 @@
 export const sv = {
+	navEvents: 'Evenemang',
+	eventName: 'Evenemangets namn',
+	eventType: 'Typ',
+	eventCreate: 'Skapa evenemang',
+	eventEmpty: 'Inga evenemang ännu.',
+	eventManage: 'Administrera',
+	eventResults: 'Visa och dela resultat',
+	eventPin: 'Visa på startsidan',
+	eventAuto: 'Senast skapade evenemang',
+	eventHomepage: 'Startsida',
+	eventLock: 'Lås evenemang',
+	eventUnlock: 'Lås upp evenemang',
+	eventLocked: 'Evenemanget är låst. Lås upp för att ändra.',
+	eventParticipants: 'Deltagare i evenemanget',
+	eventSubmissionWarning:
+		'Alla sträckor eller heat måste vara stängda och grinden bortkopplad. Inskickning låser evenemanget. Skickar du in igen skapas ännu ett resultat och rallybetyget påverkas igen.',
+	eventLoadFailed: 'Kunde inte läsa evenemanget.',
+
 	// Common actions
 	save: 'Spara',
 	saving: 'Sparar…',
@@ -393,6 +411,24 @@ export const sv = {
 };
 
 export const en: typeof sv = {
+	navEvents: 'Events',
+	eventName: 'Event name',
+	eventType: 'Type',
+	eventCreate: 'Create event',
+	eventEmpty: 'No events yet.',
+	eventManage: 'Manage',
+	eventResults: 'View and share results',
+	eventPin: 'Show on homepage',
+	eventAuto: 'Newest created event',
+	eventHomepage: 'Homepage',
+	eventLock: 'Lock event',
+	eventUnlock: 'Unlock event',
+	eventLocked: 'This event is locked. Unlock to make changes.',
+	eventParticipants: 'Event participants',
+	eventSubmissionWarning:
+		'All stages or heats must be closed and the gate disconnected. Submitting locks the event. Submitting again creates another result and applies rally ratings again.',
+	eventLoadFailed: 'Could not load the event.',
+
 	// Common actions
 	save: 'Save',
 	saving: 'Saving…',

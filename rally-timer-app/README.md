@@ -58,3 +58,15 @@ Docker image is built from `Dockerfile` (multi-stage, `node:24-alpine`). GitHub 
 | `src/lib/server/keycloak.ts`   | JWT/JWKS auth helper                           |
 | `src/hooks.server.ts`          | Awaits migrations before handling requests     |
 | `src/routes/api/`              | REST API endpoints                             |
+
+## Event integration regression checks
+
+Run `npm run test:events` with Node.js 24+, installed dependencies, and a running Docker daemon.
+The script starts disposable PostgreSQL 16 on a random localhost port and a separate development
+server with authentication disabled. It supplies its own database URL, never uses your configured
+database, and removes the container/server afterward (including on failure). The first run may pull
+`postgres:16-alpine`.
+
+Checks cover fresh and legacy migrations, migration replay, independent event participants/stages,
+gate exclusivity and history after reuse/late uploads, stage handover, concurrent submission and
+locking, and independent rallycross auto-close/submission without rating changes.

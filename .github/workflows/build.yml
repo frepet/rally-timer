@@ -40,19 +40,6 @@ jobs:
 
   e2e:
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: rally
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -64,30 +51,9 @@ jobs:
         working-directory: rally-timer-app
       - run: npm run build
         working-directory: rally-timer-app
-      - name: Start app
+      - name: Verify event migration and API isolation
         working-directory: rally-timer-app
-        env:
-          DATABASE_URL: postgres://postgres:postgres@localhost:5432/rally
-          SKIP_AUTH: 'true'
-          ORIGIN: http://localhost:3000
-        run: node build/index.js &
-      - name: Wait for app ready
-        run: |
-          for i in $(seq 1 30); do
-            curl -sf http://localhost:3000/api/class && echo " — ready" && break
-            echo "Waiting... ($i/30)"
-            sleep 1
-          done
-      - name: Seed database
-        run: ./seed.sh http://localhost:3000
-      - name: Run e2e assertions
-        run: ./verify.sh http://localhost:3000
-      - name: Run rallycross e2e assertions
-        run: ./verify-rallycross.sh http://localhost:3000
-      - name: Run training e2e assertions
-        run: ./verify-training.sh http://localhost:3000
-      - name: Run API contract e2e assertions
-        run: ./verify-api.sh http://localhost:3000
+        run: npm run test:events
 
   build:
     if: github.event_name != 'pull_request'

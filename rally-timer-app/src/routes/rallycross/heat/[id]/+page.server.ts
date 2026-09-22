@@ -8,16 +8,17 @@ export async function load({ params }: { params: { id: string } }) {
 	const [heat] = await sql<
 		{
 			id: number;
+			event_id: number;
 			number: number;
 			required_laps: number;
 			started_at: number | null;
 			closed_at: number | null;
 		}[]
-	>`SELECT id, number, required_laps, started_at, closed_at FROM rallycross_heats WHERE id = ${heatId}`;
+	>`SELECT id, event_id, number, required_laps, started_at, closed_at FROM rallycross_heats WHERE id = ${heatId}`;
 	if (!heat) throw error(404, 'Heat not found');
 
 	const [cfg] = await sql<{ gate_id: string | null; cooldown_ms: number }[]>`
-		SELECT gate_id, cooldown_ms FROM rallycross WHERE id = 1
+		SELECT gate_id, cooldown_ms FROM rallycross WHERE event_id = ${heat.event_id}
 	`;
 	if (!cfg) throw error(500, 'Rallycross configuration not found');
 
@@ -38,11 +39,11 @@ export async function load({ params }: { params: { id: string } }) {
 	// Fetch all gate events for this heat in one query, using heat.started_at as window start.
 	// This covers all drivers regardless of whether their per-driver ts_ms was set.
 	const rawEvents =
-		cfg.gate_id && startedAt !== null
+		startedAt !== null
 			? await sql<{ tag: string; timestamp: number }[]>`
 					SELECT tag, timestamp
 					FROM gate_events
-					WHERE gate_id = ${cfg.gate_id}
+					WHERE id IN (SELECT gate_event_id FROM gate_event_events WHERE event_id = ${heat.event_id})
 					  AND timestamp >= ${startedAt}
 					  AND timestamp <= ${closedAt ?? Number.MAX_SAFE_INTEGER}
 					ORDER BY tag, timestamp
@@ -86,6 +87,7 @@ export async function load({ params }: { params: { id: string } }) {
 	return {
 		heat: {
 			id: heat.id,
+			event_id: heat.event_id,
 			number: heat.number,
 			required_laps: heat.required_laps,
 			started_at: startedAt,

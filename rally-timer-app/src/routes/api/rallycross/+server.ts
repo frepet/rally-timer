@@ -1,5 +1,7 @@
+import { assignGate, releaseEventGates } from '$lib/server/eventGates';
+import { requireEvent, requireMutableEvent } from '$lib/server/eventContext';
 import { json, error, type RequestEvent } from '@sveltejs/kit';
-import { sql } from '../../../lib/server/db';
+import { sql as db } from '../../../lib/server/db';
 import { rallycrossConfigSchema } from '../../../lib/server/schemas';
 import { throwIfNotAdmin } from '../../../lib/server/keycloak';
 
@@ -19,25 +21,26 @@ type HeatRow = {
 	closed_at: number | null;
 };
 
-async function loadConfig(): Promise<ConfigRow> {
-	const [row] = await sql<ConfigRow[]>`
+async function loadConfig(eventId: number, tx: typeof sql = sql): Promise<ConfigRow> {
+	const [row] = await tx<ConfigRow[]>`
 		SELECT gate_id, cooldown_ms, started_at, max_per_heat, required_laps
-		FROM rallycross WHERE id = 1
+		FROM rallycross WHERE event_id = ${eventId}
 	`;
 	if (!row) throw error(500, 'Rallycross row missing');
 	return row;
 }
 
-async function loadHeats(): Promise<HeatRow[]> {
+async function loadHeats(eventId: number): Promise<HeatRow[]> {
 	return sql<HeatRow[]>`
 		SELECT id, number, required_laps, started_at, closed_at
-		FROM rallycross_heats ORDER BY number
+		FROM rallycross_heats WHERE event_id = ${eventId} ORDER BY number
 	`;
 }
 
-export async function GET(): Promise<Response> {
-	const config = await loadConfig();
-	const heats = await loadHeats();
+export async function GET(event: RequestEvent): Promise<Response> {
+	const appEvent = await requireEvent(event.url, 'rallycross');
+	const config = await loadConfig(appEvent.id);
+	const heats = await loadHeats(appEvent.id);
 
 	let gate_name: string | null = null;
 	if (config.gate_id) {
@@ -52,7 +55,7 @@ export async function GET(): Promise<Response> {
 				SELECT rhe.heat_id, rhe.driver_id, d.name AS driver_name
 				FROM rallycross_heat_entries rhe
 				JOIN drivers d ON d.id = rhe.driver_id
-				ORDER BY rhe.heat_id, d.name
+				WHERE rhe.heat_id = ANY(${heats.map((h) => h.id)}) ORDER BY rhe.heat_id, d.name
 			`
 		: [];
 
@@ -99,53 +102,68 @@ export async function GET(): Promise<Response> {
 }
 
 export async function PATCH(event: RequestEvent): Promise<Response> {
-	await throwIfNotAdmin(event);
+	return db.begin(async (tx) => {
+		const sql = tx as unknown as typeof db;
+		await throwIfNotAdmin(event);
+		const appEvent = await requireMutableEvent(event.url, 'rallycross', sql);
 
-	let body: unknown;
-	try {
-		body = await event.request.json();
-	} catch {
-		throw error(400, 'Invalid JSON');
-	}
-
-	const parsed = rallycrossConfigSchema.safeParse(body);
-	if (!parsed.success) return json({ errors: parsed.error.flatten() }, { status: 400 });
-
-	const { gate_id, cooldown_ms, max_per_heat, required_laps } = parsed.data;
-
-	if (gate_id !== undefined) {
-		if (gate_id !== null) {
-			const [g] = await sql<{ id: string; stage_id: number | null }[]>`
-				SELECT id, stage_id FROM gates WHERE id = ${gate_id}
-			`;
-			if (!g) throw error(404, 'Grind hittades inte');
-			if (g.stage_id !== null)
-				throw error(409, 'Grinden är redan tilldelad en sträcka — koppla bort den först');
+		let body: unknown;
+		try {
+			body = await event.request.json();
+		} catch {
+			throw error(400, 'Invalid JSON');
 		}
-		await sql`UPDATE rallycross SET gate_id = ${gate_id} WHERE id = 1`;
-	}
-	if (cooldown_ms !== undefined) {
-		await sql`UPDATE rallycross SET cooldown_ms = ${cooldown_ms} WHERE id = 1`;
-	}
-	if (max_per_heat !== undefined) {
-		await sql`UPDATE rallycross SET max_per_heat = ${max_per_heat} WHERE id = 1`;
-	}
-	if (required_laps !== undefined) {
-		await sql`UPDATE rallycross SET required_laps = ${required_laps} WHERE id = 1`;
-	}
 
-	const updated = await loadConfig();
-	return json({ updated: true, ...updated });
+		const parsed = rallycrossConfigSchema.safeParse(body);
+		if (!parsed.success) return json({ errors: parsed.error.flatten() }, { status: 400 });
+
+		const { gate_id, cooldown_ms, max_per_heat, required_laps } = parsed.data;
+
+		if (gate_id !== undefined) {
+			{
+				const tsql = sql;
+				await requireMutableEvent(event.url, 'rallycross', tsql);
+				const active =
+					await tsql`SELECT id FROM rallycross_heats WHERE event_id = ${appEvent.id} AND started_at IS NOT NULL AND closed_at IS NULL`;
+				if (active.length) throw error(409, 'Close the active heat before changing gates');
+				await releaseEventGates(tsql, appEvent.id);
+				if (gate_id !== null) await assignGate(tsql, gate_id, appEvent.id);
+				await tsql`UPDATE rallycross SET gate_id = ${gate_id} WHERE event_id = ${appEvent.id}`;
+			}
+		}
+		if (cooldown_ms !== undefined) {
+			await sql`UPDATE rallycross SET cooldown_ms = ${cooldown_ms} WHERE event_id = ${appEvent.id}`;
+		}
+		if (max_per_heat !== undefined) {
+			await sql`UPDATE rallycross SET max_per_heat = ${max_per_heat} WHERE event_id = ${appEvent.id}`;
+		}
+		if (required_laps !== undefined) {
+			await sql`UPDATE rallycross SET required_laps = ${required_laps} WHERE event_id = ${appEvent.id}`;
+		}
+
+		const updated = await loadConfig(appEvent.id, sql);
+		return json({ updated: true, ...updated });
+	});
 }
 
 export async function DELETE(event: RequestEvent): Promise<Response> {
-	await throwIfNotAdmin(event);
-	await sql`DELETE FROM rallycross_heats`;
-	await sql`
+	return db.begin(async (tx) => {
+		const sql = tx as unknown as typeof db;
+		await throwIfNotAdmin(event);
+		const appEvent = await requireMutableEvent(event.url, 'rallycross', sql);
+		{
+			const tsql = sql;
+			await releaseEventGates(tsql, appEvent.id);
+		}
+		await sql`DELETE FROM rallycross_heats WHERE event_id = ${appEvent.id}`;
+		await sql`
 		UPDATE rallycross
 		SET started_at = NULL, gate_id = NULL,
 		    max_per_heat = 4, required_laps = 3, cooldown_ms = 10000
-		WHERE id = 1
+		WHERE event_id = ${appEvent.id}
 	`;
-	return json({ cleared: true });
+		return json({ cleared: true });
+	});
 }
+
+const sql = db;

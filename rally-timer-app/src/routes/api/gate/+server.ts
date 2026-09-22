@@ -10,12 +10,14 @@ export async function GET(): Promise<Response> {
 			g.name,
 			g.last_seen,
 			g.stage_id,
+			a.event_id AS assigned_event_id,
 			g.created_at,
 			g.status,
 			s.name AS stage_name,
 			EXISTS(SELECT 1 FROM rallycross WHERE gate_id = g.id) AS is_rallycross
 		FROM gates g
 		LEFT JOIN stages s ON s.id = g.stage_id
+		LEFT JOIN gate_assignments a ON a.gate_id=g.id AND a.released_at IS NULL
 		ORDER BY g.last_seen DESC
 	`;
 	return json(

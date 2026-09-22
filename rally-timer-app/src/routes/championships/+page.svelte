@@ -282,7 +282,7 @@
 						<P class="text-gray-500 dark:text-gray-400">{t.noResultsSubmitRally}</P>
 						{#if auth.isAdmin}
 							<a
-								href="/rallies"
+								href="/events"
 								class="mt-2 block text-sm text-blue-600 hover:underline dark:text-blue-400"
 							>
 								{t.goToManage}

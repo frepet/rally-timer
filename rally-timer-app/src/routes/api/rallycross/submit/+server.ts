@@ -1,5 +1,7 @@
+import { eventSubmissionError } from '$lib/domain/events';
+import { requireMutableEvent } from '$lib/server/eventContext';
 import { json, error, type RequestEvent } from '@sveltejs/kit';
-import { sql } from '../../../../lib/server/db';
+import { sql as db } from '../../../../lib/server/db';
 import { throwIfNotAdmin } from '../../../../lib/server/keycloak';
 import { submitRallySchema } from '../../../../lib/server/schemas';
 import { fetchClosedHeatResults } from '../../../../lib/server/rallycrossData';
@@ -18,44 +20,54 @@ export async function POST(event: RequestEvent): Promise<Response> {
 	if (!parsed.success) return json({ errors: parsed.error.flatten() }, { status: 400 });
 
 	const { name, championship_ids } = parsed.data;
+	return db.begin(async (tx) => {
+		const sql = tx as unknown as typeof db;
+		const eventId = Number(event.url.searchParams.get('event_id'));
+		await sql`SELECT id FROM events WHERE id = ${eventId} FOR UPDATE`;
+		const appEvent = await requireMutableEvent(event.url, 'rallycross', sql);
+		const units = await sql`SELECT closed_at FROM rallycross_heats WHERE event_id = ${appEvent.id}`;
+		const assignments =
+			await sql`SELECT id FROM gate_assignments WHERE event_id = ${appEvent.id} AND released_at IS NULL`;
+		const reason = eventSubmissionError(
+			appEvent,
+			units.map((u) => u.closed_at !== null),
+			assignments.length > 0
+		);
+		if (reason) throw error(409, reason);
 
-	const champs =
-		await sql`SELECT id FROM championships WHERE id = ANY(${championship_ids}::uuid[])`;
-	if (champs.length !== championship_ids.length) {
-		throw error(400, 'One or more championship IDs are invalid');
-	}
+		const champs =
+			await sql`SELECT id FROM championships WHERE id = ANY(${championship_ids}::uuid[])`;
+		if (champs.length !== championship_ids.length) {
+			throw error(400, 'One or more championship IDs are invalid');
+		}
 
-	const [cfg] = await sql<{ gate_id: string | null; cooldown_ms: number }[]>`
-		SELECT gate_id, cooldown_ms FROM rallycross WHERE id = 1
+		const [cfg] = await sql<{ gate_id: string | null; cooldown_ms: number }[]>`
+		SELECT gate_id, cooldown_ms FROM rallycross WHERE event_id = ${appEvent.id}
 	`;
 
-	const allHeatResults = await fetchClosedHeatResults(cfg);
-	const stageTimes = buildRallycrossSubmission(allHeatResults);
+		const allHeatResults = await fetchClosedHeatResults(cfg, appEvent.id, sql);
+		const stageTimes = buildRallycrossSubmission(allHeatResults);
 
-	if (stageTimes.length === 0) throw error(422, 'Inga färdiga resultat att skicka in');
+		if (stageTimes.length === 0) throw error(422, 'Inga färdiga resultat att skicka in');
 
-	let submittedRallyId: string;
-	const now = Date.now();
+		const now = Date.now();
 
-	await sql.begin(async (tx) => {
-		const tsql = tx as unknown as typeof sql;
-
-		const [sr] = await tsql`
-			INSERT INTO submitted_rallies (name, submitted_at)
-			VALUES (${name}, ${now})
+		const [sr] = await sql`
+			INSERT INTO submitted_rallies (name, submitted_at, event_id)
+			VALUES (${name}, ${now}, ${appEvent.id})
 			RETURNING id
 		`;
-		submittedRallyId = sr.id as string;
+		const submittedRallyId = sr.id as string;
 
-		await tsql`INSERT INTO rally_results ${tsql(stageTimes.map((r) => ({ ...r, rally_id: submittedRallyId })))}`;
+		await sql`INSERT INTO rally_results ${sql(stageTimes.map((r) => ({ ...r, rally_id: submittedRallyId })))}`;
 
 		for (const champId of championship_ids) {
-			await tsql`
+			await sql`
 				INSERT INTO championship_rallies (championship_id, rally_id)
 				VALUES (${champId}::uuid, ${submittedRallyId}::uuid)
 			`;
 		}
+		await sql`UPDATE events SET is_locked = true WHERE id = ${appEvent.id}`;
+		return json({ id: submittedRallyId! }, { status: 201 });
 	});
-
-	return json({ id: submittedRallyId! }, { status: 201 });
 }

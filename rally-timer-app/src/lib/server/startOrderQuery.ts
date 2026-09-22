@@ -1,3 +1,4 @@
+import { requireStageEvent } from '$lib/server/eventContext';
 import { sql } from './db';
 import {
 	computeStartOrder,
@@ -17,6 +18,7 @@ import { buildStageTimes } from '../domain/rallySubmission';
  * logic that builds submitted results, so penalties are included.
  */
 export async function loadStartOrder(stageId: number): Promise<StartOrderEntry[]> {
+	const appEvent = await requireStageEvent(stageId);
 	const [rows, rawStarts, rawFinishes] = await Promise.all([
 		sql`
 			SELECT
@@ -29,7 +31,8 @@ export async function loadStartOrder(stageId: number): Promise<StartOrderEntry[]
 				c.start_priority      AS class_start_priority
 			FROM drivers d
 			JOIN classes c ON c.id = d.class_id
-			WHERE d.active = true
+			JOIN event_participants ep ON ep.driver_id = d.id
+			WHERE ep.event_id = ${appEvent.id}
 			  AND NOT EXISTS (
 				SELECT 1 FROM start_events se
 				WHERE se.driver_id = d.id AND se.stage_id = ${stageId}
@@ -47,11 +50,11 @@ export async function loadStartOrder(stageId: number): Promise<StartOrderEntry[]
 				c.name        AS class_name,
 				s.name        AS stage_name
 			FROM start_events se
-			JOIN drivers d ON d.id = se.driver_id AND d.active = true
+			JOIN drivers d ON d.id = se.driver_id
 			JOIN classes c ON c.id = d.class_id
-			JOIN stages  s ON s.id = se.stage_id
+			JOIN stages  s ON s.id = se.stage_id AND s.event_id = ${appEvent.id}
 		`,
-		sql`SELECT stage_id, timestamp, tag, dnf, penalty_ms, synthetic FROM finish_events`
+		sql`SELECT stage_id, timestamp, tag, dnf, penalty_ms, synthetic FROM finish_events WHERE stage_id IN (SELECT id FROM stages WHERE event_id = ${appEvent.id})`
 	]);
 
 	const stageTimes = buildStageTimes(

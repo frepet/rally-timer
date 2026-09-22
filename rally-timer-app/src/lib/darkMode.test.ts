@@ -12,14 +12,14 @@ function readTemplate(relativePath: string) {
 // stays readable when the page is rendered in dark mode.
 describe('dark mode: empty-state elements must have explicit dark text color', () => {
 	it('"t.noStagesYet" in rallies page', () => {
-		const content = readTemplate('src/routes/rallies/+page.svelte');
+		const content = readTemplate('src/lib/RalliesManager.svelte');
 		const match = content.match(/class="([^"]*)"[^>]*>\s*\{t\.noStagesYet\}\s*<\/\w+>/);
 		expect(match).not.toBeNull();
 		expect(match![1]).toMatch(/dark:text-/);
 	});
 
 	it('"t.noMatches / t.noDrivers" li in rallies page', () => {
-		const content = readTemplate('src/routes/rallies/+page.svelte');
+		const content = readTemplate('src/lib/RalliesManager.svelte');
 		const match = content.match(
 			/<li class="([^"]*)">[^<]*\{driverSearch \? t\.noMatches : t\.noDrivers\}[^<]*<\/li>/
 		);

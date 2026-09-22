@@ -3,7 +3,8 @@ import { sql } from '../../../lib/server/db';
 import { requireGateCrypto } from '../../../lib/server/gateAuth';
 import { gateEventSchema } from '../../../lib/server/schemas';
 import { emitGateEvent } from '../../../lib/server/gateEvents';
-import { computeLaps } from '../../../lib/domain/rallycross';
+import { captureGatePass } from '$lib/server/eventGates';
+import { heatIsComplete } from '$lib/domain/heatCompletion';
 
 export async function POST(event: RequestEvent): Promise<Response> {
 	let rawBody: string;
@@ -38,26 +39,18 @@ export async function POST(event: RequestEvent): Promise<Response> {
 
 	await requireGateCrypto(event, gate, rawBody);
 
-	const [row] = await sql`
-		INSERT INTO gate_events (gate_id, tag, timestamp, rssi, synced_at)
-		VALUES (${gate_id}, ${tag}, ${timestamp_ms}, ${rssi ?? null}, ${now})
-		ON CONFLICT (gate_id, tag, timestamp) DO NOTHING
-		RETURNING id
-	`;
-
-	await sql`UPDATE gates SET last_seen = ${now} WHERE id = ${gate_id}`;
-
-	if (!row) return json({ stored: false, duplicate: true }, { status: 200 });
-
-	if (gate.stage_id) {
-		await sql`
-			INSERT INTO finish_events (stage_id, timestamp, tag)
-			VALUES (${gate.stage_id}, ${timestamp_ms}, ${tag})
-		`;
-	}
+	const row = await sql.begin(async (transaction) => {
+		const tx = transaction as unknown as typeof sql;
+		const [inserted] =
+			await tx`INSERT INTO gate_events (gate_id,tag,timestamp,rssi,synced_at) VALUES (${gate_id},${tag},${timestamp_ms},${rssi ?? null},${now}) ON CONFLICT (gate_id,tag,timestamp) DO NOTHING RETURNING id`;
+		if (inserted) await captureGatePass(tx, gate_id, inserted.id, timestamp_ms, tag);
+		await tx`UPDATE gates SET last_seen=${now} WHERE id=${gate_id}`;
+		return inserted;
+	});
+	if (!row) return json({ stored: false, duplicate: true });
 
 	try {
-		await maybeAutoCloseHeat(gate_id, timestamp_ms);
+		await maybeAutoCloseHeat(gate_id, timestamp_ms, row.id);
 	} catch (e) {
 		console.error('Heat auto-close failed:', e);
 	}
@@ -67,9 +60,13 @@ export async function POST(event: RequestEvent): Promise<Response> {
 	return json({ stored: true, event_id: row.id }, { status: 201 });
 }
 
-async function maybeAutoCloseHeat(gate_id: string, timestamp_ms: number): Promise<void> {
-	const [rx] = await sql<{ gate_id: string | null; cooldown_ms: number }[]>`
-		SELECT gate_id, cooldown_ms FROM rallycross WHERE id = 1
+async function maybeAutoCloseHeat(
+	gate_id: string,
+	timestamp_ms: number,
+	passId: number
+): Promise<void> {
+	const [rx] = await sql<{ event_id: number; gate_id: string | null; cooldown_ms: number }[]>`
+		SELECT r.event_id,r.gate_id,r.cooldown_ms FROM rallycross r JOIN events e ON e.id=r.event_id WHERE r.gate_id=${gate_id} AND NOT e.is_locked AND EXISTS (SELECT 1 FROM gate_event_events gee WHERE gee.event_id=r.event_id AND gee.gate_event_id=${passId})
 	`;
 	if (!rx?.gate_id || rx.gate_id !== gate_id) return;
 
@@ -82,7 +79,7 @@ async function maybeAutoCloseHeat(gate_id: string, timestamp_ms: number): Promis
 	>`
 		SELECT id, required_laps, started_at
 		FROM rallycross_heats
-		WHERE started_at IS NOT NULL AND closed_at IS NULL
+		WHERE event_id=${rx.event_id} AND started_at IS NOT NULL AND closed_at IS NULL
 		LIMIT 1
 	`;
 	if (!heat) return;
@@ -98,29 +95,14 @@ async function maybeAutoCloseHeat(gate_id: string, timestamp_ms: number): Promis
 	const minStart = Math.min(...racing.map((e) => Number(e.ts_ms)));
 	const allPasses = racing.length
 		? await sql<{ tag: string; timestamp: number }[]>`
-				SELECT tag, timestamp FROM gate_events
-				WHERE gate_id = ${gate_id}
+				SELECT ge.tag,ge.timestamp FROM gate_events ge JOIN gate_event_events gee ON gee.gate_event_id=ge.id
+				WHERE gee.event_id=${rx.event_id} AND gate_id = ${gate_id}
 				  AND tag = ANY(${racing.map((e) => e.tag)})
 				  AND timestamp >= ${minStart}
 				ORDER BY timestamp
 			`
 		: [];
-	const passesByTag = new Map<string, number[]>();
-	for (const p of allPasses) {
-		const list = passesByTag.get(p.tag) ?? [];
-		list.push(Number(p.timestamp));
-		passesByTag.set(p.tag, list);
-	}
-
-	const allDone = racing.every((e) => {
-		const start = Number(e.ts_ms);
-		const laps = computeLaps(
-			(passesByTag.get(e.tag) ?? []).filter((ts) => ts >= start),
-			start,
-			rx.cooldown_ms
-		);
-		return laps.length >= heat.required_laps;
-	});
+	const allDone = heatIsComplete(entries, allPasses, heat.required_laps, rx.cooldown_ms);
 
 	if (allDone) {
 		await sql`

@@ -1,8 +1,12 @@
+import { assertEventSelection } from '$lib/server/eventSelection';
+import { requireStageEvent } from '$lib/server/eventContext';
 import { json, error } from '@sveltejs/kit';
 import type { RequestEvent } from './$types';
 import { sql } from '../../../../../lib/server/db';
 
 export async function GET(event: RequestEvent): Promise<Response> {
+	const appEvent = await requireStageEvent(Number(event.params.id));
+	assertEventSelection(event.url, appEvent.id);
 	const id = Number(event.params.id);
 	if (!Number.isFinite(id) || id <= 0) throw error(400, 'Invalid id');
 
