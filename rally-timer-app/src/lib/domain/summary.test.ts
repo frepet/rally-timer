@@ -549,3 +549,64 @@ describe('buildStageData — DNF handling', () => {
 		expect(rows[1].position).toBe(2);
 	});
 });
+
+describe('buildRallyRows: live stage groups', () => {
+	// Two closed stages for everyone; on the live SS3 only Alice and Bob have
+	// finished. Carl and Dora are still out, so they have one stage fewer.
+	const row = (uuid: string, stage_ms: number) => ({
+		driver_uuid: uuid,
+		driver_name: uuid,
+		class_name: 'A',
+		stage_ms,
+		penalty_ms: 0,
+		position: 0,
+		delta_p1: null,
+		delta_prev: null,
+		dnf: false,
+		synthetic: false
+	});
+	const stageData = [
+		{
+			name: 'SS1',
+			status: 'closed' as const,
+			rows: [row('alice', 100), row('bob', 110), row('carl', 90), row('dora', 95)]
+		},
+		{
+			name: 'SS2',
+			status: 'closed' as const,
+			rows: [row('alice', 100), row('bob', 100), row('carl', 90), row('dora', 100)]
+		},
+		{ name: 'SS3', status: 'live' as const, rows: [row('alice', 100), row('bob', 100)] }
+	];
+	const rows = buildRallyRows(stageData);
+	const by = (uuid: string) => rows.find((r) => r.driver_uuid === uuid)!;
+
+	it('ranks drivers with more finished stages first, positions stay continuous', () => {
+		expect(rows.map((r) => [r.driver_uuid, r.position])).toEqual([
+			['alice', 1],
+			['bob', 2],
+			['carl', 3],
+			['dora', 4]
+		]);
+	});
+
+	it('marks the first driver of each stage-count group as its leader', () => {
+		expect(rows.map((r) => r.group_leader)).toEqual([true, false, true, false]);
+	});
+
+	it('measures gaps within the group, never negative across groups', () => {
+		expect(by('bob')).toMatchObject({ delta_p1: 10, delta_prev: 10 });
+		// Carl leads the "2 stages" group: no gap, like P1
+		expect(by('carl')).toMatchObject({ delta_p1: 0, delta_prev: null });
+		expect(by('dora')).toMatchObject({ delta_p1: 15, delta_prev: 15 });
+		for (const r of rows) {
+			expect(r.delta_p1 ?? 0).toBeGreaterThanOrEqual(0);
+			expect(r.delta_prev ?? 0).toBeGreaterThanOrEqual(0);
+		}
+	});
+
+	it('is a single group once everyone has the same number of stages', () => {
+		const done = buildRallyRows(stageData.slice(0, 2));
+		expect(done.map((r) => r.group_leader)).toEqual([true, false, false, false]);
+	});
+});

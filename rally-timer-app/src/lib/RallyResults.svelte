@@ -34,6 +34,9 @@
 		if (activeStage == null && stages.length) activeStage = defaultStage(stages);
 	});
 
+	// More than one finished-stages group only happens while a stage is live.
+	const multipleGroups = $derived(rallyRows.some((r, i) => i > 0 && r.group_leader));
+
 	const activeStageData = $derived(stages.find((s) => s.name === activeStage) ?? null);
 	const activeRows = $derived(activeStageData?.rows ?? []);
 
@@ -94,6 +97,11 @@
 		{#if rallyRows.length}
 			<div class="timing-list">
 				{#each rallyRows as r (r.driver_uuid)}
+					{#if multipleGroups && r.group_leader}
+						<div class="group-divider" role="separator">
+							<span>{t.stagesCompletedGroup(r.finished_stages)}</span>
+						</div>
+					{/if}
 					<div class="timing-row">
 						<span class="pos {r.position <= 3 ? `pos--${r.position}` : ''}">{r.position}</span>
 						<div class="min-w-0">
@@ -104,7 +112,7 @@
 								<span class="chip {classChipClass(r.class_name)}">{r.class_name}</span>
 							</div>
 							<div class="mt-0.5 flex flex-wrap gap-x-4 gap-y-0.5">
-								{#if r.position !== 1}
+								{#if !r.group_leader}
 									<span class="stat"
 										><span class="stat-label">{t.totalLabel}</span>{formatMs(r.total_ms)}</span
 									>
@@ -137,17 +145,17 @@
 						</div>
 						<div class="flex flex-col items-end">
 							<span
-								class="time text-xl sm:text-2xl {r.position === 1
+								class="time text-xl sm:text-2xl {r.group_leader
 									? 'text-surface-900 dark:text-white'
 									: 'text-surface-700 dark:text-surface-200'}"
 							>
-								{#if r.position === 1}
+								{#if r.group_leader}
 									{formatMs(r.total_ms)}
 								{:else}
 									{r.delta_prev != null ? '+' + formatMs(r.delta_prev) : '—'}
 								{/if}
 							</span>
-							{#if r.position !== 1}
+							{#if !r.group_leader}
 								<span class="stat"
 									><span class="stat-label">Δ P1</span>{r.delta_p1 != null
 										? '+' + formatMs(r.delta_p1)
@@ -279,3 +287,31 @@
 		{/if}
 	</section>
 </div>
+
+<style>
+	.group-divider {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		padding: 0.5rem 1rem;
+		background-color: var(--color-surface-50);
+		font-size: 0.68rem;
+		font-weight: 600;
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--color-surface-500);
+	}
+	.group-divider::after {
+		content: '';
+		flex: 1;
+		height: 1px;
+		background-color: var(--color-surface-200);
+	}
+	:global(.dark) .group-divider {
+		background-color: rgb(255 255 255 / 0.03);
+		color: var(--color-surface-400);
+	}
+	:global(.dark) .group-divider::after {
+		background-color: rgb(255 255 255 / 0.1);
+	}
+</style>

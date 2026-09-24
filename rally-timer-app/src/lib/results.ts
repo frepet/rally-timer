@@ -10,6 +10,8 @@ export type DisplayRallyRow = {
 	position: number;
 	dnf: boolean;
 	dnf_count: number;
+	/** First driver of a finished-stages group (gaps within a group are measured from it). */
+	group_leader: boolean;
 };
 
 export type DisplayStageRow = {
@@ -38,6 +40,7 @@ import { rankTimes } from './domain/ranking';
 
 export function formatMs(ms: number | null | undefined): string {
 	if (ms == null) return '—';
+	if (ms < 0) return `-${formatMs(-ms)}`;
 	const sec = Math.floor(ms / 1000);
 	const m = Math.floor(sec / 60);
 	const s = sec % 60;

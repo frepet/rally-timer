@@ -18,6 +18,11 @@ describe('formatMs', () => {
 		expect(formatMs(null)).toBe('—');
 		expect(formatMs(undefined)).toBe('—');
 	});
+
+	it('puts a single sign in front of negative values', () => {
+		expect(formatMs(-290_980)).toBe('-4:50.98');
+		expect(formatMs(-50)).toBe('-0:00.05');
+	});
 });
 
 describe('assignPositionsAndDeltas', () => {

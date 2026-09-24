@@ -141,10 +141,27 @@ export function buildRallyRows(stageData: StageData[]): DisplayRallyRow[] {
 		delta_prev: null,
 		position: 0,
 		dnf: v.dnfCount > 0,
-		dnf_count: v.dnfCount
+		dnf_count: v.dnfCount,
+		group_leader: false
 	}));
 
 	rows.sort(compareRallyDrivers);
-	assignPositionsAndDeltas(rows, (r) => r.total_ms);
+	// While a stage is live, drivers who have finished it have one stage more
+	// than those still out on it. Totals across different stage counts are not
+	// comparable, so gaps are measured within each finished-stages group, and
+	// each group's first driver is treated like a leader. Positions stay
+	// continuous across groups.
+	let start = 0;
+	while (start < rows.length) {
+		let end = start;
+		while (end < rows.length && rows[end].finished_stages === rows[start].finished_stages) end++;
+		const group = rows.slice(start, end);
+		assignPositionsAndDeltas(group, (r) => r.total_ms);
+		group.forEach((r, i) => {
+			r.position = start + i + 1;
+			r.group_leader = i === 0;
+		});
+		start = end;
+	}
 	return rows;
 }
