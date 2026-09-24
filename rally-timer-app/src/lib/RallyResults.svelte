@@ -108,11 +108,6 @@
 									<span class="stat"
 										><span class="stat-label">{t.totalLabel}</span>{formatMs(r.total_ms)}</span
 									>
-									<span class="stat"
-										><span class="stat-label">Δ P1</span>{r.delta_p1 != null
-											? '+' + formatMs(r.delta_p1)
-											: '—'}</span
-									>
 								{/if}
 								<span class="stat"
 									><span class="stat-label">{t.stagesStatLabel}</span>{r.finished_stages}</span
@@ -140,17 +135,26 @@
 								{/if}
 							</div>
 						</div>
-						<span
-							class="time text-right text-xl sm:text-2xl {r.position === 1
-								? 'text-surface-900 dark:text-white'
-								: 'text-surface-700 dark:text-surface-200'}"
-						>
-							{#if r.position === 1}
-								{formatMs(r.total_ms)}
-							{:else}
-								{r.delta_prev != null ? '+' + formatMs(r.delta_prev) : '—'}
+						<div class="flex flex-col items-end">
+							<span
+								class="time text-xl sm:text-2xl {r.position === 1
+									? 'text-surface-900 dark:text-white'
+									: 'text-surface-700 dark:text-surface-200'}"
+							>
+								{#if r.position === 1}
+									{formatMs(r.total_ms)}
+								{:else}
+									{r.delta_prev != null ? '+' + formatMs(r.delta_prev) : '—'}
+								{/if}
+							</span>
+							{#if r.position !== 1}
+								<span class="stat"
+									><span class="stat-label">Δ P1</span>{r.delta_p1 != null
+										? '+' + formatMs(r.delta_p1)
+										: '—'}</span
+								>
 							{/if}
-						</span>
+						</div>
 					</div>
 				{/each}
 			</div>
@@ -220,13 +224,6 @@
 										<span class="stat"
 											><span class="stat-label">{t.timeLabel}</span>{formatMs(r.stage_ms)}</span
 										>
-										{#if !r.dnf}
-											<span class="stat"
-												><span class="stat-label">Δ P1</span>{r.delta_p1 != null
-													? '+' + formatMs(r.delta_p1)
-													: '—'}</span
-											>
-										{/if}
 									{/if}
 									{#if r.penalty_ms > 0}
 										<span class="stat text-amber-700 dark:text-amber-400"
@@ -249,19 +246,28 @@
 									{/if}
 								</div>
 							</div>
-							<span
-								class="time text-right text-xl sm:text-2xl {r.dnf
-									? 'text-surface-400 dark:text-surface-500'
-									: r.position === 1
-										? 'text-surface-900 dark:text-white'
-										: 'text-surface-700 dark:text-surface-200'}"
-							>
-								{#if r.dnf || r.position === 1}
-									{formatMs(r.stage_ms)}
-								{:else}
-									{r.delta_prev != null ? '+' + formatMs(r.delta_prev) : '—'}
+							<div class="flex flex-col items-end">
+								<span
+									class="time text-xl sm:text-2xl {r.dnf
+										? 'text-surface-400 dark:text-surface-500'
+										: r.position === 1
+											? 'text-surface-900 dark:text-white'
+											: 'text-surface-700 dark:text-surface-200'}"
+								>
+									{#if r.dnf || r.position === 1}
+										{formatMs(r.stage_ms)}
+									{:else}
+										{r.delta_prev != null ? '+' + formatMs(r.delta_prev) : '—'}
+									{/if}
+								</span>
+								{#if r.position !== 1 && !r.dnf}
+									<span class="stat"
+										><span class="stat-label">Δ P1</span>{r.delta_p1 != null
+											? '+' + formatMs(r.delta_p1)
+											: '—'}</span
+									>
 								{/if}
-							</span>
+							</div>
 						</div>
 					{/each}
 				</div>
