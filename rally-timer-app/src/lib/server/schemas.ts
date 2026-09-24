@@ -58,12 +58,9 @@ export const championshipUpdateSchema = z.object({
 		.transform((s) => s.trim())
 });
 
+// The submitted result is named after the event itself; a `name` sent by
+// older clients is stripped by zod and ignored.
 export const submitRallySchema = z.object({
-	name: z
-		.string()
-		.min(1)
-		.max(120)
-		.transform((s) => s.trim()),
 	championship_ids: z.array(z.string().uuid()).min(1)
 });
 

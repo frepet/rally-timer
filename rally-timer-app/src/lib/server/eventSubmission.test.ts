@@ -4,11 +4,12 @@ const m = vi.hoisted(() => ({
 	locked: false,
 	snapshots: 0,
 	queries: [] as string[],
+	submittedNames: [] as unknown[],
 	tail: Promise.resolve()
 }));
 vi.mock('./db', () => {
 	const sql = Object.assign(
-		async (strings: TemplateStringsArray) => {
+		async (strings: TemplateStringsArray, ...values: unknown[]) => {
 			const q = strings.join('?');
 			m.queries.push(q);
 			if (q.includes('FROM events'))
@@ -16,6 +17,7 @@ vi.mock('./db', () => {
 			if (q.includes('is_closed AS closed')) return [{ closed: true }];
 			if (q.includes('FROM championships')) return [{ id: '5e245b8a-62c2-4b94-adad-806b1cd5cd15' }];
 			if (q.includes('INSERT INTO submitted_rallies')) {
+				m.submittedNames.push(values[0]);
 				m.snapshots++;
 				return [{ id: 'snapshot' }];
 			}
@@ -42,13 +44,13 @@ vi.mock('./db', () => {
 });
 vi.mock('./keycloak', () => ({ throwIfNotAdmin: vi.fn() }));
 import { POST } from '../../routes/api/submit-rally/+server';
-function request(): RequestEvent {
+function request(body: Record<string, unknown> = { name: 'Lunch rally' }): RequestEvent {
 	return {
 		url: new URL('http://localhost/api/submit-rally?event_id=42'),
 		request: new Request('http://localhost', {
 			method: 'POST',
 			body: JSON.stringify({
-				name: 'Lunch rally',
+				...body,
 				championship_ids: ['5e245b8a-62c2-4b94-adad-806b1cd5cd15']
 			})
 		})
@@ -59,6 +61,7 @@ describe('submission transaction', () => {
 		m.locked = false;
 		m.snapshots = 0;
 		m.queries = [];
+		m.submittedNames = [];
 		m.tail = Promise.resolve();
 	});
 	it('serializes duplicate submissions and locks after the first immutable snapshot', async () => {
@@ -73,5 +76,13 @@ describe('submission transaction', () => {
 		m.locked = true;
 		await expect(POST(request())).rejects.toMatchObject({ status: 409 });
 		expect(m.snapshots).toBe(0);
+	});
+	it('names the submitted result after the event, without asking for a name', async () => {
+		await POST(request({}));
+		expect(m.submittedNames).toEqual(['Lunch rally']);
+	});
+	it('ignores a name sent by older clients and keeps the event name', async () => {
+		await POST(request({ name: 'Something else' }));
+		expect(m.submittedNames).toEqual(['Lunch rally']);
 	});
 });

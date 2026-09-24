@@ -213,9 +213,11 @@
 	{#key eventId}
 		{#if event.type === 'rally'}<RalliesManager
 				{eventId}
+				eventName={event.name}
 				onsubmitted={load}
 			/>{:else if event.type === 'rallycross'}<RallycrossManager
 				{eventId}
+				eventName={event.name}
 				onsubmitted={load}
 			/>{:else}<TrainingManager {eventId} />{/if}
 	{/key}

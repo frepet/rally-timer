@@ -19,7 +19,7 @@ export async function POST(event: RequestEvent): Promise<Response> {
 	const parsed = submitRallySchema.safeParse(body);
 	if (!parsed.success) return json({ errors: parsed.error.flatten() }, { status: 400 });
 
-	const { name, championship_ids } = parsed.data;
+	const { championship_ids } = parsed.data;
 	return db.begin(async (tx) => {
 		const sql = tx as unknown as typeof db;
 		const eventId = Number(event.url.searchParams.get('event_id'));
@@ -54,7 +54,7 @@ export async function POST(event: RequestEvent): Promise<Response> {
 
 		const [sr] = await sql`
 			INSERT INTO submitted_rallies (name, submitted_at, event_id)
-			VALUES (${name}, ${now}, ${appEvent.id})
+			VALUES (${appEvent.name}, ${now}, ${appEvent.id})
 			RETURNING id
 		`;
 		const submittedRallyId = sr.id as string;

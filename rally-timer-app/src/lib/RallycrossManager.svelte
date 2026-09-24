@@ -5,7 +5,11 @@
 		eventApiUrl,
 		participantIdsAfterToggle
 	} from '$lib/domain/eventPresentation';
-	let { eventId, onsubmitted = () => {} }: { eventId: number; onsubmitted?: () => void } = $props();
+	let {
+		eventId,
+		eventName,
+		onsubmitted = () => {}
+	}: { eventId: number; eventName: string; onsubmitted?: () => void } = $props();
 	function kcFetch(url: string, init?: RequestInit): Promise<Response> {
 		return authenticatedFetch(eventApiUrl(url, eventId), init);
 	}
@@ -125,7 +129,6 @@
 
 	// Submit modal
 	let submitModalOpen = $state(false);
-	let submitName = $state('');
 	let selectedChampIds = new SvelteSet<string>();
 	let submitting = $state(false);
 	let submitSuccess = $state<string | null>(null);
@@ -197,7 +200,6 @@
 		const res = await kcFetch('/api/championship');
 		if (res.ok) championships = await res.json();
 		selectedChampIds.clear();
-		submitName = '';
 		submitSuccess = null;
 		submitModalOpen = true;
 	}
@@ -208,13 +210,13 @@
 	}
 
 	async function submitRallycross() {
-		if (!submitName.trim() || selectedChampIds.size === 0) return;
+		if (selectedChampIds.size === 0) return;
 		submitting = true;
 		try {
 			const res = await kcFetch('/api/rallycross/submit', {
 				method: 'POST',
 				headers: { 'content-type': 'application/json' },
-				body: JSON.stringify({ name: submitName.trim(), championship_ids: [...selectedChampIds] })
+				body: JSON.stringify({ championship_ids: [...selectedChampIds] })
 			});
 			if (!res.ok) throw new Error(await res.text());
 			const { id } = (await res.json()) as { id: string };
@@ -757,8 +759,8 @@
 		<div class="space-y-4">
 			<p class="text-sm text-amber-700 dark:text-amber-300">{t.eventSubmissionWarning}</p>
 			<div>
-				<label for="rxSubmitName" class="field-label">{t.rallyNameLabel}</label>
-				<Input id="rxSubmitName" bind:value={submitName} placeholder={t.rallyNamePlaceholder} />
+				<p class="field-label">{t.eventName}</p>
+				<p class="font-semibold text-surface-900 dark:text-white">{eventName}</p>
 			</div>
 			<div>
 				<p class="mb-2 text-sm font-medium">{t.submitToChampionshipLabel}</p>
@@ -791,10 +793,7 @@
 			</div>
 			<div class="flex justify-end gap-2 border-t pt-3">
 				<Button color="alternative" onclick={() => (submitModalOpen = false)}>{t.cancel}</Button>
-				<Button
-					onclick={submitRallycross}
-					disabled={submitting || !submitName.trim() || selectedChampIds.size === 0}
-				>
+				<Button onclick={submitRallycross} disabled={submitting || selectedChampIds.size === 0}>
 					{submitting ? t.sending : t.send}
 				</Button>
 			</div>
