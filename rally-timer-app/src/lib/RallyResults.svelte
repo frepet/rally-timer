@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
+	import StagePicker from './components/StagePicker.svelte';
 	import { classChipClass } from './classColor';
 	import { formatMs, type DisplayRallyRow, type StageData } from './results';
 	import { t } from './stores/locale.svelte';
@@ -165,25 +166,7 @@
 		</div>
 		<div class="border-b border-surface-100 px-4 py-3 sm:px-6 dark:border-white/8">
 			{#if stages.length}
-				<div class="seg">
-					{#each stages as s (s.name)}
-						<button
-							type="button"
-							class="seg-btn"
-							aria-pressed={activeStage === s.name}
-							onclick={() => (activeStage = s.name)}
-						>
-							{#if s.status === 'live'}
-								<span class="status-dot status-dot--live"></span>
-							{:else if s.status === 'upcoming'}
-								<span class="status-dot status-dot--upcoming"></span>
-							{:else if s.status === 'closed'}
-								<span class="status-dot status-dot--off"></span>
-							{/if}
-							{s.name}
-						</button>
-					{/each}
-				</div>
+				<StagePicker {stages} active={activeStage} onselect={(name) => (activeStage = name)} />
 			{:else}
 				<span class="text-sm text-surface-500 dark:text-surface-400">{t.noStagesYet}</span>
 			{/if}

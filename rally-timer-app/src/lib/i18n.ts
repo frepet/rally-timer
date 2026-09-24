@@ -93,6 +93,15 @@ export const sv = {
 	timeLabel: 'Tid',
 	noResultsYet: 'Inga resultat än.',
 	noStagesYet: 'Inga sträckor än.',
+
+	// Stage picker
+	stagePickerLabel: 'Välj sträcka',
+	stagePrev: 'Föregående sträcka',
+	stageNext: 'Nästa sträcka',
+	stageStatusLive: 'Pågår',
+	stageStatusUpcoming: 'Ej startad',
+	stageStatusClosed: 'Klar',
+	stageCounter: (i: number, n: number) => `${i} / ${n}`,
 	noStageResultsYet: 'Inga sträckaresultat än.',
 	resultsSubheading: 'Resultat',
 	ratingLabel: 'Rating',
@@ -515,6 +524,15 @@ export const en: typeof sv = {
 	timeLabel: 'Time',
 	noResultsYet: 'No results yet.',
 	noStagesYet: 'No stages yet.',
+
+	// Stage picker
+	stagePickerLabel: 'Choose stage',
+	stagePrev: 'Previous stage',
+	stageNext: 'Next stage',
+	stageStatusLive: 'Live',
+	stageStatusUpcoming: 'Not started',
+	stageStatusClosed: 'Finished',
+	stageCounter: (i: number, n: number) => `${i} / ${n}`,
 	noStageResultsYet: 'No stage results yet.',
 	resultsSubheading: 'Results',
 	ratingLabel: 'Rating',
