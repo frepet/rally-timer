@@ -1,10 +1,23 @@
 @import 'tailwindcss';
+@import '@fontsource-variable/inter';
+@import '@fontsource/barlow-condensed/500.css';
+@import '@fontsource/barlow-condensed/600.css';
+@import '@fontsource/barlow-condensed/700.css';
 @plugin '@tailwindcss/typography';
 @plugin 'flowbite/plugin';
 
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
+	--font-sans:
+		'Inter Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+	--font-display: 'Barlow Condensed', 'Arial Narrow', ui-sans-serif, system-ui, sans-serif;
+
+	/* Podium */
+	--color-gold: #e0a800;
+	--color-silver: #9ca3af;
+	--color-bronze: #c47a3d;
+
 	/* Primary ramp — signal orange */
 	--color-primary-50: #fff5f2;
 	--color-primary-100: #fff1ee;
@@ -79,6 +92,178 @@
 	.small-caps {
 		font-variant-caps: small-caps;
 	}
+
+	body {
+		font-feature-settings: 'cv11', 'ss01';
+		-webkit-font-smoothing: antialiased;
+	}
+}
+
+/* ── Design primitives ─────────────────────────────────────────────────────
+   Shared building blocks for every page. Pages compose these instead of
+   repeating long utility strings, so the look stays consistent. */
+@layer components {
+	/* Page shell: centred column with consistent gutters */
+	.page {
+		@apply mx-auto w-full max-w-6xl space-y-6 px-4 py-6 sm:px-6 lg:py-8;
+	}
+	.page--narrow {
+		@apply max-w-4xl;
+	}
+
+	/* Condensed, uppercase display type — the "timing board" voice */
+	.display {
+		font-family: var(--font-display);
+		@apply tracking-wide uppercase;
+	}
+	.page-title {
+		font-family: var(--font-display);
+		@apply text-3xl leading-none font-bold tracking-wide text-surface-900 uppercase sm:text-4xl dark:text-white;
+	}
+	.eyebrow {
+		@apply text-[0.7rem] font-semibold tracking-[0.14em] text-surface-500 uppercase dark:text-surface-400;
+	}
+
+	/* Panel: the main surface. Replaces ad-hoc <Card> styling. */
+	.panel {
+		@apply rounded-xl bg-white shadow-sm ring-1 ring-black/5 dark:bg-surface-850 dark:shadow-none dark:ring-white/8;
+	}
+	.panel-body {
+		@apply p-4 sm:p-6;
+	}
+	.panel-head {
+		@apply flex flex-wrap items-center justify-between gap-3 border-b border-surface-100 px-4 py-3 sm:px-6 dark:border-white/8;
+	}
+	.panel-title {
+		font-family: var(--font-display);
+		@apply flex items-center gap-2.5 text-xl leading-none font-bold tracking-wide text-surface-900 uppercase dark:text-white;
+	}
+	.panel-title::before {
+		content: '';
+		@apply inline-block h-4 w-1 shrink-0 rounded-full bg-primary-600;
+	}
+
+	/* Field label above inputs */
+	.field-label {
+		@apply mb-1.5 block text-xs font-semibold tracking-wide text-surface-600 uppercase dark:text-surface-400;
+	}
+
+	/* Timing numerals */
+	.time {
+		font-family: var(--font-display);
+		font-variant-numeric: tabular-nums;
+		@apply font-semibold tracking-wide;
+	}
+	.num {
+		font-variant-numeric: tabular-nums;
+	}
+
+	/* Result row (leaderboards) */
+	.timing-list {
+		@apply divide-y divide-surface-100 dark:divide-white/6;
+	}
+	.timing-row {
+		@apply grid grid-cols-[2.75rem_1fr_auto] items-center gap-x-3 px-3 py-2.5 transition-colors sm:gap-x-4 sm:px-4;
+	}
+	.timing-row:hover {
+		@apply bg-surface-50 dark:bg-white/3;
+	}
+
+	/* Position tile; podium variants tint it gold/silver/bronze */
+	.pos {
+		font-family: var(--font-display);
+		font-variant-numeric: tabular-nums;
+		@apply flex h-9 w-9 items-center justify-center justify-self-center rounded-md bg-surface-100 text-xl font-bold text-surface-700 dark:bg-white/8 dark:text-surface-200;
+	}
+	.pos--1 {
+		background: color-mix(in srgb, var(--color-gold) 20%, transparent);
+		color: color-mix(in srgb, var(--color-gold) 70%, black);
+		box-shadow: inset 0 0 0 1.5px var(--color-gold);
+	}
+	.pos--2 {
+		background: color-mix(in srgb, var(--color-silver) 22%, transparent);
+		color: color-mix(in srgb, var(--color-silver) 55%, black);
+		box-shadow: inset 0 0 0 1.5px var(--color-silver);
+	}
+	.pos--3 {
+		background: color-mix(in srgb, var(--color-bronze) 20%, transparent);
+		color: color-mix(in srgb, var(--color-bronze) 70%, black);
+		box-shadow: inset 0 0 0 1.5px var(--color-bronze);
+	}
+	:where(.dark) .pos--1 {
+		color: var(--color-gold);
+	}
+	:where(.dark) .pos--2 {
+		color: #d4d4d8;
+	}
+	:where(.dark) .pos--3 {
+		color: #e19a5e;
+	}
+
+	/* Small uppercase pill for classes, types, states */
+	.chip {
+		@apply inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[0.68rem] leading-none font-semibold tracking-wider whitespace-nowrap uppercase;
+		@apply bg-surface-100 text-surface-600 dark:bg-white/8 dark:text-surface-300;
+	}
+	.chip--primary {
+		@apply bg-primary-100 text-primary-800 dark:bg-primary-500/15 dark:text-primary-400;
+	}
+	.chip--ok {
+		@apply bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400;
+	}
+	.chip--warn {
+		@apply bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400;
+	}
+	.chip--danger {
+		@apply bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400;
+	}
+
+	/* Stat line under a driver name: "Total 9:30.40  Δ P1 +0:11.44" */
+	.stat {
+		@apply text-xs whitespace-nowrap text-surface-600 dark:text-surface-300;
+		font-variant-numeric: tabular-nums;
+	}
+	.stat-label {
+		@apply mr-1 text-[0.65rem] font-semibold tracking-wider text-surface-400 uppercase dark:text-surface-500;
+	}
+
+	/* Segmented tab strip (stage selector, heat selector, ...) */
+	.seg {
+		@apply flex flex-wrap gap-1 rounded-lg bg-surface-100 p-1 dark:bg-white/5;
+	}
+	.seg-btn {
+		@apply inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-surface-600 transition-colors hover:text-surface-900 dark:text-surface-300 dark:hover:text-white;
+	}
+	.seg-btn[aria-pressed='true'],
+	.seg-btn[aria-selected='true'] {
+		@apply bg-white text-surface-900 shadow-sm ring-1 ring-black/5 dark:bg-surface-700 dark:text-white dark:ring-white/10;
+	}
+
+	/* Data tables */
+	.data-table {
+		@apply w-full text-sm;
+		font-variant-numeric: tabular-nums;
+	}
+	.data-table thead th {
+		@apply border-b border-surface-200 px-3 pb-2 text-left text-[0.68rem] font-semibold tracking-wider text-surface-500 uppercase dark:border-white/10 dark:text-surface-400;
+	}
+	.data-table tbody td {
+		@apply border-b border-surface-100 px-3 py-2 text-surface-900 dark:border-white/5 dark:text-surface-100;
+	}
+	.data-table tbody tr:last-child td {
+		@apply border-b-0;
+	}
+	.data-table tbody tr:hover td {
+		@apply bg-surface-50 dark:bg-white/3;
+	}
+
+	/* Empty-state / hint text */
+	.empty {
+		@apply rounded-lg border border-dashed border-surface-200 px-4 py-8 text-center text-sm text-surface-500 dark:border-white/10 dark:text-surface-400;
+	}
+	.alert-error {
+		@apply rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300;
+	}
 }
 
 /* Status dot — drop-in replacement for heavy <Badge> in gate/driver status */
@@ -125,8 +310,50 @@
 
 /* Unlayered — beats all Tailwind/Flowbite layered utility classes (py-4, py-3, etc.).
    Only overrides vertical padding; horizontal padding is left to Flowbite defaults. */
-table tbody td,
-table tbody th,
-table thead th {
+table:not(.data-table) tbody td,
+table:not(.data-table) tbody th,
+table:not(.data-table) thead th {
 	padding-block: calc(var(--spacing) * 1);
+}
+
+/* Flowbite <Table> inside a panel: blend into the panel instead of drawing its
+   own gray header band and heavy row rules. Unlayered so it beats Flowbite's
+   utility classes; only touches colour/border/type, never layout. */
+.panel table:not(.data-table) {
+	color: var(--color-surface-800);
+	font-variant-numeric: tabular-nums;
+}
+.panel table:not(.data-table) thead,
+.panel table:not(.data-table) thead tr,
+.panel table:not(.data-table) thead th {
+	background-color: transparent;
+}
+.panel table:not(.data-table) thead th {
+	font-size: 0.68rem;
+	letter-spacing: 0.08em;
+	color: var(--color-surface-500);
+	border-bottom: 1px solid var(--color-surface-200);
+}
+.panel table:not(.data-table) tbody tr {
+	border-color: var(--color-surface-100);
+}
+/* Rows that set their own bg (e.g. gate flash) keep it */
+.panel table:not(.data-table) tbody tr:not([class*='bg-']) {
+	background-color: transparent;
+}
+.panel table:not(.data-table) tbody tr:not([class*='bg-']):hover {
+	background-color: var(--color-surface-50);
+}
+.dark .panel table:not(.data-table) {
+	color: var(--color-surface-100);
+}
+.dark .panel table:not(.data-table) thead th {
+	color: var(--color-surface-400);
+	border-color: rgb(255 255 255 / 0.1);
+}
+.dark .panel table:not(.data-table) tbody tr {
+	border-color: rgb(255 255 255 / 0.06);
+}
+.dark .panel table:not(.data-table) tbody tr:not([class*='bg-']):hover {
+	background-color: rgb(255 255 255 / 0.03);
 }

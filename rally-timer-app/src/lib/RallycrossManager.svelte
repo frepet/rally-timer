@@ -9,7 +9,7 @@
 	function kcFetch(url: string, init?: RequestInit): Promise<Response> {
 		return authenticatedFetch(eventApiUrl(url, eventId), init);
 	}
-	import { Card, Button, Input, Select, Badge, Modal, Toggle, Checkbox } from 'flowbite-svelte';
+	import { Button, Input, Select, Badge, Modal, Toggle, Checkbox } from 'flowbite-svelte';
 	import {
 		RefreshOutline,
 		AwardOutline,
@@ -19,6 +19,7 @@
 		EyeOutline
 	} from 'flowbite-svelte-icons';
 	import { SvelteSet } from 'svelte/reactivity';
+	import { classChipClass } from '$lib/classColor';
 	import { kcFetch as authenticatedFetch } from '$lib/kcFetch';
 	import { startLiveRefresh } from '$lib/liveRefresh';
 	import { primeAudio, getAudioCurrentTime, scheduleBeepAt } from '$lib/beep';
@@ -393,11 +394,11 @@
 	});
 </script>
 
-<div class="mx-auto w-full max-w-5xl space-y-6 p-5">
+<div class="page">
 	<!-- Config card -->
-	<Card class="max-w-none p-4">
+	<section class="panel panel-body">
 		<div class="mb-3 flex items-baseline justify-between gap-2">
-			<p class="small-caps text-xl font-semibold tracking-widest text-black dark:text-white">
+			<p class="panel-title">
 				{t.rxHeading}
 			</p>
 			<div class="flex items-center gap-2">
@@ -414,7 +415,7 @@
 		{#if auth.isAdmin}
 			<div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
 				<div>
-					<label for="rxGate" class="mb-1 block text-sm font-medium">{t.rxFinishGate}</label>
+					<label for="rxGate" class="field-label">{t.rxFinishGate}</label>
 					<Select id="rxGate" bind:value={selectedGateId} onchange={saveConfig}>
 						<option value="">{t.rxChooseGate}</option>
 						{#each eligibleGates as g (g.id)}
@@ -423,7 +424,7 @@
 					</Select>
 				</div>
 				<div>
-					<label for="rxCooldown" class="mb-1 block text-sm font-medium">{t.rxCooldownLabel}</label>
+					<label for="rxCooldown" class="field-label">{t.rxCooldownLabel}</label>
 					<Input
 						id="rxCooldown"
 						type="number"
@@ -434,7 +435,7 @@
 					/>
 				</div>
 				<div>
-					<label for="rxMax" class="mb-1 block text-sm font-medium">{t.rxMaxPerHeat}</label>
+					<label for="rxMax" class="field-label">{t.rxMaxPerHeat}</label>
 					<Input
 						id="rxMax"
 						type="number"
@@ -445,7 +446,7 @@
 					/>
 				</div>
 				<div>
-					<label for="rxLaps" class="mb-1 block text-sm font-medium">{t.rxLapsLabel}</label>
+					<label for="rxLaps" class="field-label">{t.rxLapsLabel}</label>
 					<Input
 						id="rxLaps"
 						type="number"
@@ -489,7 +490,7 @@
 				{/if}
 			</div>
 		{:else}
-			<p class="text-sm text-gray-500 dark:text-gray-400">
+			<p class="text-sm text-surface-500 dark:text-surface-400">
 				{t.rxConfigSummary(
 					rx.gate_name ?? '—',
 					Math.round(rx.cooldown_ms / 1000),
@@ -498,11 +499,11 @@
 				)}
 			</p>
 		{/if}
-	</Card>
+	</section>
 
 	<!-- Active heat -->
 	{#if rx.active_heat}
-		<Card class="max-w-none p-4">
+		<section class="panel panel-body">
 			<div class="mb-3 flex items-center justify-between gap-2">
 				<div class="flex items-center gap-2">
 					<p class="font-semibold">{t.rxHeatLabel(rx.active_heat.number)}</p>
@@ -535,12 +536,12 @@
 								<tr
 									class="border-b border-gray-100 dark:border-gray-800 {r.finished
 										? 'text-gray-900 dark:text-white'
-										: 'text-gray-500 dark:text-gray-400'}"
+										: 'text-surface-500 dark:text-surface-400'}"
 								>
 									<td class="py-1.5 pr-4 font-mono">{r.finished ? i + 1 : '—'}</td>
 									<td class="py-1.5 pr-4">
 										<span class="font-medium">{r.driver_name}</span>
-										<span class="ml-1 text-xs opacity-60">{r.class_name}</span>
+										<span class="chip ml-1 {classChipClass(r.class_name)}">{r.class_name}</span>
 										{#if r.dnf}<Badge color="red" class="ml-1 text-xs">DNF</Badge>{/if}
 									</td>
 									<td class="py-1.5 pr-4 text-right font-mono">
@@ -556,12 +557,12 @@
 			{:else}
 				<p class="text-sm text-gray-500">{t.rxWaitingForDrivers}</p>
 			{/if}
-		</Card>
+		</section>
 	{:else}
 		{@const pendingHeat = rx.heats.find((h) => h.started_at === null && h.closed_at === null)}
 		{#if pendingHeat}
 			<!-- Pending heat waiting to start -->
-			<Card class="max-w-none p-4">
+			<section class="panel panel-body">
 				<div class="flex items-center justify-between gap-2">
 					<div class="flex items-center gap-2">
 						<p class="font-semibold">{t.rxHeatLabel(pendingHeat.number)}</p>
@@ -595,10 +596,10 @@
 				{#if !rx.gate_id}
 					<p class="mt-2 text-sm text-yellow-600">{t.rxAssignGateBeforeStart}</p>
 				{/if}
-			</Card>
+			</section>
 		{:else if auth.isAdmin}
 			<!-- Create next heat -->
-			<Card class="max-w-none p-4">
+			<section class="panel panel-body">
 				<p class="mb-3 font-semibold">{t.rxCreateNextHeat}</p>
 
 				{#if suggestedGroups.length}
@@ -637,7 +638,7 @@
 								/>
 								<div>
 									<span class="text-sm font-medium">{s.driver_name}</span>
-									<span class="ml-1 text-xs text-gray-500">{s.class_name}</span>
+									<span class="chip ml-1 {classChipClass(s.class_name)}">{s.class_name}</span>
 									<span class="ml-1 text-xs text-gray-400">· {t.rxHeatCount(s.heat_count)}</span>
 								</div>
 							</div>
@@ -654,13 +655,13 @@
 				>
 					{creating ? t.creating : t.rxCreateHeat(selectedDriverIds.size)}
 				</Button>
-			</Card>
+			</section>
 		{/if}
 	{/if}
 
 	<!-- Heat list -->
 	{#if rx.heats.length}
-		<Card class="max-w-none p-4">
+		<section class="panel panel-body">
 			<p class="mb-3 font-semibold">{t.rxHeatsHeading}</p>
 			<div class="space-y-1">
 				{#each rx.heats as h (h.id)}
@@ -702,7 +703,7 @@
 					</div>
 				{/each}
 			</div>
-		</Card>
+		</section>
 	{/if}
 
 	<!-- Per-heat results + overall standings -->
@@ -728,7 +729,7 @@
 			</li>
 		{/each}
 		{#if !filteredDrivers.length}
-			<li class="text-gray-500 dark:text-gray-400">
+			<li class="text-surface-500 dark:text-surface-400">
 				{driverSearch ? t.noMatches : t.noDrivers}
 			</li>
 		{/if}
@@ -756,7 +757,7 @@
 		<div class="space-y-4">
 			<p class="text-sm text-amber-700 dark:text-amber-300">{t.eventSubmissionWarning}</p>
 			<div>
-				<label for="rxSubmitName" class="mb-1 block text-sm font-medium">{t.rallyNameLabel}</label>
+				<label for="rxSubmitName" class="field-label">{t.rallyNameLabel}</label>
 				<Input id="rxSubmitName" bind:value={submitName} placeholder={t.rallyNamePlaceholder} />
 			</div>
 			<div>
@@ -780,7 +781,7 @@
 						{/each}
 					</ul>
 				{:else}
-					<p class="text-sm text-gray-500 dark:text-gray-400">
+					<p class="text-sm text-surface-500 dark:text-surface-400">
 						{t.noChampionshipsYetCreate}
 						<a href="/championships" class="text-blue-600 hover:underline dark:text-blue-400"
 							>{t.createOne}</a
@@ -817,7 +818,7 @@
 <!-- Manual Finish Order Modal -->
 <Modal title={t.rxManualOrderTitle} bind:open={manualOrderModalOpen} size="sm" autoclose={false}>
 	<div class="space-y-4">
-		<p class="text-sm text-gray-500 dark:text-gray-400">{t.rxManualOrderHint}</p>
+		<p class="text-sm text-surface-500 dark:text-surface-400">{t.rxManualOrderHint}</p>
 		<ul class="space-y-2">
 			{#each manualOrderDrivers as driver, i (driver.id)}
 				<li

@@ -9,7 +9,7 @@
 	function kcFetch(url: string, init?: RequestInit): Promise<Response> {
 		return authenticatedFetch(eventApiUrl(url, eventId), init);
 	}
-	import { Card, Button, Input, Select, Badge, Modal, Toggle } from 'flowbite-svelte';
+	import { Button, Input, Select, Badge, Modal, Toggle } from 'flowbite-svelte';
 	import {
 		TrashBinOutline,
 		DotsVerticalOutline,
@@ -457,7 +457,7 @@
 	<div
 		role="menu"
 		style="position:fixed; top:{stageMenuPos.top}; bottom:{stageMenuPos.bottom}; right:{stageMenuPos.right}; z-index:9999;"
-		class="min-w-[9rem] rounded-md border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-800"
+		class="min-w-[9rem] rounded-lg bg-white py-1 shadow-lg ring-1 ring-black/5 dark:bg-surface-800 dark:ring-white/10"
 		tabindex="-1"
 		onclick={(e) => e.stopPropagation()}
 		onkeydown={(e) => e.key === 'Escape' && (openStageMenuId = null)}
@@ -485,11 +485,11 @@
 	</div>
 {/if}
 
-<div class="mx-auto w-full max-w-5xl space-y-6 p-5">
+<div class="page">
 	<!-- Rally actions -->
-	<Card class="max-w-none p-4">
+	<section class="panel panel-body">
 		<div class="mb-3">
-			<p class="small-caps text-xl font-semibold tracking-widest text-black dark:text-white">
+			<p class="panel-title">
 				{t.currentRally}
 			</p>
 		</div>
@@ -530,12 +530,12 @@
 		{#if addMissingStatus}
 			<p class="mt-2 text-sm font-medium text-green-600 dark:text-green-400">{addMissingStatus}</p>
 		{/if}
-	</Card>
+	</section>
 
 	<!-- Stages -->
-	<Card class="max-w-none p-4">
+	<section class="panel panel-body">
 		<div class="mb-4">
-			<h2 class="small-caps text-xl font-semibold tracking-widest text-black dark:text-white">
+			<h2 class="panel-title">
 				{t.stagesHeading}
 			</h2>
 		</div>
@@ -544,7 +544,7 @@
 		<div class="flex flex-col gap-3">
 			{#each stages as s (s.id)}
 				<div
-					class="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900/50"
+					class="rounded-lg bg-surface-50 p-4 ring-1 ring-surface-200 dark:bg-white/3 dark:ring-white/8"
 				>
 					<!-- Header: name + gate chips + pen icon (admin) -->
 					<div class="mb-3 flex flex-wrap items-center gap-2">
@@ -561,19 +561,19 @@
 							<Button size="xs" onclick={() => saveEdit(s.id)}>{t.save}</Button>
 							<Button size="xs" color="light" onclick={cancelEdit}>{t.cancel}</Button>
 						{:else}
-							<h3 class="font-mono text-base font-semibold text-gray-900 dark:text-gray-100">
+							<h3 class="display text-xl leading-none font-bold text-surface-900 dark:text-white">
 								{s.name}
 							</h3>
 							{#each assignedGatesForStage(s.id) as g (g.id)}
 								<span
-									class="flex items-center gap-1.5 rounded border border-gray-200 bg-white px-2 py-0.5 text-sm dark:border-gray-600 dark:bg-gray-700"
+									class="flex items-center gap-1.5 rounded-md bg-white px-2 py-0.5 text-sm ring-1 ring-surface-200 dark:bg-white/5 dark:ring-white/10"
 								>
 									<span class="status-dot {isOnline(g) ? 'status-dot--ok' : 'status-dot--off'}"
 									></span>
 									<span class="font-mono text-xs text-gray-700 dark:text-gray-200"
 										>{g.name ?? g.id.slice(0, 8)}</span
 									>
-									<span class="text-xs text-gray-500 dark:text-gray-400"
+									<span class="text-xs text-surface-500 dark:text-surface-400"
 										>{isOnline(g) ? 'Online' : 'Offline'}</span
 									>
 									{#if auth.isAdmin}
@@ -624,7 +624,7 @@
 										onclick={(e) => openStageMenu(e, s.id)}
 										class="rounded p-1 hover:bg-gray-100 dark:hover:bg-gray-700"
 									>
-										<DotsVerticalOutline class="text-gray-500 dark:text-gray-400" size="sm" />
+										<DotsVerticalOutline class="text-surface-500 dark:text-surface-400" size="sm" />
 									</button>
 								</div>
 							{/if}
@@ -673,9 +673,7 @@
 				</div>
 			{/each}
 			{#if !stages.length}
-				<p
-					class="rounded-lg border-2 border-dashed border-gray-200 py-8 text-center text-sm text-gray-400 dark:border-gray-700 dark:text-gray-500"
-				>
+				<p class="empty dark:text-surface-400">
 					{t.noStagesYet}
 				</p>
 			{/if}
@@ -699,14 +697,14 @@
 				</div>
 			</div>
 		{/if}
-	</Card>
+	</section>
 </div>
 
 <!-- Penalty Modal -->
 <Modal title={t.penaltyModal} bind:open={penaltyModalOpen} size="sm" autoclose={false}>
 	<div class="space-y-4">
 		<div>
-			<label for="penaltyStage" class="mb-1 block text-sm font-medium">{t.stageLabel}</label>
+			<label for="penaltyStage" class="field-label">{t.stageLabel}</label>
 			<Select
 				id="penaltyStage"
 				value={penaltyStageId ?? ''}
@@ -721,7 +719,7 @@
 			</Select>
 		</div>
 		<div>
-			<label for="penaltyDriver" class="mb-1 block text-sm font-medium">{t.driverLabel}</label>
+			<label for="penaltyDriver" class="field-label">{t.driverLabel}</label>
 			{#if penaltyFinishers.length}
 				<Select
 					id="penaltyDriver"
@@ -734,11 +732,11 @@
 					{/each}
 				</Select>
 			{:else}
-				<p class="text-sm text-gray-500 dark:text-gray-400">{t.noFinishers}</p>
+				<p class="text-sm text-surface-500 dark:text-surface-400">{t.noFinishers}</p>
 			{/if}
 		</div>
 		<div>
-			<label for="penaltySecs" class="mb-1 block text-sm font-medium">
+			<label for="penaltySecs" class="field-label">
 				{t.penaltySeconds}{#if selectedFinisher && selectedFinisher.penalty_ms > 0}
 					<span class="ml-2 font-normal text-amber-600 dark:text-amber-400">
 						{t.currentPenaltyPrefix} +{selectedFinisher.penalty_ms / 1000}s
@@ -747,7 +745,7 @@
 			</label>
 			<Input id="penaltySecs" type="number" min="0" bind:value={penaltySeconds} />
 			{#if penaltySeconds === 0}
-				<p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{t.removePenaltyHint}</p>
+				<p class="mt-1 text-xs text-surface-500 dark:text-surface-400">{t.removePenaltyHint}</p>
 			{/if}
 		</div>
 		<div class="flex justify-end gap-2 border-t pt-3">
@@ -779,7 +777,7 @@
 			</li>
 		{/each}
 		{#if !filteredDrivers.length}
-			<li class="text-gray-500 dark:text-gray-400">
+			<li class="text-surface-500 dark:text-surface-400">
 				{driverSearch ? t.noMatches : t.noDrivers}
 			</li>
 		{/if}
@@ -821,7 +819,7 @@
 		<div class="space-y-4">
 			<p class="text-sm text-amber-700 dark:text-amber-300">{t.eventSubmissionWarning}</p>
 			<div>
-				<label for="rallyName" class="mb-1 block text-sm font-medium">{t.rallyNameLabel}</label>
+				<label for="rallyName" class="field-label">{t.rallyNameLabel}</label>
 				<Input id="rallyName" bind:value={submitRallyName} placeholder={t.rallyNamePlaceholder} />
 			</div>
 			<div>
@@ -845,7 +843,7 @@
 						{/each}
 					</ul>
 				{:else}
-					<p class="text-sm text-gray-500 dark:text-gray-400">
+					<p class="text-sm text-surface-500 dark:text-surface-400">
 						{t.noChampionshipsYetCreate}
 						<a href="/championships" class="text-blue-600 hover:underline dark:text-blue-400"
 							>{t.createOne}</a
@@ -869,7 +867,7 @@
 <!-- Fix DNF Modal -->
 <Modal title={t.fixDnfModal} bind:open={fixDnfOpen} size="sm" autoclose={false}>
 	{#if dnfEntries.length === 0}
-		<p class="text-sm text-gray-500 dark:text-gray-400">{t.fixDnfNoDnfs}</p>
+		<p class="text-sm text-surface-500 dark:text-surface-400">{t.fixDnfNoDnfs}</p>
 	{:else}
 		<div class="space-y-3">
 			{#each dnfEntries as entry (dnfKey(entry))}
@@ -879,7 +877,9 @@
 				>
 					<div>
 						<span class="font-medium text-gray-900 dark:text-white">{entry.driver_name}</span>
-						<span class="ml-2 text-sm text-gray-500 dark:text-gray-400">{entry.stage_name}</span>
+						<span class="ml-2 text-sm text-surface-500 dark:text-surface-400"
+							>{entry.stage_name}</span
+						>
 						{#if state.status === 'done'}
 							<span class="ml-2 text-sm text-green-600 dark:text-green-400">✓ {state.message}</span>
 						{:else if state.status === 'error'}

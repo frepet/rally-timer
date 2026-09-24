@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { Badge, Card } from 'flowbite-svelte';
+	import { Badge } from 'flowbite-svelte';
+	import { classChipClass } from '$lib/classColor';
 	import { formatMs } from '$lib/results';
 	import { t } from '$lib/stores/locale.svelte';
 	import type { PageData } from './$types';
@@ -16,7 +17,7 @@
 	}
 </script>
 
-<div class="mx-auto w-full max-w-4xl space-y-6 p-5">
+<div class="page page--narrow">
 	<div class="flex items-center gap-4">
 		<a
 			href={`/events/${data.heat.event_id}/manage`}
@@ -27,7 +28,7 @@
 		<p class="text-2xl font-bold">{t.rxEventsPageTitle(data.heat.number)}</p>
 	</div>
 
-	<Card class="max-w-none p-4">
+	<section class="panel panel-body">
 		<div class="flex flex-wrap gap-6 text-sm text-gray-600 dark:text-gray-400">
 			<span>{t.rxRequiredLaps(data.heat.required_laps)}</span>
 			<span>{t.rxCooldownLabel}: {data.cooldown_ms / 1000} s</span>
@@ -38,7 +39,7 @@
 				<span>→ {fmtClock(data.heat.closed_at)}</span>
 			{/if}
 		</div>
-	</Card>
+	</section>
 
 	{#if !data.gate_configured}
 		<p class="text-sm text-gray-500">{t.rxNoGateConfigured}</p>
@@ -46,10 +47,10 @@
 		<p class="text-sm text-gray-500">{t.rxHeatNeverStarted}</p>
 	{:else}
 		{#each data.drivers as driver (driver.driver_id)}
-			<Card class="max-w-none p-4">
+			<section class="panel panel-body">
 				<div class="mb-3 flex items-baseline gap-3">
 					<p class="font-semibold">{driver.driver_name}</p>
-					<span class="text-xs text-gray-500">{driver.class_name}</span>
+					<span class="chip {classChipClass(driver.class_name)}">{driver.class_name}</span>
 					<span class="font-mono text-xs text-gray-400">{driver.tag}</span>
 				</div>
 
@@ -96,7 +97,7 @@
 						</table>
 					</div>
 				{/if}
-			</Card>
+			</section>
 		{/each}
 	{/if}
 </div>

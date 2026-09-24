@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
-	import { Card, Button, Select, Input, P, Modal, Tabs, TabItem } from 'flowbite-svelte';
+	import { Button, Select, Input, P, Modal, Tabs, TabItem } from 'flowbite-svelte';
 	import {
 		TrashBinOutline,
 		PlusOutline,
@@ -173,21 +173,21 @@
 	onMount(loadChampionships);
 </script>
 
-<div class="w-full space-y-6 p-5">
-	<div class="flex flex-wrap items-center justify-between gap-2"></div>
+<div class="page">
+	<h1 class="page-title">{t.navChampionships}</h1>
 
 	{#if championships.length === 0}
-		<Card class="max-w-none p-8 text-center">
-			<P class="text-gray-500 dark:text-gray-400">{t.noChampionshipsYet}</P>
+		<section class="panel p-8 text-center">
+			<P class="text-surface-500 dark:text-surface-400">{t.noChampionshipsYet}</P>
 			{#if auth.isAdmin}
 				<Button class="mt-4" onclick={() => (createModalOpen = true)}
 					>{t.createFirstChampionship}</Button
 				>
 			{/if}
-		</Card>
+		</section>
 	{:else}
 		<!-- Championship selector -->
-		<div class="flex items-center gap-2">
+		<div class="flex flex-wrap items-center gap-2">
 			<Select
 				class="w-64"
 				value={selectedId}
@@ -199,16 +199,16 @@
 			</Select>
 			{#if auth.isAdmin && selectedId}
 				<button
-					class="rounded p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
+					class="rounded-lg p-2 text-surface-500 hover:bg-surface-200/60 hover:text-surface-900 dark:hover:bg-white/10 dark:hover:text-white"
 					title={t.renameChampionshipTitle}
 					onclick={openRenameModal}
 				>
 					<PenOutline size="sm" />
 				</button>
 				<button
-					class="rounded p-2 hover:bg-gray-100 dark:hover:bg-gray-700 {selectedChamp?.is_default
+					class="rounded-lg p-2 hover:bg-surface-200/60 dark:hover:bg-white/10 {selectedChamp?.is_default
 						? 'text-yellow-400'
-						: 'text-gray-500'}"
+						: 'text-surface-500'}"
 					title={selectedChamp?.is_default ? t.unstarChampionship : t.starChampionship}
 					onclick={toggleDefault}
 				>
@@ -219,7 +219,7 @@
 					{/if}
 				</button>
 				<button
-					class="rounded p-2 text-red-500 hover:bg-gray-100 dark:hover:bg-gray-700"
+					class="rounded-lg p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10"
 					title={t.deleteChampionshipTitle}
 					onclick={() => deleteChampionship(selectedId!)}
 				>
@@ -240,10 +240,10 @@
 				{#if rallies.length}
 					<div class="flex flex-wrap gap-2">
 						{#each rallies as r (r.id)}
-							<div class="inline-flex overflow-hidden rounded text-xs font-medium">
+							<div class="inline-flex overflow-hidden rounded-md text-xs font-semibold shadow-sm">
 								<a
 									href="/rallies/{r.id}"
-									class="bg-primary-700 px-2.5 py-0.5 text-white hover:brightness-90"
+									class="bg-primary-600 px-2.5 py-1 text-white hover:bg-primary-700"
 								>
 									{r.name} ({fmtDate(r.submitted_at)})
 								</a>
@@ -252,7 +252,7 @@
 										type="button"
 										title={t.delete}
 										onclick={() => removeRallyFromChampionship(r.id, r.name)}
-										class="flex items-center bg-primary-700 px-1.5 text-white hover:bg-red-600"
+										class="flex items-center border-l border-white/25 bg-primary-600 px-1.5 text-white hover:bg-red-600"
 									>
 										<svg
 											class="h-3 w-3"
@@ -276,29 +276,29 @@
 
 				<!-- Standings per class -->
 				{#if loading}
-					<P class="text-gray-400">{t.loadingStandings}</P>
+					<p class="text-sm text-surface-400">{t.loadingStandings}</p>
 				{:else if standings.length === 0}
-					<Card class="max-w-none p-6 text-center">
-						<P class="text-gray-500 dark:text-gray-400">{t.noResultsSubmitRally}</P>
+					<section class="panel p-6 text-center">
+						<P class="text-surface-500 dark:text-surface-400">{t.noResultsSubmitRally}</P>
 						{#if auth.isAdmin}
 							<a
 								href="/events"
-								class="mt-2 block text-sm text-blue-600 hover:underline dark:text-blue-400"
+								class="mt-2 block text-sm font-medium text-primary-600 hover:underline dark:text-primary-500"
 							>
 								{t.goToManage}
 							</a>
 						{/if}
-					</Card>
+					</section>
 				{:else}
 					<Tabs style="underline" class="m-0" classes={{ content: 'p-0' }}>
 						{#each classes as cls (cls)}
 							<TabItem title={cls} open={cls === classes[0]} class="p-0">
-								<Card class="max-w-none p-4">
+								<section class="panel overflow-x-auto p-2 sm:p-4">
 									<table
-										class="w-full table-fixed border-collapse text-sm text-gray-500 dark:text-gray-400"
+										class="w-full min-w-[32rem] table-fixed border-collapse text-sm text-surface-700 tabular-nums dark:text-surface-200"
 									>
 										<colgroup>
-											<col class="w-8" />
+											<col class="w-12" />
 											<col class="w-40" />
 											<col class="w-16" />
 											{#each rallies as r (r.id)}
@@ -308,7 +308,7 @@
 											<col />
 										</colgroup>
 										<thead
-											class="bg-transparent text-xs text-gray-700 uppercase dark:bg-transparent dark:text-gray-400"
+											class="border-b border-surface-200 text-[0.68rem] tracking-wider text-surface-500 uppercase dark:border-white/10 dark:text-surface-400"
 										>
 											<tr>
 												<th rowspan={2} class="px-2 py-3 text-right align-bottom">#</th>
@@ -337,20 +337,29 @@
 										<tbody class="font-medium">
 											{#each standingsByClass[cls] as row, i (row.driver_uuid)}
 												<tr
-													class={i % 2 === 0
-														? 'bg-gray-50 dark:bg-gray-700/40'
-														: 'bg-white dark:bg-gray-800'}
+													class="border-b border-surface-100 last:border-b-0 hover:bg-surface-50 dark:border-white/5 dark:hover:bg-white/3"
 												>
-													<td class="px-2 py-4 text-right font-semibold">{i + 1}</td>
-													<td class="px-2 py-4">{row.driver_name}</td>
-													<td class="px-2 py-4 text-right font-bold">{row.total_points}</td>
+													<td class="px-2 py-2.5"
+														><span
+															class="pos ml-auto h-8 w-8 text-lg {i < 3 ? `pos--${i + 1}` : ''}"
+															>{i + 1}</span
+														></td
+													>
+													<td
+														class="truncate px-2 py-2.5 font-semibold text-surface-900 dark:text-white"
+														>{row.driver_name}</td
+													>
+													<td
+														class="time px-2 py-2.5 text-right text-2xl text-surface-900 dark:text-white"
+														>{row.total_points}</td
+													>
 													{#each rallies as r (r.id)}
 														{@const rp = row.rally_points.find((x) => x.rally_id === r.id)}
-														<td class="px-1 py-4 text-right font-mono whitespace-nowrap"
+														<td class="px-1 py-2.5 text-right whitespace-nowrap"
 															>{rp ? rp.points : ''}</td
 														>
 														<td
-															class="px-1 py-4 text-left font-mono whitespace-nowrap text-gray-400"
+															class="px-1 py-2.5 text-left text-xs whitespace-nowrap text-surface-400"
 															>{rp ? `P${rp.position}` : ''}</td
 														>
 													{/each}
@@ -359,7 +368,7 @@
 											{/each}
 										</tbody>
 									</table>
-								</Card>
+								</section>
 							</TabItem>
 						{/each}
 					</Tabs>

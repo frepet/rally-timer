@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Badge, Card, Checkbox } from 'flowbite-svelte';
+	import { Checkbox } from 'flowbite-svelte';
+	import { classChipClass } from '$lib/classColor';
 	import { kcFetch } from '$lib/kcFetch';
 	import { t } from '$lib/stores/locale.svelte';
 	import { participantIdsAfterToggle } from '$lib/domain/eventPresentation';
@@ -34,24 +35,35 @@
 	}
 </script>
 
-<Card class="max-w-none p-4 sm:p-6">
-	<details>
-		<summary class="small-caps cursor-pointer text-lg font-semibold tracking-widest">
-			{t.eventParticipants}
+<section class="panel">
+	<details class="group">
+		<summary
+			class="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 sm:px-6 [&::-webkit-details-marker]:hidden"
+		>
+			<span class="panel-title">{t.eventParticipants}</span>
+			<span class="text-surface-400 transition-transform group-open:rotate-180" aria-hidden="true"
+				>▾</span
+			>
 		</summary>
-		{#if error}<p role="alert" class="mt-3 text-red-600">{error}</p>{/if}
-		<div class="mt-3 max-h-80 divide-y divide-gray-200 overflow-auto dark:divide-gray-700">
+		{#if error}<p role="alert" class="alert-error mx-4 mb-3 sm:mx-6">{error}</p>{/if}
+		<div
+			class="max-h-80 divide-y divide-surface-100 overflow-auto border-t border-surface-100 dark:divide-white/6 dark:border-white/8"
+		>
 			{#each drivers as driver (driver.id)}
-				<label class="flex items-center gap-3 py-2">
+				<label
+					class="flex cursor-pointer items-center gap-3 px-4 py-2 hover:bg-surface-50 sm:px-6 dark:hover:bg-white/3"
+				>
 					<Checkbox
 						disabled={saving}
 						checked={driver.active}
 						onchange={(e) => toggle(driver.id, e.currentTarget.checked)}
 					/>
-					<span>{driver.name}</span>
-					{#if driver.class_name}<Badge color="gray">{driver.class_name}</Badge>{/if}
+					<span class="font-medium">{driver.name}</span>
+					{#if driver.class_name}<span class="chip {classChipClass(driver.class_name)}"
+							>{driver.class_name}</span
+						>{/if}
 				</label>
 			{/each}
 		</div>
 	</details>
-</Card>
+</section>

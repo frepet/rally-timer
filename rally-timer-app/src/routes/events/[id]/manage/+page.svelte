@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import { Badge, Button, Card } from 'flowbite-svelte';
+	import { Button } from 'flowbite-svelte';
 	import { LockOpenOutline, LockOutline } from 'flowbite-svelte-icons';
 	import { page } from '$app/state';
 	import { kcFetch } from '$lib/kcFetch';
@@ -57,31 +57,35 @@
 	}
 </script>
 
-<div class="w-full space-y-4 p-5">
-	{#if error}<p role="alert" class="text-red-600">{error}</p>{/if}
+<div class="page pb-0">
+	{#if error}<p role="alert" class="alert-error">{error}</p>{/if}
 	{#if event}
-		<Card class="max-w-none p-4 sm:p-6">
-			<div class="flex flex-wrap items-center justify-between gap-3">
-				<div class="space-y-2">
-					<a class="text-sm text-primary-600 hover:underline dark:text-primary-500" href="/events"
-						>{t.navEvents}</a
+		<section class="panel panel-body">
+			<div class="flex flex-wrap items-end justify-between gap-4">
+				<div class="min-w-0 space-y-2">
+					<a
+						class="text-sm font-medium text-primary-600 hover:underline dark:text-primary-500"
+						href="/events">← {t.navEvents}</a
 					>
 					<div class="flex flex-wrap items-center gap-3">
-						<h1 class="small-caps text-xl font-semibold tracking-widest text-black dark:text-white">
-							{event.name}
-						</h1>
-						{#if event.is_locked}<Badge color="gray">{t.eventLocked}</Badge>{/if}
+						<h1 class="page-title break-words">{event.name}</h1>
+						{#if event.is_locked}<span class="chip">
+								<LockOutline class="h-3 w-3" />{t.eventLocked}</span
+							>{/if}
 					</div>
 				</div>
 				<div class="flex flex-wrap gap-2">
-					<Button color="alternative" href={`/events/${eventId}`}>{t.eventResults}</Button>
+					<Button color="alternative" size="sm" href={`/events/${eventId}`}>{t.eventResults}</Button
+					>
 					{#if auth.isAdmin && event.type !== 'training'}
 						<Button
 							color="alternative"
+							size="sm"
 							disabled={saving}
 							onclick={toggleLock}
 							aria-label={event.is_locked ? t.eventUnlock : t.eventLock}
 							title={event.is_locked ? t.eventUnlock : t.eventLock}
+							class="gap-1.5"
 						>
 							{#if event.is_locked}<LockOpenOutline size="sm" />{:else}<LockOutline
 									size="sm"
@@ -91,7 +95,7 @@
 					{/if}
 				</div>
 			</div>
-		</Card>
+		</section>
 		{#if auth.isAdmin && !event.is_locked && event.type === 'training'}<EventParticipants
 				{eventId}
 			/>{/if}

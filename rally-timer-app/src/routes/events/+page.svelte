@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Badge, Button, Card, Input, Select } from 'flowbite-svelte';
+	import { Button, Input, Select } from 'flowbite-svelte';
 	import { goto } from '$app/navigation';
 	import { kcFetch } from '$lib/kcFetch';
 	import { t } from '$lib/stores/locale.svelte';
@@ -41,13 +41,11 @@
 	}
 </script>
 
-<div class="w-full space-y-6 p-5">
-	<h1 class="small-caps text-xl font-semibold tracking-widest text-black dark:text-white">
-		{t.navEvents}
-	</h1>
-	{#if error}<p role="alert" class="text-red-600">{error}</p>{/if}
+<div class="page page--narrow">
+	<h1 class="page-title">{t.navEvents}</h1>
+	{#if error}<p role="alert" class="alert-error">{error}</p>{/if}
 	{#if auth.isAdmin}
-		<Card class="max-w-none p-4 sm:p-6">
+		<section class="panel panel-body">
 			<form
 				onsubmit={(e) => {
 					e.preventDefault();
@@ -56,11 +54,11 @@
 				class="flex flex-wrap items-end gap-3"
 			>
 				<div class="min-w-56 flex-1">
-					<label for="event-name" class="mb-1 block text-sm font-medium">{t.eventName}</label>
+					<label for="event-name" class="field-label">{t.eventName}</label>
 					<Input id="event-name" required bind:value={name} />
 				</div>
 				<div class="min-w-40">
-					<label for="event-type" class="mb-1 block text-sm font-medium">{t.eventType}</label>
+					<label for="event-type" class="field-label">{t.eventType}</label>
 					<Select id="event-type" bind:value={type}>
 						<option value="rally">{t.navRally}</option>
 						<option value="rallycross">{t.navRallycross}</option>
@@ -69,28 +67,41 @@
 				</div>
 				<Button type="submit" disabled={saving}>{t.eventCreate}</Button>
 			</form>
-		</Card>
+		</section>
 	{/if}
-	{#each ordered as event (event.id)}
-		<Card class="max-w-none p-4 sm:p-5">
-			<div class="flex flex-wrap items-center justify-between gap-3">
-				<div class="flex items-center gap-3">
-					<a
-						class="text-lg font-semibold text-primary-600 hover:underline dark:text-primary-500"
-						href={`/events/${event.id}`}>{event.name}</a
-					>
-					<Badge color="gray"
-						>{event.type === 'rally'
-							? t.navRally
-							: event.type === 'rallycross'
-								? t.navRallycross
-								: t.navTraining}</Badge
-					>
-				</div>
-				{#if auth.isAdmin}<Button color="alternative" size="sm" href={`/events/${event.id}/manage`}
-						>{t.eventManage}</Button
-					>{/if}
-			</div>
-		</Card>
-	{:else}<p>{t.eventEmpty}</p>{/each}
+	<section class="panel overflow-hidden">
+		<ul class="divide-y divide-surface-100 dark:divide-white/6">
+			{#each ordered as event (event.id)}
+				<li
+					class="group flex flex-wrap items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-surface-50 sm:px-6 dark:hover:bg-white/3"
+				>
+					<a href={`/events/${event.id}`} class="flex min-w-0 flex-1 items-center gap-3">
+						<span
+							class="chip w-24 justify-center {event.type === 'rally'
+								? 'chip--primary'
+								: event.type === 'rallycross'
+									? 'chip--warn'
+									: 'chip--ok'}"
+							>{event.type === 'rally'
+								? t.navRally
+								: event.type === 'rallycross'
+									? t.navRallycross
+									: t.navTraining}</span
+						>
+						<span
+							class="truncate text-lg font-semibold text-surface-900 group-hover:text-primary-600 dark:text-white dark:group-hover:text-primary-500"
+							>{event.name}</span
+						>
+					</a>
+					{#if auth.isAdmin}<Button
+							color="alternative"
+							size="xs"
+							href={`/events/${event.id}/manage`}>{t.eventManage}</Button
+						>{/if}
+				</li>
+			{:else}<li class="p-4 sm:p-6">
+					<p class="empty dark:text-surface-400">{t.eventEmpty}</p>
+				</li>{/each}
+		</ul>
+	</section>
 </div>

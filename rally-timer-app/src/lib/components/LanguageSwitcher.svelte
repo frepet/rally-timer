@@ -2,13 +2,13 @@
 	import { getLocale, setLocale } from '../stores/locale.svelte';
 </script>
 
-<div class="flex gap-1">
+<div class="flex gap-0.5 rounded-lg bg-surface-100 p-0.5 dark:bg-white/5">
 	<button
 		type="button"
 		onclick={() => setLocale('sv')}
-		class="rounded px-1 py-0.5 text-base leading-none transition-opacity {getLocale() === 'sv'
-			? 'opacity-100'
-			: 'opacity-40 hover:opacity-70'}"
+		class="rounded-md px-1.5 py-1 text-sm leading-none transition {getLocale() === 'sv'
+			? 'bg-white opacity-100 shadow-sm dark:bg-surface-700'
+			: 'opacity-40 hover:opacity-80'}"
 		aria-label="Svenska"
 		aria-pressed={getLocale() === 'sv'}
 	>
@@ -17,9 +17,9 @@
 	<button
 		type="button"
 		onclick={() => setLocale('en')}
-		class="rounded px-1 py-0.5 text-base leading-none transition-opacity {getLocale() === 'en'
-			? 'opacity-100'
-			: 'opacity-40 hover:opacity-70'}"
+		class="rounded-md px-1.5 py-1 text-sm leading-none transition {getLocale() === 'en'
+			? 'bg-white opacity-100 shadow-sm dark:bg-surface-700'
+			: 'opacity-40 hover:opacity-80'}"
 		aria-label="English"
 		aria-pressed={getLocale() === 'en'}
 	>

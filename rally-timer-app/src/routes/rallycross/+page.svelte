@@ -2,4 +2,8 @@
 	import { t } from '$lib/stores/locale.svelte';
 </script>
 
-<a href="/events">{t.navEvents}</a>
+<div class="page page--narrow">
+	<a href="/events" class="font-medium text-primary-600 hover:underline dark:text-primary-500"
+		>{t.navEvents} →</a
+	>
+</div>

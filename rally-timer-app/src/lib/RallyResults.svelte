@@ -1,7 +1,6 @@
 <script lang="ts">
-	import { Card, Button, Badge } from 'flowbite-svelte';
-
 	import { untrack } from 'svelte';
+	import { classChipClass } from './classColor';
 	import { formatMs, type DisplayRallyRow, type StageData } from './results';
 	import { t } from './stores/locale.svelte';
 	import type { RallyRatings } from './domain/ratings';
@@ -85,226 +84,209 @@
 	}
 </script>
 
-<!-- Rally leaderboard -->
-<Card class="max-w-none p-4 sm:p-6 md:p-8 dark:bg-surface-850">
-	<p class="small-caps mb-4 text-xl font-semibold tracking-widest text-black dark:text-white">
-		{t.rallyLeaderboard}
-	</p>
-	{#if rallyRows.length}
-		<div>
-			{#each rallyRows as r, i (r.driver_uuid)}
-				<div
-					class="grid grid-cols-[1.5rem_1fr_auto] items-start gap-x-3 rounded px-2 py-1 {i % 2 === 0
-						? 'bg-gray-50 dark:bg-gray-700/40'
-						: ''}"
-				>
-					<!-- Position — spans both rows -->
-					<span
-						class="row-span-2 self-center text-right text-xl font-semibold text-gray-900 dark:text-white"
-						>{r.position}</span
-					>
-					<!-- Driver name -->
-					<div class="flex flex-wrap items-baseline gap-x-1.5 font-sans">
-						<span class="font-medium text-gray-900 dark:text-white">{r.driver_name}</span>
-						<span class="text-sm font-normal opacity-60">{r.class_name}</span>
-					</div>
-					<!-- Result — spans both rows -->
-					<span
-						class="row-span-2 self-center text-right font-mono text-xl text-gray-900 dark:text-white"
-					>
-						{#if r.position === 1}
-							{formatMs(r.total_ms)}
-						{:else}
-							{r.delta_prev != null ? '+' + formatMs(r.delta_prev) : '—'}
-						{/if}
-					</span>
-					<!-- Stats row -->
-					<div
-						class="flex flex-wrap gap-x-6 gap-y-0.5 font-mono text-xs text-gray-500 dark:text-gray-400"
-					>
-						{#if r.position !== 1}
-							<span class="whitespace-nowrap"
-								><span class="mr-1 opacity-50">{t.totalLabel}</span>{formatMs(r.total_ms)}</span
-							>
-							<span class="whitespace-nowrap"
-								><span class="mr-1 opacity-50">Δ P1</span>{r.delta_p1 != null
-									? '+' + formatMs(r.delta_p1)
-									: '—'}</span
-							>
-						{/if}
-						<span class="whitespace-nowrap"
-							><span class="mr-1 opacity-50">{t.stagesStatLabel}</span>{r.finished_stages}</span
-						>
-						{#if r.dnf_count > 0}
-							<span class="font-semibold whitespace-nowrap text-red-600 dark:text-red-400"
-								>{t.dnfStatLabel(r.dnf_count)}</span
-							>
-						{/if}
-						{#if r.penalty_ms > 0}
-							<span class="whitespace-nowrap text-amber-600 dark:text-amber-400"
-								><span class="mr-1 opacity-70">{t.penaltyLabel}</span>+{formatMs(
-									r.penalty_ms
-								)}</span
-							>
-						{/if}
-						{#if ratings}
-							{@const finalRating = ratings.finalRatings.get(r.driver_uuid)}
-							{#if finalRating != null}
-								{@const initRating = initialRatings?.get(r.driver_uuid) ?? 1500}
-								{@const ratingDelta = finalRating - initRating}
-								<span class="whitespace-nowrap text-violet-600 dark:text-violet-400"
-									><span class="mr-1 opacity-70">{t.ratingLabel}</span>{finalRating}<span
-										class="ml-1 opacity-70">({fmtDelta(ratingDelta)})</span
-									></span
-								>
-							{/if}
-						{/if}
-					</div>
-				</div>
-			{/each}
+<div class="grid items-start gap-6 xl:grid-cols-2">
+	<!-- Rally leaderboard -->
+	<section class="panel overflow-hidden">
+		<div class="panel-head">
+			<h2 class="panel-title">{t.rallyLeaderboard}</h2>
 		</div>
-	{:else}
-		<p class="text-sm text-gray-500 dark:text-gray-400">{t.noResultsYet}</p>
-	{/if}
-</Card>
-
-<br />
-
-<!-- Stage tabs + leaderboard -->
-<Card class="max-w-none p-4 sm:p-6 md:p-8 dark:bg-surface-850">
-	<p class="small-caps mb-4 text-xl font-semibold tracking-widest text-black dark:text-white">
-		{t.stageLeaderboard}
-	</p>
-	<div class="mb-4 flex flex-wrap gap-2">
-		{#each stages as s (s.name)}
-			<Button
-				size="sm"
-				color={activeStage === s.name ? 'primary' : 'alternative'}
-				onclick={() => (activeStage = s.name)}
-				class="flex items-center gap-2"
-			>
-				{s.name}
-				{#if s.status === 'live'}
-					<span class="status-dot status-dot--live"></span>
-				{:else if s.status === 'upcoming'}
-					<span class="status-dot status-dot--upcoming"></span>
-				{:else if s.status === 'closed'}
-					<span class="status-dot status-dot--off"></span>
-				{/if}
-			</Button>
-		{/each}
-		{#if !stages.length}
-			<span class="text-sm text-gray-500 dark:text-gray-400">{t.noStagesYet}</span>
-		{/if}
-	</div>
-
-	{#if activeStage}
-		{#if activeStageData?.status !== 'closed' && startOrder.some((e) => !e.started)}
-			<p class="mt-1 mb-2 text-sm font-semibold opacity-60">{t.startOrder}</p>
-			<div class="mb-4">
-				{#each startOrder as entry, i (entry.id)}
-					{#if !entry.started}
-						<div
-							class="grid grid-cols-[2.25rem_1fr] gap-x-3 rounded px-2 py-1 {i % 2 === 0
-								? 'bg-gray-50 dark:bg-gray-700/40'
-								: ''}"
-						>
-							<span
-								class="self-center text-right text-sm font-semibold text-gray-500 dark:text-gray-400"
-								>{i + 1}</span
-							>
-							<div class="flex flex-wrap items-baseline gap-x-1.5 font-sans">
-								<span class="font-medium text-gray-900 dark:text-white">{entry.name}</span>
-								<span class="text-sm font-normal opacity-60">{entry.class_name}</span>
+		{#if rallyRows.length}
+			<div class="timing-list">
+				{#each rallyRows as r (r.driver_uuid)}
+					<div class="timing-row">
+						<span class="pos {r.position <= 3 ? `pos--${r.position}` : ''}">{r.position}</span>
+						<div class="min-w-0">
+							<div class="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+								<span class="truncate font-semibold text-surface-900 dark:text-white"
+									>{r.driver_name}</span
+								>
+								<span class="chip {classChipClass(r.class_name)}">{r.class_name}</span>
 							</div>
-						</div>
-					{/if}
-				{/each}
-			</div>
-			<p class="mb-2 text-sm font-semibold opacity-60">{t.resultsSubheading}</p>
-		{/if}
-		{#if activeRows.length}
-			<div>
-				{#each activeRows as r, i (r.driver_uuid)}
-					<div
-						class="grid grid-cols-[2.25rem_1fr_auto] items-start gap-x-3 rounded px-2 py-1 {i %
-							2 ===
-						0
-							? 'bg-gray-50 dark:bg-gray-700/40'
-							: ''}"
-					>
-						<!-- Position or DNF badge — spans both rows -->
-						<div class="row-span-2 self-center">
-							{#if r.dnf}
-								<Badge color="red" class="justify-center text-xs">DNF</Badge>
-							{:else}
-								<span class="block text-right text-xl font-semibold text-gray-900 dark:text-white"
-									>{r.position}</span
-								>
-							{/if}
-						</div>
-						<!-- Driver name -->
-						<div class="flex flex-wrap items-baseline gap-x-1.5 font-sans">
-							<span class="font-medium text-gray-900 dark:text-white">{r.driver_name}</span>
-							<span class="text-sm font-normal opacity-60">{r.class_name}</span>
-							{#if r.synthetic}
-								<Badge color="yellow" class="text-xs" title={t.syntheticBadgeTitle}
-									>{t.syntheticBadge}</Badge
-								>
-							{/if}
-						</div>
-						<!-- Result — spans both rows -->
-						<span
-							class="row-span-2 self-center text-right font-mono text-xl text-gray-900 dark:text-white"
-						>
-							{#if r.dnf || r.position === 1}
-								{formatMs(r.stage_ms)}
-							{:else}
-								{r.delta_prev != null ? '+' + formatMs(r.delta_prev) : '—'}
-							{/if}
-						</span>
-						<!-- Stats row -->
-						<div
-							class="flex flex-wrap gap-x-6 gap-y-0.5 font-mono text-xs text-gray-500 dark:text-gray-400"
-						>
-							{#if r.position !== 1}
-								<span class="whitespace-nowrap"
-									><span class="mr-1 opacity-50">{t.timeLabel}</span>{formatMs(r.stage_ms)}</span
-								>
-								{#if !r.dnf}
-									<span class="whitespace-nowrap"
-										><span class="mr-1 opacity-50">Δ P1</span>{r.delta_p1 != null
+							<div class="mt-0.5 flex flex-wrap gap-x-4 gap-y-0.5">
+								{#if r.position !== 1}
+									<span class="stat"
+										><span class="stat-label">{t.totalLabel}</span>{formatMs(r.total_ms)}</span
+									>
+									<span class="stat"
+										><span class="stat-label">Δ P1</span>{r.delta_p1 != null
 											? '+' + formatMs(r.delta_p1)
 											: '—'}</span
 									>
 								{/if}
-							{/if}
-							{#if r.penalty_ms > 0}
-								<span class="whitespace-nowrap text-amber-600 dark:text-amber-400"
-									><span class="mr-1 opacity-70">{t.penaltyLabel}</span>+{formatMs(
-										r.penalty_ms
-									)}</span
+								<span class="stat"
+									><span class="stat-label">{t.stagesStatLabel}</span>{r.finished_stages}</span
 								>
-							{/if}
-							{#if ratings && activeStage}
-								{@const delta = ratings.stageDeltas.get(activeStage)?.get(r.driver_uuid)}
-								{#if delta != null}
-									<span
-										class="whitespace-nowrap {delta >= 0
-											? 'text-green-600 dark:text-green-400'
-											: 'text-red-500 dark:text-red-400'}"
-										><span class="mr-1 opacity-70">{t.ratingDeltaLabel}</span>{fmtDelta(
-											delta
-										)}</span
+								{#if r.dnf_count > 0}
+									<span class="chip chip--danger">{t.dnfStatLabel(r.dnf_count)}</span>
+								{/if}
+								{#if r.penalty_ms > 0}
+									<span class="stat text-amber-700 dark:text-amber-400"
+										><span class="stat-label !text-current opacity-70">{t.penaltyLabel}</span
+										>+{formatMs(r.penalty_ms)}</span
 									>
 								{/if}
-							{/if}
+								{#if ratings}
+									{@const finalRating = ratings.finalRatings.get(r.driver_uuid)}
+									{#if finalRating != null}
+										{@const initRating = initialRatings?.get(r.driver_uuid) ?? 1500}
+										{@const ratingDelta = finalRating - initRating}
+										<span class="stat text-violet-700 dark:text-violet-400"
+											><span class="stat-label !text-current opacity-70">{t.ratingLabel}</span
+											>{finalRating}<span class="ml-1 opacity-70">({fmtDelta(ratingDelta)})</span
+											></span
+										>
+									{/if}
+								{/if}
+							</div>
 						</div>
+						<span
+							class="time text-right text-xl sm:text-2xl {r.position === 1
+								? 'text-surface-900 dark:text-white'
+								: 'text-surface-700 dark:text-surface-200'}"
+						>
+							{#if r.position === 1}
+								{formatMs(r.total_ms)}
+							{:else}
+								{r.delta_prev != null ? '+' + formatMs(r.delta_prev) : '—'}
+							{/if}
+						</span>
 					</div>
 				{/each}
 			</div>
 		{:else}
-			<p class="text-sm text-gray-500 dark:text-gray-400">{t.noStageResultsYet}</p>
+			<div class="p-4 sm:p-6"><p class="empty dark:text-surface-400">{t.noResultsYet}</p></div>
 		{/if}
-	{/if}
-</Card>
+	</section>
+
+	<!-- Stage tabs + leaderboard -->
+	<section class="panel overflow-hidden">
+		<div class="panel-head">
+			<h2 class="panel-title">{t.stageLeaderboard}</h2>
+		</div>
+		<div class="border-b border-surface-100 px-4 py-3 sm:px-6 dark:border-white/8">
+			{#if stages.length}
+				<div class="seg">
+					{#each stages as s (s.name)}
+						<button
+							type="button"
+							class="seg-btn"
+							aria-pressed={activeStage === s.name}
+							onclick={() => (activeStage = s.name)}
+						>
+							{#if s.status === 'live'}
+								<span class="status-dot status-dot--live"></span>
+							{:else if s.status === 'upcoming'}
+								<span class="status-dot status-dot--upcoming"></span>
+							{:else if s.status === 'closed'}
+								<span class="status-dot status-dot--off"></span>
+							{/if}
+							{s.name}
+						</button>
+					{/each}
+				</div>
+			{:else}
+				<span class="text-sm text-surface-500 dark:text-surface-400">{t.noStagesYet}</span>
+			{/if}
+		</div>
+
+		{#if activeStage}
+			{#if activeStageData?.status !== 'closed' && startOrder.some((e) => !e.started)}
+				<div class="border-b border-surface-100 px-4 py-3 sm:px-6 dark:border-white/8">
+					<p class="eyebrow mb-2">{t.startOrder}</p>
+					<ol class="grid gap-x-6 gap-y-1 sm:grid-cols-2">
+						{#each startOrder as entry, i (entry.id)}
+							{#if !entry.started}
+								<li class="flex items-center gap-3 text-sm">
+									<span class="time w-6 text-right text-base text-surface-400 dark:text-surface-500"
+										>{i + 1}</span
+									>
+									<span class="truncate font-medium text-surface-900 dark:text-white"
+										>{entry.name}</span
+									>
+									<span class="chip {classChipClass(entry.class_name)}">{entry.class_name}</span>
+								</li>
+							{/if}
+						{/each}
+					</ol>
+				</div>
+				<p class="eyebrow px-4 pt-3 sm:px-6">{t.resultsSubheading}</p>
+			{/if}
+			{#if activeRows.length}
+				<div class="timing-list">
+					{#each activeRows as r (r.driver_uuid)}
+						<div class="timing-row">
+							{#if r.dnf}
+								<span class="chip chip--danger justify-self-center">DNF</span>
+							{:else}
+								<span class="pos {r.position <= 3 ? `pos--${r.position}` : ''}">{r.position}</span>
+							{/if}
+							<div class="min-w-0">
+								<div class="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+									<span class="truncate font-semibold text-surface-900 dark:text-white"
+										>{r.driver_name}</span
+									>
+									<span class="chip {classChipClass(r.class_name)}">{r.class_name}</span>
+									{#if r.synthetic}
+										<span class="chip chip--warn" title={t.syntheticBadgeTitle}
+											>{t.syntheticBadge}</span
+										>
+									{/if}
+								</div>
+								<div class="mt-0.5 flex flex-wrap gap-x-4 gap-y-0.5">
+									{#if r.position !== 1}
+										<span class="stat"
+											><span class="stat-label">{t.timeLabel}</span>{formatMs(r.stage_ms)}</span
+										>
+										{#if !r.dnf}
+											<span class="stat"
+												><span class="stat-label">Δ P1</span>{r.delta_p1 != null
+													? '+' + formatMs(r.delta_p1)
+													: '—'}</span
+											>
+										{/if}
+									{/if}
+									{#if r.penalty_ms > 0}
+										<span class="stat text-amber-700 dark:text-amber-400"
+											><span class="stat-label !text-current opacity-70">{t.penaltyLabel}</span
+											>+{formatMs(r.penalty_ms)}</span
+										>
+									{/if}
+									{#if ratings && activeStage}
+										{@const delta = ratings.stageDeltas.get(activeStage)?.get(r.driver_uuid)}
+										{#if delta != null}
+											<span
+												class="stat {delta >= 0
+													? 'text-green-700 dark:text-green-400'
+													: 'text-red-600 dark:text-red-400'}"
+												><span class="stat-label !text-current opacity-70"
+													>{t.ratingDeltaLabel}</span
+												>{fmtDelta(delta)}</span
+											>
+										{/if}
+									{/if}
+								</div>
+							</div>
+							<span
+								class="time text-right text-xl sm:text-2xl {r.dnf
+									? 'text-surface-400 dark:text-surface-500'
+									: r.position === 1
+										? 'text-surface-900 dark:text-white'
+										: 'text-surface-700 dark:text-surface-200'}"
+							>
+								{#if r.dnf || r.position === 1}
+									{formatMs(r.stage_ms)}
+								{:else}
+									{r.delta_prev != null ? '+' + formatMs(r.delta_prev) : '—'}
+								{/if}
+							</span>
+						</div>
+					{/each}
+				</div>
+			{:else}
+				<div class="p-4 sm:p-6">
+					<p class="empty dark:text-surface-400">{t.noStageResultsYet}</p>
+				</div>
+			{/if}
+		{/if}
+	</section>
+</div>

@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { onMount, onDestroy, tick } from 'svelte';
 	import {
-		Card,
 		Table,
 		TableHead,
 		TableHeadCell,
@@ -226,7 +225,7 @@
 	<div
 		role="menu"
 		style="position:fixed; top:{menuPos.top}px; right:{menuPos.right}px; z-index:9999;"
-		class="min-w-[9rem] rounded-md border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-800"
+		class="min-w-[9rem] rounded-lg bg-white py-1 shadow-lg ring-1 ring-black/5 dark:bg-surface-800 dark:ring-white/10"
 		tabindex="-1"
 		onclick={(e) => e.stopPropagation()}
 		onkeydown={(e) => e.key === 'Escape' && (openMenuId = null)}
@@ -250,15 +249,13 @@
 	</div>
 {/if}
 
-<div class="w-full space-y-6 p-5">
+<div class="page">
 	<!-- Pending gates section — only shown when there are pending gates or when admin -->
 	{#if auth.isAdmin && pendingGates.length > 0}
-		<Card class="max-w-none border-amber-300 p-4 sm:p-6 md:p-8 dark:border-amber-700">
+		<section class="panel panel-body ring-2 ring-amber-300 dark:ring-amber-600/60">
 			<div class="mb-4 flex items-center gap-3">
 				<Badge color="yellow" class="text-sm">{pendingGates.length}</Badge>
-				<P class="small-caps text-xl font-semibold tracking-widest text-black dark:text-white"
-					>{t.pendingGatesHeading}</P
-				>
+				<h2 class="panel-title">{t.pendingGatesHeading}</h2>
 			</div>
 			<Table hoverable>
 				<TableHead>
@@ -290,14 +287,12 @@
 					{/each}
 				</TableBody>
 			</Table>
-		</Card>
+		</section>
 	{/if}
 
-	<Card class="max-w-none p-4 sm:p-6 md:p-8">
+	<section class="panel panel-body">
 		<div class="mb-4 flex items-center justify-between">
-			<P class="small-caps text-xl font-semibold tracking-widest text-black dark:text-white"
-				>{t.registeredGates}</P
-			>
+			<h2 class="panel-title">{t.registeredGates}</h2>
 			<P class="text-sm opacity-60">{t.autoUpdates}</P>
 		</div>
 
@@ -356,7 +351,7 @@
 										onclick={(e) => openMenu(e, gate.id)}
 										class="rounded p-1 hover:bg-gray-100 dark:hover:bg-gray-700"
 									>
-										<DotsVerticalOutline class="text-gray-500 dark:text-gray-400" size="sm" />
+										<DotsVerticalOutline class="text-surface-500 dark:text-surface-400" size="sm" />
 									</button>
 								</TableBodyCell>
 							{/if}
@@ -365,19 +360,17 @@
 				</TableBody>
 			</Table>
 		{/if}
-	</Card>
+	</section>
 
-	<Card class="max-w-none p-4 sm:p-6 md:p-8">
+	<section class="panel panel-body">
 		<div class="mb-2 flex items-center justify-between">
-			<P class="small-caps text-xl font-semibold tracking-widest text-black dark:text-white"
-				>{t.livePassageConsole}</P
-			>
+			<h2 class="panel-title">{t.livePassageConsole}</h2>
 			<P class="text-sm opacity-60">{consoleLog.length} / {MAX_LOG}</P>
 		</div>
 		<P class="mb-3 text-sm opacity-70">{t.passageConsoleDescription}</P>
 		<div
 			bind:this={consoleEl}
-			class="h-96 overflow-y-auto rounded-md border border-gray-200 bg-gray-900 p-3 font-mono text-xs text-gray-100 dark:border-gray-700"
+			class="h-96 overflow-y-auto rounded-lg bg-surface-900 p-3 font-mono text-xs text-surface-100 ring-1 ring-black/10 dark:bg-black/40 dark:ring-white/10"
 		>
 			{#if !consoleLog.length}
 				<div class="opacity-50">{t.waitingForPassages}</div>
@@ -397,5 +390,5 @@
 				{/each}
 			{/if}
 		</div>
-	</Card>
+	</section>
 </div>

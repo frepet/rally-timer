@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Badge, Card } from 'flowbite-svelte';
+	import { classChipClass } from './classColor';
 	import { formatMs } from './results';
 	import type { RxStandingDisplay, RxHeatDisplay } from './domain/rallycrossDisplay';
 	import { t } from './stores/locale.svelte';
@@ -17,40 +17,39 @@
 	}
 </script>
 
-<div class="space-y-4">
+<div class="space-y-6">
 	{#if standings.length}
-		<Card class="max-w-none p-4">
-			<p class="mb-3 font-semibold">{t.rxOverallStandings}</p>
-			<div class="overflow-x-auto">
-				<table class="w-full text-sm">
+		<section class="panel overflow-hidden">
+			<div class="panel-head">
+				<h2 class="panel-title">{t.rxOverallStandings}</h2>
+			</div>
+			<div class="overflow-x-auto p-2 sm:p-3">
+				<table class="data-table">
 					<thead>
-						<tr
-							class="border-b border-gray-200 text-left text-xs text-gray-500 dark:border-gray-700"
-						>
-							<th class="pr-4 pb-1">#</th>
-							<th class="pr-4 pb-1">{t.driverHeader}</th>
-							<th class="pr-4 pb-1 text-right">{t.rxPoints}</th>
-							<th class="pr-4 pb-1 text-right">{t.rxBestLap}</th>
-							<th class="pb-1 text-right">{t.rxBestTime}</th>
+						<tr>
+							<th class="w-12">#</th>
+							<th>{t.driverHeader}</th>
+							<th class="text-right">{t.rxPoints}</th>
+							<th class="text-right">{t.rxBestLap}</th>
+							<th class="text-right">{t.rxBestTime}</th>
 						</tr>
 					</thead>
 					<tbody>
 						{#each standings as r, i (r.driver_name)}
-							<tr
-								class="border-b border-gray-100 dark:border-gray-800 {r.best_total_ms !== null
-									? 'text-gray-900 dark:text-white'
-									: 'text-gray-400 dark:text-gray-500'}"
-							>
-								<td class="py-1.5 pr-4 font-mono font-semibold">{i + 1}</td>
-								<td class="py-1.5 pr-4">
-									<span class="font-medium">{r.driver_name}</span>
-									<span class="ml-1 text-xs opacity-60">{r.class_name}</span>
+							<tr class={r.best_total_ms !== null ? '' : 'opacity-50'}>
+								<td
+									><span class="pos h-8 w-8 text-lg {i < 3 ? `pos--${i + 1}` : ''}">{i + 1}</span
+									></td
+								>
+								<td>
+									<span class="font-semibold">{r.driver_name}</span>
+									<span class="chip ml-1 {classChipClass(r.class_name)}">{r.class_name}</span>
 								</td>
-								<td class="py-1.5 pr-4 text-right font-mono font-semibold">{r.total_points}</td>
-								<td class="py-1.5 pr-4 text-right font-mono text-xs text-gray-500"
+								<td class="time text-right text-2xl">{r.total_points}</td>
+								<td class="text-right text-surface-500 dark:text-surface-400"
 									>{formatMs(r.best_lap_ms)}</td
 								>
-								<td class="py-1.5 text-right font-mono text-xs text-gray-500"
+								<td class="text-right text-surface-500 dark:text-surface-400"
 									>{formatMs(r.best_total_ms)}</td
 								>
 							</tr>
@@ -58,53 +57,49 @@
 					</tbody>
 				</table>
 			</div>
-		</Card>
+		</section>
 	{/if}
 
-	{#each heats as heat (heat.number)}
-		<Card class="max-w-none p-4">
-			<div class="mb-2 flex items-center gap-2">
-				<span class="font-semibold">{t.rxHeatLabel(heat.number)}</span>
-				<Badge color="gray">{t.rxStatusDone}</Badge>
-			</div>
-			<div class="overflow-x-auto">
-				<table class="w-full text-sm">
-					<thead>
-						<tr
-							class="border-b border-gray-200 text-left text-xs text-gray-500 dark:border-gray-700"
-						>
-							<th class="pr-4 pb-1">#</th>
-							<th class="pr-4 pb-1">{t.driverHeader}</th>
-							{#if hasTimes(heat)}
-								<th class="pr-4 pb-1 text-right">{t.rxBestLap}</th>
-								<th class="pb-1 text-right">{t.totalLabel}</th>
-							{/if}
-						</tr>
-					</thead>
-					<tbody>
-						{#each heat.entries as e (e.driver_name)}
-							<tr
-								class="border-b border-gray-100 dark:border-gray-800 {e.dnf
-									? 'text-gray-400 dark:text-gray-500'
-									: 'text-gray-900 dark:text-white'}"
-							>
-								<td class="py-1.5 pr-4 font-mono">{e.dnf ? '—' : e.position}</td>
-								<td class="py-1.5 pr-4">
-									<span class="font-medium">{e.driver_name}</span>
-									<span class="ml-1 text-xs opacity-60">{e.class_name}</span>
-									{#if e.dnf}<Badge color="red" class="ml-1 text-xs">DNF</Badge>{/if}
-								</td>
+	<div class="grid gap-6 lg:grid-cols-2">
+		{#each heats as heat (heat.number)}
+			<section class="panel overflow-hidden">
+				<div class="panel-head">
+					<h3 class="panel-title text-lg">{t.rxHeatLabel(heat.number)}</h3>
+					<span class="chip">{t.rxStatusDone}</span>
+				</div>
+				<div class="overflow-x-auto p-2 sm:p-3">
+					<table class="data-table">
+						<thead>
+							<tr>
+								<th class="w-10">#</th>
+								<th>{t.driverHeader}</th>
 								{#if hasTimes(heat)}
-									<td class="py-1.5 pr-4 text-right font-mono text-xs text-gray-500"
-										>{formatMs(e.best_lap_ms)}</td
-									>
-									<td class="py-1.5 text-right font-mono">{formatMs(e.total_ms)}</td>
+									<th class="text-right">{t.rxBestLap}</th>
+									<th class="text-right">{t.totalLabel}</th>
 								{/if}
 							</tr>
-						{/each}
-					</tbody>
-				</table>
-			</div>
-		</Card>
-	{/each}
+						</thead>
+						<tbody>
+							{#each heat.entries as e (e.driver_name)}
+								<tr class={e.dnf ? 'opacity-60' : ''}>
+									<td class="time text-base">{e.dnf ? '—' : e.position}</td>
+									<td>
+										<span class="font-semibold">{e.driver_name}</span>
+										<span class="chip ml-1 {classChipClass(e.class_name)}">{e.class_name}</span>
+										{#if e.dnf}<span class="chip chip--danger ml-1">DNF</span>{/if}
+									</td>
+									{#if hasTimes(heat)}
+										<td class="text-right text-surface-500 dark:text-surface-400"
+											>{formatMs(e.best_lap_ms)}</td
+										>
+										<td class="time text-right text-base">{formatMs(e.total_ms)}</td>
+									{/if}
+								</tr>
+							{/each}
+						</tbody>
+					</table>
+				</div>
+			</section>
+		{/each}
+	</div>
 </div>

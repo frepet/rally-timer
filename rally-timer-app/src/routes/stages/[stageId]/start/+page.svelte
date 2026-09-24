@@ -1,21 +1,10 @@
 <script lang="ts">
 	let { data } = $props();
-	import {
-		Card,
-		Button,
-		Input,
-		P,
-		Table,
-		TableBody,
-		TableBodyCell,
-		TableBodyRow,
-		TableHead,
-		TableHeadCell,
-		Toggle
-	} from 'flowbite-svelte';
+	import { Button, Input, Toggle } from 'flowbite-svelte';
 	import { page } from '$app/stores';
 	import { onMount, onDestroy } from 'svelte';
 	import { kcFetch } from '../../../../lib/kcFetch';
+	import { classChipClass } from '../../../../lib/classColor';
 	import type { BundleResponse } from '../../../../lib/types';
 	import { t, getLocale } from '../../../../lib/stores/locale.svelte';
 	import { auth } from '../../../../lib/stores/auth.svelte';
@@ -364,156 +353,191 @@
 	});
 </script>
 
-<div class="flex w-full flex-col gap-6 p-6">
-	<!-- Current + countdown -->
-	<Card class="flex w-full flex-col p-5">
-		<div class="flex flex-wrap items-baseline justify-between gap-2">
-			<P class="text-xl font-semibold">{stageName}</P>
-			{#if nextEntry}
-				<P class="text-xl font-semibold">
-					{t.activeClassLabel}
-					<span class="text-blue-600 dark:text-blue-400">{nextEntry.class_name}</span>
-				</P>
-			{:else if classComplete}
-				<P class="text-xl font-semibold">
-					{t.nextClassLabel}
-					<span class="text-blue-600 dark:text-blue-400">{remaining[0].class_name}</span>
-				</P>
-			{/if}
-		</div>
-		<div class="flex flex-wrap items-center">
-			<!-- LEDs -->
-			<div class="flex flex-1 justify-center gap-3">
-				{#each [4, 3, 2, 1, 0] as i (i)}
-					<div
-						class="h-8 w-8 rounded-full border"
-						style={`background:${
-							leds[i] === 2 ? '#16a34a' : leds[i] === 1 ? '#f59e0b' : 'transparent'
-						}; box-shadow:${
-							leds[i] === 2
-								? '0 0 12px rgba(22,163,74,0.85)'
-								: leds[i] === 1
-									? '0 0 12px rgba(245,158,11,0.9)'
-									: 'none'
-						};transition: background 120ms ease, box-shadow 120ms ease;`}
-					></div>
-				{/each}
-			</div>
-
-			<!-- Countdown -->
-			<P class="flex flex-row-reverse text-6xl">
-				{Math.ceil(remainingMs / 1000)}
-			</P>
-		</div>
-
-		<!-- Current -->
-		<div class="md:col-span-2">
-			<P class="text-4xl font-extrabold tracking-wide">
+<div class="page grid items-start gap-6 space-y-0 lg:grid-cols-[minmax(0,1fr)_22rem]">
+	<div class="space-y-6">
+		<!-- Current + countdown: always a dark timing board -->
+		<section
+			class="overflow-hidden rounded-xl bg-surface-900 text-white shadow-lg ring-1 ring-black/20 dark:ring-white/10"
+		>
+			<div
+				class="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 px-5 py-3"
+			>
+				<h1 class="display text-2xl font-bold">{stageName}</h1>
 				{#if nextEntry}
-					{nextEntry.name} <br />
+					<p class="text-sm text-surface-300">
+						{t.activeClassLabel}
+						<span class="chip ml-1 text-sm {classChipClass(nextEntry.class_name)}"
+							>{nextEntry.class_name}</span
+						>
+					</p>
 				{:else if classComplete}
-					{t.classDoneWaitingForStart}
-				{:else if remaining.length === 0}
-					{t.noMoreDrivers}
-				{:else}
-					—
+					<p class="text-sm text-surface-300">
+						{t.nextClassLabel}
+						<span class="chip ml-1 text-sm {classChipClass(remaining[0].class_name)}"
+							>{remaining[0].class_name}</span
+						>
+					</p>
 				{/if}
-			</P>
-			<P class="text-2xl tracking-wide italic">
-				{#if nextEntry}
-					{nextEntry.class_name || ''}
-				{/if}
-			</P>
-		</div>
-	</Card>
+			</div>
+			<div class="grid gap-6 px-5 py-6 sm:grid-cols-[1fr_auto] sm:items-center">
+				<div class="min-w-0 space-y-5">
+					<!-- LEDs -->
+					<div class="flex gap-3 sm:gap-4">
+						{#each [4, 3, 2, 1, 0] as i (i)}
+							<div
+								class="h-10 w-10 rounded-full border-2 border-white/20 sm:h-12 sm:w-12"
+								style={`background:${
+									leds[i] === 2 ? '#16a34a' : leds[i] === 1 ? '#f59e0b' : 'rgba(255,255,255,0.04)'
+								}; box-shadow:${
+									leds[i] === 2
+										? '0 0 18px rgba(22,163,74,0.9)'
+										: leds[i] === 1
+											? '0 0 18px rgba(245,158,11,0.9)'
+											: 'none'
+								};transition: background 120ms ease, box-shadow 120ms ease;`}
+							></div>
+						{/each}
+					</div>
 
-	<!-- Queue preview -->
-	<Card class="p-3">
-		<div class="">
-			<P class="text-sm opacity-70">{classComplete ? t.nextClassPreview : t.upNext}</P>
+					<!-- Current -->
+					<div class="min-w-0">
+						<p class="display text-4xl leading-tight font-bold break-words sm:text-5xl">
+							{#if nextEntry}
+								{nextEntry.name}
+							{:else if classComplete}
+								{t.classDoneWaitingForStart}
+							{:else if remaining.length === 0}
+								{t.noMoreDrivers}
+							{:else}
+								—
+							{/if}
+						</p>
+						{#if nextEntry}
+							<p class="mt-1 text-xl text-surface-300 italic">{nextEntry.class_name || ''}</p>
+						{/if}
+					</div>
+				</div>
+
+				<!-- Countdown -->
+				<p
+					class="time text-right text-8xl leading-none text-primary-500 tabular-nums sm:text-9xl"
+					aria-live="polite"
+				>
+					{Math.ceil(remainingMs / 1000)}
+				</p>
+			</div>
+		</section>
+
+		<!-- Queue preview -->
+		<section class="panel panel-body">
+			<p class="eyebrow mb-2">{classComplete ? t.nextClassPreview : t.upNext}</p>
 			{#if classComplete}
-				<P class="text-xl">
+				<p class="text-xl font-semibold">
 					{remaining[0]?.class_name ?? ''} — {nextClassDriverCount}
 					{t.remainingLabel}
-				</P>
+				</p>
 			{:else}
-				<P class="text-xl">{future[1]?.name ?? ''} — {future[1]?.class_name ?? ''}</P>
-				<P class="text-lg opacity-80">{future[2]?.name ?? ''} — {future[2]?.class_name ?? ''}</P>
+				<p class="text-xl font-semibold">
+					{future[1]?.name ?? ''}
+					{#if future[1]?.class_name}<span class="chip ml-1 {classChipClass(future[1].class_name)}"
+							>{future[1].class_name}</span
+						>{/if}
+				</p>
+				<p class="mt-1 text-lg text-surface-500 dark:text-surface-400">
+					{future[2]?.name ?? ''}
+					{#if future[2]?.class_name}<span class="chip ml-1 {classChipClass(future[2].class_name)}"
+							>{future[2].class_name}</span
+						>{/if}
+				</p>
 			{/if}
-		</div>
-	</Card>
+		</section>
+	</div>
 
-	<!-- Start order list -->
-	<Card class="p-3">
-		<P class="mb-2 text-sm font-semibold opacity-70">{t.startOrder}</P>
-		<Table striped={true}>
-			<TableHead>
-				<TableHeadCell class="w-12">#</TableHeadCell>
-				<TableHeadCell>{t.driverColumn}</TableHeadCell>
-				<TableHeadCell>{t.classColumn}</TableHeadCell>
-			</TableHead>
-			<TableBody>
-				{#each schedule as entry, i (entry.driver_id)}
-					<TableBodyRow
-						class={entry.ts_ms <= nowMs
-							? 'line-through opacity-40'
-							: nextEntry && entry.ts_ms === nextEntry.ts_ms
-								? 'bg-amber-50 font-bold dark:bg-amber-900/30'
-								: ''}
-					>
-						<TableBodyCell>{i + 1}</TableBodyCell>
-						<TableBodyCell>{entry.name}</TableBodyCell>
-						<TableBodyCell>{entry.class_name || ''}</TableBodyCell>
-					</TableBodyRow>
-				{/each}
-				{#each remaining as driver, i (driver.driver_id)}
-					<TableBodyRow class="opacity-70">
-						<TableBodyCell>{schedule.length + i + 1}</TableBodyCell>
-						<TableBodyCell>{driver.name}</TableBodyCell>
-						<TableBodyCell>{driver.class_name || ''}</TableBodyCell>
-					</TableBodyRow>
-				{/each}
-			</TableBody>
-		</Table>
-	</Card>
-
-	<!-- Controls -->
-	<Card class="p-3">
-		<div class="flex flex-col items-center justify-between">
+	<div class="space-y-6">
+		<!-- Controls -->
+		<section class="panel panel-body space-y-4">
 			{#if !soundEnabled}
-				<div class="flex w-full flex-row items-center gap-2 p-2">
-					<Button size="sm" color="alternative" onclick={enableSound}>
-						{t.enableSoundButton}
-					</Button>
-				</div>
+				<Button size="sm" color="alternative" class="w-full" onclick={enableSound}>
+					{t.enableSoundButton}
+				</Button>
 			{/if}
-			<div class="flex w-full flex-col gap-1 p-2">
+			<div class="space-y-1">
 				<Toggle
 					checked={finishBeepEnabled}
 					onchange={(e) => toggleFinishBeep((e.currentTarget as HTMLInputElement).checked)}
 				>
 					{t.finishBeepLabel}
 				</Toggle>
-				<P class="text-xs opacity-60">{t.finishBeepHint}</P>
+				<p class="text-xs text-surface-500 dark:text-surface-400">{t.finishBeepHint}</p>
 			</div>
 			{#if auth.isAdmin}
-				<div class="flex w-full flex-row items-center gap-2 p-2">
-					<label for="gap" class="text-sm opacity-70"><P>{t.gapSecondsLabel}</P></label>
-					<Input id="gap" type="number" min="1" class="w-20 rounded p-2" bind:value={gapSeconds} />
+				<div class="flex items-center justify-between gap-3">
+					<label for="gap" class="text-sm font-medium">{t.gapSecondsLabel}</label>
+					<div class="w-24">
+						<Input id="gap" type="number" min="1" size="sm" bind:value={gapSeconds} />
+					</div>
 				</div>
-				<div class="flex w-full flex-row items-center gap-2 p-2">
-					<Toggle bind:checked={startWholeClass}>
-						{t.startWholeClassLabel}
-					</Toggle>
-				</div>
+				<Toggle bind:checked={startWholeClass}>
+					{t.startWholeClassLabel}
+				</Toggle>
 				{#if !hasGate}
-					<P class="px-2 text-sm text-yellow-600 dark:text-yellow-400">{t.noGateForStage}</P>
+					<p class="chip chip--warn w-full py-1.5 whitespace-normal normal-case">
+						{t.noGateForStage}
+					</p>
 				{/if}
-				<div class="flex w-full flex-wrap gap-2 p-2">
-					<Button size="sm" onclick={pressStart} disabled={!hasGate}>{t.startButton}</Button>
-					<Button size="sm" color="red" onclick={pressStop}>{t.stopButton}</Button>
+				<div class="grid grid-cols-2 gap-2 border-t border-surface-100 pt-4 dark:border-white/8">
+					<Button onclick={pressStart} disabled={!hasGate}>{t.startButton}</Button>
+					<Button color="red" onclick={pressStop}>{t.stopButton}</Button>
 				</div>
 			{/if}
-		</div>
-	</Card>
+		</section>
+
+		<!-- Start order list -->
+		<section class="panel overflow-hidden">
+			<div class="panel-head">
+				<h2 class="panel-title text-lg">{t.startOrder}</h2>
+			</div>
+			<div class="max-h-[32rem] overflow-y-auto p-2">
+				<table class="data-table">
+					<thead>
+						<tr>
+							<th class="w-10">#</th>
+							<th>{t.driverColumn}</th>
+							<th>{t.classColumn}</th>
+						</tr>
+					</thead>
+					<tbody>
+						{#each schedule as entry, i (entry.driver_id)}
+							<tr
+								class={entry.ts_ms <= nowMs
+									? 'line-through opacity-40'
+									: nextEntry && entry.ts_ms === nextEntry.ts_ms
+										? 'font-bold [&>td]:bg-amber-50 dark:[&>td]:bg-amber-500/15'
+										: ''}
+							>
+								<td class="time">{i + 1}</td>
+								<td>{entry.name}</td>
+								<td>
+									{#if entry.class_name}<span class="chip {classChipClass(entry.class_name)}"
+											>{entry.class_name}</span
+										>{/if}
+								</td>
+							</tr>
+						{/each}
+						{#each remaining as driver, i (driver.driver_id)}
+							<tr class="opacity-70">
+								<td class="time">{schedule.length + i + 1}</td>
+								<td>{driver.name}</td>
+								<td>
+									{#if driver.class_name}<span class="chip {classChipClass(driver.class_name)}"
+											>{driver.class_name}</span
+										>{/if}
+								</td>
+							</tr>
+						{/each}
+					</tbody>
+				</table>
+			</div>
+		</section>
+	</div>
 </div>

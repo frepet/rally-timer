@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { env } from '$env/dynamic/public';
-	import { Badge, P } from 'flowbite-svelte';
 	import RallyResults from '../../../lib/RallyResults.svelte';
 	import RallycrossLeaderboard from '../../../lib/RallycrossLeaderboard.svelte';
 	import { buildStageData } from '../../../lib/domain/submittedRally';
@@ -58,22 +57,18 @@
 	}
 </script>
 
-<div class="w-full space-y-6 p-5">
-	<div>
-		<P class="text-3xl font-bold">{data.name}</P>
-		<div class="mt-1 flex flex-wrap items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-			<span>{fmtDate(Number(data.submitted_at))}</span>
+<div class="page">
+	<section class="panel panel-body space-y-3">
+		<h1 class="page-title break-words">{data.name}</h1>
+		<div class="flex flex-wrap items-center gap-2 text-sm text-surface-500 dark:text-surface-400">
+			<span class="num">{fmtDate(Number(data.submitted_at))}</span>
 			{#each data.championships as c (c.id)}
-				<a href="/championships?id={c.id}">
-					<Badge
-						color="primary"
-						class="cursor-pointer bg-primary-700 text-white hover:brightness-90 dark:bg-primary-700 dark:text-white"
-						>{c.name}</Badge
-					>
-				</a>
+				<a href="/championships?id={c.id}" class="chip chip--primary hover:brightness-95"
+					>{c.name}</a
+				>
 			{/each}
 		</div>
-	</div>
+	</section>
 
 	{#if isRx && rxDisplay}
 		<RallycrossLeaderboard standings={rxDisplay.standings} heats={rxDisplay.heats} />

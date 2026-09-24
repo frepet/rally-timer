@@ -4,7 +4,7 @@
 	function kcFetch(url: string, init?: RequestInit): Promise<Response> {
 		return authenticatedFetch(eventApiUrl(url, eventId), init);
 	}
-	import { Card, Button, Input, Select, Modal, Badge } from 'flowbite-svelte';
+	import { Button, Input, Select, Modal, Badge } from 'flowbite-svelte';
 	import { RefreshOutline } from 'flowbite-svelte-icons';
 	import { kcFetch as authenticatedFetch } from '$lib/kcFetch';
 	import { startLiveRefresh } from '$lib/liveRefresh';
@@ -154,11 +154,11 @@
 	});
 </script>
 
-<div class="mx-auto w-full max-w-5xl space-y-6 p-5">
+<div class="page">
 	<!-- Config card -->
-	<Card class="max-w-none p-4">
+	<section class="panel panel-body">
 		<div class="mb-3 flex items-baseline justify-between gap-2">
-			<p class="small-caps text-xl font-semibold tracking-widest text-black dark:text-white">
+			<p class="panel-title">
 				{t.trainingHeading}
 			</p>
 			{#if tr.started_at !== null}
@@ -169,9 +169,7 @@
 		{#if auth.isAdmin}
 			<div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
 				<div>
-					<label for="trainingGate" class="mb-1 block text-sm font-medium"
-						>{t.trainingGateLabel}</label
-					>
+					<label for="trainingGate" class="field-label">{t.trainingGateLabel}</label>
 					<Select id="trainingGate" bind:value={selectedGateId} onchange={saveGate}>
 						<option value="">{t.trainingChooseGate}</option>
 						{#each eligibleGates as g (g.id)}
@@ -180,9 +178,7 @@
 					</Select>
 				</div>
 				<div>
-					<label for="trainingCooldown" class="mb-1 block text-sm font-medium"
-						>{t.trainingCooldownLabel}</label
-					>
+					<label for="trainingCooldown" class="field-label">{t.trainingCooldownLabel}</label>
 					<Input
 						id="trainingCooldown"
 						type="number"
@@ -209,7 +205,7 @@
 				</div>
 			{/if}
 		{:else if tr.gate_name}
-			<p class="text-sm text-gray-500 dark:text-gray-400">
+			<p class="text-sm text-surface-500 dark:text-surface-400">
 				{t.trainingGateLabel}: {tr.gate_name} · {t.trainingCooldownLabel.replace(' (s)', '')}: {Math.round(
 					tr.cooldown_ms / 1000
 				)}s
@@ -217,9 +213,9 @@
 		{/if}
 
 		{#if !tr.gate_id}
-			<p class="mt-3 text-sm text-gray-500 dark:text-gray-400">{t.trainingNoGate}</p>
+			<p class="mt-3 text-sm text-surface-500 dark:text-surface-400">{t.trainingNoGate}</p>
 		{/if}
-	</Card>
+	</section>
 
 	{#if tr.gate_id}
 		<TrainingResults drivers={tr.drivers} onDeleteLap={deleteLap} />

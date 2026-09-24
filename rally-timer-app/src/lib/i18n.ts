@@ -64,6 +64,8 @@ export const sv = {
 	login: 'Logga in',
 	logoAlt: 'Rally Timer-logotyp',
 	editTitle: 'Redigera titel',
+	toggleMenu: 'Visa/dölj meny',
+	navAdmin: 'Admin',
 
 	// Dark mode
 	toggleDarkMode: 'Växla mörkt läge',
@@ -476,6 +478,8 @@ export const en: typeof sv = {
 	login: 'Log in',
 	logoAlt: 'Rally Timer logo',
 	editTitle: 'Edit title',
+	toggleMenu: 'Toggle menu',
+	navAdmin: 'Admin',
 
 	// Dark mode
 	toggleDarkMode: 'Toggle dark mode',

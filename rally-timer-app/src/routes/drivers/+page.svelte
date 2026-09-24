@@ -3,7 +3,6 @@
 	import { kcFetch } from '../../lib/kcFetch';
 	import type { PageProps } from './$types';
 	import {
-		Card,
 		Button,
 		Table,
 		TableHead,
@@ -270,18 +269,16 @@
 	});
 </script>
 
-<div class="w-full space-y-6 p-5">
+<div class="page">
 	{#if auth.isAdmin}
-		<Card class="max-w-none p-4 sm:p-6 md:p-8">
-			<p class="small-caps mb-4 text-xl font-semibold tracking-widest text-black dark:text-white">
+		<section class="panel panel-body">
+			<p class="panel-title mb-4">
 				{t.addDriver}
 			</p>
 
 			<div class="grid grid-cols-1 gap-3 md:grid-cols-4">
 				<div>
-					<label for="newName" class="mb-2 block text-sm font-medium text-gray-900 dark:text-white"
-						>{t.name}</label
-					>
+					<label for="newName" class="field-label">{t.name}</label>
 					<Input
 						id="newName"
 						bind:value={newName}
@@ -291,9 +288,7 @@
 				</div>
 
 				<div>
-					<label for="newClass" class="mb-2 block text-sm font-medium text-gray-900 dark:text-white"
-						>{t.classLabel}</label
-					>
+					<label for="newClass" class="field-label">{t.classLabel}</label>
 					<Select id="newClass" bind:value={newClassId}>
 						<option value="" disabled selected>{t.selectClass}</option>
 						{#each classes as c (c.id)}
@@ -303,9 +298,7 @@
 				</div>
 
 				<div>
-					<label for="newTag" class="mb-2 block text-sm font-medium text-gray-900 dark:text-white"
-						>{t.rfidTag}</label
-					>
+					<label for="newTag" class="field-label">{t.rfidTag}</label>
 					<Input
 						id="newTag"
 						bind:elementRef={tagInputEl}
@@ -318,11 +311,7 @@
 				</div>
 
 				<div>
-					<label
-						for="gateSelect"
-						class="mb-2 block text-sm font-medium text-gray-900 dark:text-white"
-						>{t.gateCapture}</label
-					>
+					<label for="gateSelect" class="field-label">{t.gateCapture}</label>
 					<div class="flex items-center gap-2">
 						<Select
 							id="gateSelect"
@@ -375,21 +364,21 @@
 				{/if}
 				<Button class="w-32" onclick={createDriver}>{t.add}</Button>
 			</div>
-		</Card>
+		</section>
 	{/if}
 
-	<Card class="max-w-none p-4 sm:p-6 md:p-8">
+	<section class="panel panel-body">
 		<div class="mb-2 flex items-center gap-2">
-			<p class="small-caps flex-1 text-xl font-semibold tracking-widest text-black dark:text-white">
+			<p class="panel-title flex-1">
 				{t.driversHeading}
 			</p>
 			{#if auth.isAdmin}
-				<Button color="red" class="w-32" onclick={clearAll}>{t.clearAll}</Button>
+				<Button color="red" size="sm" outline onclick={clearAll}>{t.clearAll}</Button>
 			{/if}
 		</div>
 
 		{#if drivers.length === 0}
-			<P class="text-gray-500 dark:text-gray-400">{t.noDrivers}</P>
+			<P class="text-surface-500 dark:text-surface-400">{t.noDrivers}</P>
 		{:else}
 			<Tabs style="underline" class="m-0" classes={{ content: 'p-0' }}>
 				{#each driversByClass as group (group.cls)}
@@ -456,7 +445,9 @@
 														<Button size="xs" onclick={() => saveEdit(d.id)}>{t.save}</Button>
 														<Button size="xs" color="light" onclick={cancelEdit}>{t.cancel}</Button>
 													{:else}
-														<Button size="xs" onclick={() => startEdit(d)}>{t.edit}</Button>
+														<Button size="xs" color="alternative" onclick={() => startEdit(d)}
+															>{t.edit}</Button
+														>
 														<Button size="xs" color="red" onclick={() => deleteOne(d.id)}
 															><TrashBinOutline size="xs" /></Button
 														>
@@ -472,5 +463,5 @@
 				{/each}
 			</Tabs>
 		{/if}
-	</Card>
+	</section>
 </div>

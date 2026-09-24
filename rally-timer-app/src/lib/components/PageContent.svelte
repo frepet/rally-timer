@@ -47,29 +47,35 @@
 	}
 </script>
 
-<div class="w-full px-4 py-8">
-	{#if editing}
-		<div class="mb-2 flex gap-2">
-			<Button onclick={save} disabled={saving}>{saving ? t.saving : t.save}</Button>
-			<Button color="alternative" onclick={() => (editing = false)} disabled={saving}
-				>{t.cancel}</Button
+<div class="page page--narrow">
+	<section class="panel panel-body sm:p-8">
+		{#if editing}
+			<div class="mb-3 flex gap-2">
+				<Button size="sm" onclick={save} disabled={saving}>{saving ? t.saving : t.save}</Button>
+				<Button size="sm" color="alternative" onclick={() => (editing = false)} disabled={saving}
+					>{t.cancel}</Button
+				>
+			</div>
+			<Textarea
+				bind:value={draft}
+				class="mb-4 w-full font-mono text-sm"
+				style="field-sizing: content; min-height: 8rem"
+			/>
+			{#if saveError}
+				<p class="alert-error mb-2">{saveError}</p>
+			{/if}
+		{:else}
+			{#if auth.isAdmin}
+				<div class="mb-4 flex justify-end">
+					<Button color="alternative" size="sm" onclick={startEdit}>{t.edit}</Button>
+				</div>
+			{/if}
+			<div
+				class="prose max-w-none dark:prose-invert prose-headings:font-bold prose-headings:tracking-wide prose-headings:uppercase prose-a:text-primary-600 dark:prose-a:text-primary-500 [&_:is(h1,h2,h3,h4)]:[font-family:var(--font-display)] [&_li]:my-0 [&_ol]:my-2 [&_ul]:my-2"
 			>
-		</div>
-		<Textarea
-			bind:value={draft}
-			class="mb-4 w-full font-mono text-sm"
-			style="field-sizing: content; min-height: 8rem"
-		/>
-		{#if saveError}
-			<p class="mb-2 text-sm text-red-500">{saveError}</p>
+				<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+				{@html html}
+			</div>
 		{/if}
-	{:else}
-		{#if auth.isAdmin}
-			<Button color="primary" class="mb-2" onclick={startEdit}>{t.edit}</Button>
-		{/if}
-		<div class="prose max-w-none dark:prose-invert [&_li]:my-0 [&_ol]:my-2 [&_ul]:my-2">
-			<!-- eslint-disable-next-line svelte/no-at-html-tags -->
-			{@html html}
-		</div>
-	{/if}
+	</section>
 </div>

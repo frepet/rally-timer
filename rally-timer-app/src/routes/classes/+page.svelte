@@ -2,7 +2,6 @@
 	import { onMount } from 'svelte';
 	import { SvelteMap } from 'svelte/reactivity';
 	import {
-		Card,
 		Button,
 		Table,
 		TableHead,
@@ -14,6 +13,7 @@
 		P
 	} from 'flowbite-svelte';
 	import { TrashBinOutline } from 'flowbite-svelte-icons';
+	import { classChipClass } from '../../lib/classColor';
 	import { kcFetch } from '../../lib/kcFetch';
 	import { t } from '../../lib/stores/locale.svelte';
 
@@ -120,39 +120,43 @@
 	onMount(refresh);
 </script>
 
-<div class="w-full space-y-6 p-5">
+<div class="page">
 	{#if error}
-		<Card class="max-w-none border-red-300 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/30">
+		<section class="alert-error p-4">
 			<P class="text-red-700 dark:text-red-300">{error}</P>
-		</Card>
+		</section>
 	{/if}
 
-	<Card class="max-w-none p-4 sm:p-6 md:p-8">
-		<p class="small-caps mb-4 text-xl font-semibold tracking-widest text-black dark:text-white">
+	<section class="panel panel-body">
+		<p class="panel-title mb-4">
 			{t.addClass}
 		</p>
-		<div class="flex gap-3">
-			<Input
-				bind:value={newName}
-				placeholder={t.className}
-				class="flex-1"
-				onkeydown={(e) => e.key === 'Enter' && createClass()}
-			/>
-			<Input
-				bind:value={newPriority}
-				type="number"
-				placeholder={t.priority}
-				class="w-28"
-				title={t.startPriorityTitle}
-			/>
+		<div class="flex flex-wrap items-end gap-3">
+			<div class="min-w-48 flex-1">
+				<Input
+					bind:value={newName}
+					placeholder={t.className}
+					aria-label={t.className}
+					onkeydown={(e) => e.key === 'Enter' && createClass()}
+				/>
+			</div>
+			<div class="w-28">
+				<Input
+					bind:value={newPriority}
+					type="number"
+					placeholder={t.priority}
+					aria-label={t.priority}
+					title={t.startPriorityTitle}
+				/>
+			</div>
 			<Button class="w-32" onclick={createClass} disabled={creating || !newName.trim()}>
 				{creating ? t.adding : t.add}
 			</Button>
 		</div>
-	</Card>
+	</section>
 
-	<Card class="max-w-none p-4 sm:p-6 md:p-8">
-		<p class="small-caps mb-2 text-xl font-semibold tracking-widest text-black dark:text-white">
+	<section class="panel panel-body">
+		<p class="panel-title mb-2">
 			{t.classesHeading}
 		</p>
 
@@ -179,7 +183,7 @@
 									}}
 								/>
 							{:else}
-								{c.name}
+								<span class="chip text-xs {classChipClass(c.name)}">{c.name}</span>
 							{/if}
 						</TableBodyCell>
 						<TableBodyCell class="text-right">
@@ -204,7 +208,7 @@
 								<Button size="xs" onclick={() => saveEdit(c.id)}>{t.save}</Button>
 								<Button size="xs" color="light" onclick={cancelEdit}>{t.cancel}</Button>
 							{:else}
-								<Button size="xs" onclick={() => startEdit(c)}>{t.edit}</Button>
+								<Button size="xs" color="alternative" onclick={() => startEdit(c)}>{t.edit}</Button>
 								<Button size="xs" color="red" onclick={() => deleteClass(c)}>
 									<TrashBinOutline size="xs" />
 								</Button>
@@ -216,7 +220,7 @@
 		</Table>
 
 		{#if classes.length === 0}
-			<P class="mt-4 text-gray-500 dark:text-gray-400">{t.noResultsYet}</P>
+			<P class="mt-4 text-surface-500 dark:text-surface-400">{t.noResultsYet}</P>
 		{/if}
-	</Card>
+	</section>
 </div>

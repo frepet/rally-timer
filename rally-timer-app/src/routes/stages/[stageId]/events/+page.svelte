@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import {
-		Card,
 		Table,
 		TableHead,
 		TableHeadCell,
@@ -151,12 +150,10 @@
 	const assignedGates = $derived(gates.filter((g) => g.stage_id === data.stageId));
 </script>
 
-<div class="w-full space-y-6 p-5">
-	<Card class="max-w-none p-4 sm:p-6 md:p-8">
+<div class="page">
+	<section class="panel panel-body">
 		<div class="mb-4">
-			<P class="small-caps text-xl font-semibold tracking-widest text-black dark:text-white"
-				>{t.eventsForStage(stageName)}</P
-			>
+			<h2 class="panel-title">{t.eventsForStage(stageName)}</h2>
 		</div>
 
 		{#if assignedGates.length}
@@ -232,7 +229,7 @@
 								<Button size="xs" onclick={() => saveEdit(e)}>{t.save}</Button>
 								<Button size="xs" color="light" onclick={cancelEdit}>{t.cancel}</Button>
 							{:else}
-								<Button size="xs" onclick={() => startEdit(e)}>{t.edit}</Button>
+								<Button size="xs" color="alternative" onclick={() => startEdit(e)}>{t.edit}</Button>
 								<Button size="xs" color="red" onclick={() => deleteEvent(e)}
 									><TrashBinOutline size="xs" /></Button
 								>
@@ -248,5 +245,5 @@
 				{/if}
 			</TableBody>
 		</Table>
-	</Card>
+	</section>
 </div>

@@ -71,37 +71,32 @@
 	});
 </script>
 
-<div class="w-full space-y-8 p-5">
-	<div class="mx-auto w-full max-w-5xl">
-		{#if activeView === 'training'}
-			<div class="mb-4 flex items-center gap-3">
-				<p class="small-caps text-xl font-semibold tracking-widest text-black dark:text-white">
-					{t.trainingHeading}
-				</p>
+<div class="page">
+	{#if activeView === 'training'}
+		<section class="panel">
+			<div class="panel-head">
+				<h2 class="panel-title">{t.trainingHeading}</h2>
 			</div>
-			<div class="space-y-6">
+			<div class="panel-body space-y-6">
 				<TrainingResults drivers={trainingConfig.drivers} />
 			</div>
-		{:else if activeView === 'rallycross'}
-			<div class="mb-2 flex items-center gap-3">
-				<p class="small-caps text-xl font-semibold tracking-widest text-black dark:text-white">
-					{t.rxHeading}
-				</p>
-				{#if rxConfig.active_heat}
-					<span
-						class="rounded bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900/40 dark:text-green-300"
-					>
-						{t.rxStatusHeatInProgress(rxConfig.active_heat.number)}
-					</span>
-				{/if}
-			</div>
-			{#if rxLeaderboard.length}
-				<RallycrossLeaderboard standings={rxDisplay.standings} heats={rxDisplay.heats} />
-			{:else}
-				<p class="text-sm text-gray-500">{t.rxWaitingForHeats}</p>
+		</section>
+	{:else if activeView === 'rallycross'}
+		<div class="flex flex-wrap items-center gap-3">
+			<h2 class="panel-title">{t.rxHeading}</h2>
+			{#if rxConfig.active_heat}
+				<span class="chip chip--ok">
+					<span class="status-dot status-dot--live"></span>
+					{t.rxStatusHeatInProgress(rxConfig.active_heat.number)}
+				</span>
 			{/if}
+		</div>
+		{#if rxLeaderboard.length}
+			<RallycrossLeaderboard standings={rxDisplay.standings} heats={rxDisplay.heats} />
 		{:else}
-			<RallyResults {rallyRows} stages={stageData} />
+			<p class="empty dark:text-surface-400">{t.rxWaitingForHeats}</p>
 		{/if}
-	</div>
+	{:else}
+		<RallyResults {rallyRows} stages={stageData} />
+	{/if}
 </div>

@@ -19,7 +19,7 @@
 	onclick={toggle}
 	type="button"
 	aria-label={t.toggleDarkMode}
-	class="rounded-lg p-2 text-sm text-gray-500 hover:bg-gray-100 focus:ring-2 focus:ring-gray-200 focus:outline-none dark:text-gray-400 dark:hover:bg-gray-700 dark:focus:ring-gray-700"
+	class="rounded-lg p-2 text-sm text-surface-500 hover:bg-surface-100 hover:text-surface-900 focus:ring-2 focus:ring-surface-200 focus:outline-none dark:text-surface-400 dark:hover:bg-white/10 dark:hover:text-white dark:focus:ring-white/10"
 >
 	{#if isDark}
 		<!-- Sun icon -->
