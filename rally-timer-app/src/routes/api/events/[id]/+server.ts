@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { sql, type Sql } from '$lib/server/db';
 import { throwIfNotAdmin } from '$lib/server/keycloak';
 import { getEvent } from '$lib/server/eventContext';
-import { eventLockError } from '$lib/domain/events';
+import { eventDeleteError, eventLockError } from '$lib/domain/events';
 const patchSchema = z.object({
 	name: z.string().trim().min(1).max(200).optional(),
 	is_locked: z.boolean().optional()
@@ -34,4 +34,18 @@ export async function PATCH(request: RequestEvent) {
 		return { ...current, name: parsed.data.name ?? current.name, is_locked: locked };
 	});
 	return json(event);
+}
+export async function DELETE(request: RequestEvent): Promise<Response> {
+	await throwIfNotAdmin(request);
+	await sql.begin(async (transaction) => {
+		const tx = transaction as unknown as Sql;
+		await tx`SELECT id FROM events WHERE id=${Number(request.params.id)} FOR UPDATE`;
+		const current = await getEvent(Number(request.params.id), tx);
+		const assignments =
+			await tx`SELECT id FROM gate_assignments WHERE event_id=${current.id} AND released_at IS NULL`;
+		const reason = eventDeleteError(current, assignments.length > 0);
+		if (reason) throw error(409, reason);
+		await tx`DELETE FROM events WHERE id=${current.id}`;
+	});
+	return new Response(null, { status: 204 });
 }

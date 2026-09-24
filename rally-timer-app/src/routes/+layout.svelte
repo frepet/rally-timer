@@ -101,27 +101,27 @@
 	>
 {/snippet}
 
-<header
-	class="sticky top-0 z-40 border-b border-surface-200/80 bg-white/85 backdrop-blur-md dark:border-white/8 dark:bg-surface-900/85"
->
+<header class="border-b border-surface-200/80 bg-white dark:border-white/8 dark:bg-surface-900">
 	<!-- Checkered accent strip -->
 	<div class="checker h-2" aria-hidden="true"></div>
-	<div class="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4 sm:px-6">
-		<div class="flex min-w-0 items-center gap-3">
+	<!-- Row 1: logo + title, with utilities on the right -->
+	<div class="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3 sm:gap-4 sm:px-6">
+		<div class="flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
 			<a href="/" class="shrink-0" aria-label={title}>
-				<img src="/icon-black.png" alt={t.logoAlt} class="h-11 w-auto dark:hidden" />
-				<img src="/icon-white.png" alt={t.logoAlt} class="hidden h-11 w-auto dark:block" />
+				<img src="/icon-black.png" alt={t.logoAlt} class="h-14 w-auto sm:h-20 dark:hidden" />
+				<img src="/icon-white.png" alt={t.logoAlt} class="hidden h-14 w-auto sm:h-20 dark:block" />
 			</a>
 			{#if editingTitle}
-				<div class="flex items-center gap-1.5">
-					<Input
-						class="w-40 sm:w-64"
-						size="sm"
-						bind:value={titleDraft}
-						onkeydown={onTitleKeydown}
-						disabled={savingTitle}
-						autofocus
-					/>
+				<div class="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+					<div class="w-full max-w-md min-w-0 flex-1">
+						<Input
+							bind:value={titleDraft}
+							onkeydown={onTitleKeydown}
+							disabled={savingTitle}
+							aria-label={t.editTitle}
+							autofocus
+						/>
+					</div>
 					<Button size="xs" onclick={saveTitle} disabled={savingTitle}>{t.save}</Button>
 					<Button
 						size="xs"
@@ -134,35 +134,29 @@
 					>
 				</div>
 			{:else}
-				<a
-					href="/"
-					class="truncate text-2xl leading-none font-bold tracking-wide text-surface-900 uppercase dark:text-white"
-					style="font-family: var(--font-display)">{title}</a
-				>
-				{#if auth.isAdmin}
-					<button
-						class="shrink-0 rounded p-1 text-surface-400 hover:bg-surface-100 hover:text-surface-800 dark:hover:bg-white/10 dark:hover:text-surface-100"
-						onclick={() => {
-							titleDraft = title;
-							editingTitle = true;
-						}}
-						aria-label={t.editTitle}
+				<div class="flex min-w-0 items-center gap-2">
+					<a
+						href="/"
+						class="text-3xl leading-none font-bold tracking-wide break-words text-surface-900 uppercase sm:text-4xl dark:text-white"
+						style="font-family: var(--font-display)">{title}</a
 					>
-						<EditOutline size="sm" />
-					</button>
-				{/if}
+					{#if auth.isAdmin}
+						<button
+							class="shrink-0 rounded p-1 text-surface-400 hover:bg-surface-100 hover:text-surface-800 dark:hover:bg-white/10 dark:hover:text-surface-100"
+							onclick={() => {
+								titleDraft = title;
+								editingTitle = true;
+							}}
+							aria-label={t.editTitle}
+						>
+							<EditOutline size="sm" />
+						</button>
+					{/if}
+				</div>
 			{/if}
 		</div>
 
-		<nav class="ml-auto hidden items-center gap-0.5 lg:flex">
-			{#each publicLinks as link (link.href)}{@render navLink(link)}{/each}
-			{#if auth.isAdmin}
-				<span class="mx-2 h-5 w-px bg-surface-200 dark:bg-white/10" aria-hidden="true"></span>
-				{#each adminLinks as link (link.href)}{@render navLink(link)}{/each}
-			{/if}
-		</nav>
-
-		<div class="ml-auto flex items-center gap-1 lg:ml-3">
+		<div class="flex shrink-0 items-center gap-1">
 			<div class="hidden items-center gap-1 sm:flex">
 				<LanguageSwitcher />
 				<DarkModeToggle />
@@ -217,6 +211,19 @@
 		</nav>
 	{/if}
 </header>
+
+<!-- Row 2: main menu (desktop); sticks to the top while scrolling -->
+<nav
+	class="sticky top-0 z-40 hidden border-b border-surface-200/80 bg-white/85 backdrop-blur-md lg:block dark:border-white/8 dark:bg-surface-900/85"
+>
+	<div class="mx-auto flex h-12 max-w-6xl items-center gap-0.5 px-4 sm:px-6">
+		{#each publicLinks as link (link.href)}{@render navLink(link)}{/each}
+		{#if auth.isAdmin}
+			<span class="mx-2 h-5 w-px bg-surface-200 dark:bg-white/10" aria-hidden="true"></span>
+			{#each adminLinks as link (link.href)}{@render navLink(link)}{/each}
+		{/if}
+	</div>
+</nav>
 
 <main class="flex-1">
 	{@render children?.()}

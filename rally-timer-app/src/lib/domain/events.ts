@@ -30,6 +30,14 @@ export function eventSubmissionError(
 	return null;
 }
 
+// Deleting cascades to stages, heats, participants and timing data; submitted
+// championship results survive (their event_id is set to NULL).
+export function eventDeleteError(event: AppEvent, hasAssignedGate: boolean): string | null {
+	if (event.is_locked) return 'Unlock the event before deleting it';
+	if (hasAssignedGate) return 'Release all gates before deleting';
+	return null;
+}
+
 export function selectHomepageEvent(events: AppEvent[], pinnedId: number | null): AppEvent | null {
 	const pinned = events.find((event) => event.id === pinnedId);
 	if (pinned) return pinned;

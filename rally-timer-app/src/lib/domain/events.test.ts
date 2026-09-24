@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { eventLockError, eventSubmissionError, selectHomepageEvent, type AppEvent } from './events';
+import {
+	eventDeleteError,
+	eventLockError,
+	eventSubmissionError,
+	selectHomepageEvent,
+	type AppEvent
+} from './events';
 const event = (id: number, type: AppEvent['type'] = 'rally', created_at = id): AppEvent => ({
 	id,
 	type,
@@ -41,4 +47,12 @@ it('manual locking requires releasing gates but permits an empty event', () => {
 	expect(eventLockError(event(1), true, true)).toBeTruthy();
 	expect(eventLockError(event(1), true, false)).toBeNull();
 	expect(eventLockError(event(1), false, true)).toBeNull();
+});
+describe('event deletion', () => {
+	it('allows deleting an unlocked event with no active gates', () =>
+		expect(eventDeleteError(event(1), false)).toBeNull());
+	it('requires unlocking first', () =>
+		expect(eventDeleteError({ ...event(1), is_locked: true }, false)).toBeTruthy());
+	it('requires gates to be released first', () =>
+		expect(eventDeleteError(event(1), true)).toBeTruthy());
 });

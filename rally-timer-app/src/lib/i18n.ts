@@ -18,6 +18,12 @@ export const sv = {
 	eventLoadFailed: 'Kunde inte läsa evenemanget.',
 	eventRename: 'Byt namn på evenemanget',
 	eventRenameLocked: 'Lås upp evenemanget för att byta namn',
+	eventDelete: 'Ta bort evenemang',
+	eventDeleteLocked: 'Lås upp evenemanget för att ta bort det',
+	eventDeleteConfirm: (name: string) => `Ta bort ”${name}”?`,
+	eventDeleteDescription:
+		'Alla sträckor, heat, deltagare och tider i evenemanget tas bort. Resultat som redan skickats till mästerskap finns kvar.',
+	eventDeleting: 'Tar bort…',
 
 	// Common actions
 	save: 'Spara',
@@ -434,6 +440,12 @@ export const en: typeof sv = {
 	eventLoadFailed: 'Could not load the event.',
 	eventRename: 'Rename event',
 	eventRenameLocked: 'Unlock the event to rename it',
+	eventDelete: 'Delete event',
+	eventDeleteLocked: 'Unlock the event to delete it',
+	eventDeleteConfirm: (name: string) => `Delete “${name}”?`,
+	eventDeleteDescription:
+		'All stages, heats, participants and times in this event will be removed. Results already submitted to championships are kept.',
+	eventDeleting: 'Deleting…',
 
 	// Common actions
 	save: 'Save',

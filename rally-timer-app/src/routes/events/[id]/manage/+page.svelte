@@ -1,7 +1,13 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import { Button, Input } from 'flowbite-svelte';
-	import { EditOutline, LockOpenOutline, LockOutline } from 'flowbite-svelte-icons';
+	import { Button, Input, Modal } from 'flowbite-svelte';
+	import {
+		EditOutline,
+		LockOpenOutline,
+		LockOutline,
+		TrashBinOutline
+	} from 'flowbite-svelte-icons';
+	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { kcFetch } from '$lib/kcFetch';
 	import { t } from '$lib/stores/locale.svelte';
@@ -73,6 +79,23 @@
 	function onNameKeydown(e: KeyboardEvent) {
 		if (e.key === 'Enter') saveName();
 		if (e.key === 'Escape') editingName = false;
+	}
+	let deleteModalOpen = $state(false);
+	let deleting = $state(false);
+	async function deleteEvent() {
+		deleting = true;
+		error = '';
+		try {
+			const res = await kcFetch(`/api/events/${eventId}`, { method: 'DELETE' });
+			if (!res.ok) throw new Error(await res.text());
+			deleteModalOpen = false;
+			await goto('/events');
+		} catch (e) {
+			error = String(e);
+			deleteModalOpen = false;
+		} finally {
+			deleting = false;
+		}
 	}
 	async function toggleLock() {
 		if (!event) return;
@@ -164,6 +187,20 @@
 							{event.is_locked ? t.eventUnlock : t.eventLock}
 						</Button>
 					{/if}
+					{#if auth.isAdmin}
+						<Button
+							color="red"
+							outline
+							size="sm"
+							class="gap-1.5"
+							disabled={event.is_locked}
+							title={event.is_locked ? t.eventDeleteLocked : t.eventDelete}
+							onclick={() => (deleteModalOpen = true)}
+						>
+							<TrashBinOutline size="sm" />
+							{t.eventDelete}
+						</Button>
+					{/if}
 				</div>
 			</div>
 		</section>
@@ -182,4 +219,28 @@
 				onsubmitted={load}
 			/>{:else}<TrainingManager {eventId} />{/if}
 	{/key}
+{/if}
+
+{#if event}
+	<Modal
+		title={t.eventDeleteConfirm(event.name)}
+		bind:open={deleteModalOpen}
+		size="sm"
+		autoclose={false}
+	>
+		<div class="space-y-4">
+			<p class="text-surface-700 dark:text-surface-300">
+				{t.eventDeleteDescription}
+				{t.cannotBeUndone}
+			</p>
+			<div class="flex justify-end gap-2">
+				<Button color="alternative" onclick={() => (deleteModalOpen = false)} disabled={deleting}
+					>{t.cancel}</Button
+				>
+				<Button color="red" onclick={deleteEvent} disabled={deleting}>
+					{deleting ? t.eventDeleting : t.eventDelete}
+				</Button>
+			</div>
+		</div>
+	</Modal>
 {/if}
