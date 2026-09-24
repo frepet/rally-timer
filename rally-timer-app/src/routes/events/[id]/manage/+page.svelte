@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import { Button } from 'flowbite-svelte';
-	import { LockOpenOutline, LockOutline } from 'flowbite-svelte-icons';
+	import { Button, Input } from 'flowbite-svelte';
+	import { EditOutline, LockOpenOutline, LockOutline } from 'flowbite-svelte-icons';
 	import { page } from '$app/state';
 	import { kcFetch } from '$lib/kcFetch';
 	import { t } from '$lib/stores/locale.svelte';
@@ -38,6 +38,42 @@
 			requestVersion++;
 		};
 	});
+	let editingName = $state(false);
+	let nameDraft = $state('');
+	let renaming = $state(false);
+	function startRename() {
+		if (!event) return;
+		nameDraft = event.name;
+		editingName = true;
+	}
+	async function saveName() {
+		const name = nameDraft.trim();
+		if (!event || !name) return;
+		if (name === event.name) {
+			editingName = false;
+			return;
+		}
+		renaming = true;
+		error = '';
+		try {
+			const res = await kcFetch(`/api/events/${eventId}`, {
+				method: 'PATCH',
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify({ name })
+			});
+			if (!res.ok) throw new Error(await res.text());
+			editingName = false;
+			await load();
+		} catch (e) {
+			error = String(e);
+		} finally {
+			renaming = false;
+		}
+	}
+	function onNameKeydown(e: KeyboardEvent) {
+		if (e.key === 'Enter') saveName();
+		if (e.key === 'Escape') editingName = false;
+	}
 	async function toggleLock() {
 		if (!event) return;
 		saving = true;
@@ -68,7 +104,42 @@
 						href="/events">← {t.navEvents}</a
 					>
 					<div class="flex flex-wrap items-center gap-3">
-						<h1 class="page-title break-words">{event.name}</h1>
+						{#if editingName}
+							<div class="flex w-full max-w-lg items-center gap-2">
+								<div class="min-w-0 flex-1">
+									<Input
+										aria-label={t.eventName}
+										bind:value={nameDraft}
+										onkeydown={onNameKeydown}
+										disabled={renaming}
+										autofocus
+									/>
+								</div>
+								<Button size="sm" onclick={saveName} disabled={renaming || !nameDraft.trim()}
+									>{t.save}</Button
+								>
+								<Button
+									size="sm"
+									color="alternative"
+									onclick={() => (editingName = false)}
+									disabled={renaming}>{t.cancel}</Button
+								>
+							</div>
+						{:else}
+							<h1 class="page-title break-words">{event.name}</h1>
+							{#if auth.isAdmin}
+								<button
+									type="button"
+									class="rounded p-1 text-surface-400 hover:bg-surface-100 hover:text-surface-800 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent dark:hover:bg-white/10 dark:hover:text-surface-100"
+									onclick={startRename}
+									disabled={event.is_locked}
+									aria-label={t.eventRename}
+									title={event.is_locked ? t.eventRenameLocked : t.eventRename}
+								>
+									<EditOutline size="md" />
+								</button>
+							{/if}
+						{/if}
 						{#if event.is_locked}<span class="chip">
 								<LockOutline class="h-3 w-3" />{t.eventLocked}</span
 							>{/if}
