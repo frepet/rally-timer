@@ -1,6 +1,9 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
+	import { Tooltip } from 'flowbite-svelte';
+
 	import StagePicker from './components/StagePicker.svelte';
+	import { DNF_PENALTY_MS } from './domain/dnfPenalties';
 	import { classChipClass } from './classColor';
 	import { formatMs, type DisplayRallyRow, type StageData } from './results';
 	import { t } from './stores/locale.svelte';
@@ -88,6 +91,15 @@
 	}
 </script>
 
+<!-- Explains where a DNF time comes from. Placed right after its trigger:
+     Tooltip attaches to its previous sibling, which also works for rows
+     rendered after live refreshes. -->
+{#snippet dnfHint()}
+	<Tooltip placement="top" class="w-max max-w-64 text-xs font-normal normal-case"
+		>{t.dnfTimeHint(DNF_PENALTY_MS / 1000)}</Tooltip
+	>
+{/snippet}
+
 <div class="grid items-start gap-6 xl:grid-cols-2">
 	<!-- Rally leaderboard -->
 	<section class="panel overflow-hidden">
@@ -105,23 +117,16 @@
 					<div class="timing-row">
 						<span class="pos {r.position <= 3 ? `pos--${r.position}` : ''}">{r.position}</span>
 						<div class="min-w-0">
-							<div class="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-								<span class="truncate font-semibold text-surface-900 dark:text-white"
-									>{r.driver_name}</span
-								>
+							<p class="truncate font-semibold text-surface-900 dark:text-white">
+								{r.driver_name}
+							</p>
+							<div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
 								<span class="chip {classChipClass(r.class_name)}">{r.class_name}</span>
-							</div>
-							<div class="mt-0.5 flex flex-wrap gap-x-4 gap-y-0.5">
-								{#if !r.group_leader}
-									<span class="stat"
-										><span class="stat-label">{t.totalLabel}</span>{formatMs(r.total_ms)}</span
-									>
-								{/if}
-								<span class="stat"
-									><span class="stat-label">{t.stagesStatLabel}</span>{r.finished_stages}</span
-								>
 								{#if r.dnf_count > 0}
-									<span class="chip chip--danger">{t.dnfStatLabel(r.dnf_count)}</span>
+									<button type="button" class="chip chip--danger dnf-hint"
+										>{t.dnfStatLabel(r.dnf_count)}</button
+									>
+									{@render dnfHint()}
 								{/if}
 								{#if r.penalty_ms > 0}
 									<span class="stat text-amber-700 dark:text-amber-400"
@@ -144,21 +149,18 @@
 							</div>
 						</div>
 						<div class="flex flex-col items-end">
-							<span
-								class="time text-xl sm:text-2xl {r.group_leader
-									? 'text-surface-900 dark:text-white'
-									: 'text-surface-700 dark:text-surface-200'}"
-							>
-								{#if r.group_leader}
-									{formatMs(r.total_ms)}
-								{:else}
-									{r.delta_prev != null ? '+' + formatMs(r.delta_prev) : '—'}
-								{/if}
+							<span class="time text-xl text-surface-900 sm:text-2xl dark:text-white">
+								{formatMs(r.total_ms)}
 							</span>
 							{#if !r.group_leader}
 								<span class="stat"
 									><span class="stat-label">Δ P1</span>{r.delta_p1 != null
 										? '+' + formatMs(r.delta_p1)
+										: '—'}</span
+								>
+								<span class="stat"
+									><span class="stat-label">{t.deltaPrevLabel}</span>{r.delta_prev != null
+										? '+' + formatMs(r.delta_prev)
 										: '—'}</span
 								>
 							{/if}
@@ -211,26 +213,22 @@
 					{#each activeRows as r (r.driver_uuid)}
 						<div class="timing-row">
 							{#if r.dnf}
-								<span class="chip chip--danger justify-self-center">DNF</span>
+								<button type="button" class="chip chip--danger dnf-hint justify-self-center"
+									>DNF</button
+								>
+								{@render dnfHint()}
 							{:else}
 								<span class="pos {r.position <= 3 ? `pos--${r.position}` : ''}">{r.position}</span>
 							{/if}
 							<div class="min-w-0">
-								<div class="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-									<span class="truncate font-semibold text-surface-900 dark:text-white"
-										>{r.driver_name}</span
-									>
+								<p class="truncate font-semibold text-surface-900 dark:text-white">
+									{r.driver_name}
+								</p>
+								<div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
 									<span class="chip {classChipClass(r.class_name)}">{r.class_name}</span>
 									{#if r.synthetic}
 										<span class="chip chip--warn" title={t.syntheticBadgeTitle}
 											>{t.syntheticBadge}</span
-										>
-									{/if}
-								</div>
-								<div class="mt-0.5 flex flex-wrap gap-x-4 gap-y-0.5">
-									{#if r.position !== 1}
-										<span class="stat"
-											><span class="stat-label">{t.timeLabel}</span>{formatMs(r.stage_ms)}</span
 										>
 									{/if}
 									{#if r.penalty_ms > 0}
@@ -255,23 +253,27 @@
 								</div>
 							</div>
 							<div class="flex flex-col items-end">
-								<span
-									class="time text-xl sm:text-2xl {r.dnf
-										? 'text-surface-400 dark:text-surface-500'
-										: r.position === 1
-											? 'text-surface-900 dark:text-white'
-											: 'text-surface-700 dark:text-surface-200'}"
-								>
-									{#if r.dnf || r.position === 1}
+								{#if r.dnf}
+									<button
+										type="button"
+										class="time dnf-hint text-xl text-surface-400 underline decoration-dotted decoration-1 underline-offset-4 sm:text-2xl dark:text-surface-500"
+										>{formatMs(r.stage_ms)}</button
+									>
+									{@render dnfHint()}
+								{:else}
+									<span class="time text-xl text-surface-900 sm:text-2xl dark:text-white">
 										{formatMs(r.stage_ms)}
-									{:else}
-										{r.delta_prev != null ? '+' + formatMs(r.delta_prev) : '—'}
-									{/if}
-								</span>
+									</span>
+								{/if}
 								{#if r.position !== 1 && !r.dnf}
 									<span class="stat"
 										><span class="stat-label">Δ P1</span>{r.delta_p1 != null
 											? '+' + formatMs(r.delta_p1)
+											: '—'}</span
+									>
+									<span class="stat"
+										><span class="stat-label">{t.deltaPrevLabel}</span>{r.delta_prev != null
+											? '+' + formatMs(r.delta_prev)
 											: '—'}</span
 									>
 								{/if}
@@ -289,6 +291,9 @@
 </div>
 
 <style>
+	:global(.dnf-hint) {
+		cursor: help;
+	}
 	.group-divider {
 		display: flex;
 		align-items: center;

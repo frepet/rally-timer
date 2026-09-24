@@ -84,9 +84,11 @@ export const sv = {
 	// Rally results
 	rallyLeaderboard: 'Resultatlista Rally',
 	stageLeaderboard: 'Resultatlista Sträcka',
-	totalLabel: 'Totalt',
-	stagesStatLabel: 'Sträckor',
+	totalLabel: 'Total',
+	deltaPrevLabel: 'Δ föreg.',
 	dnfStatLabel: (n: number) => `${n}xDNF`,
+	dnfTimeHint: (penaltyS: number) =>
+		`DNF-tid: långsammaste tiden i klassen på sträckan + ${penaltyS} s`,
 	syntheticBadge: 'SYN',
 	syntheticBadgeTitle: 'Uppskattad mållinjetid (Fixa DNF)',
 	penaltyLabel: 'Tillägg',
@@ -515,8 +517,10 @@ export const en: typeof sv = {
 	rallyLeaderboard: 'Rally leaderboard',
 	stageLeaderboard: 'Stage leaderboard',
 	totalLabel: 'Total',
-	stagesStatLabel: 'Stages',
+	deltaPrevLabel: 'Δ prev',
 	dnfStatLabel: (n: number) => `${n}xDNF`,
+	dnfTimeHint: (penaltyS: number) =>
+		`DNF time: slowest time in the class on the stage + ${penaltyS} s`,
 	syntheticBadge: 'SYN',
 	syntheticBadgeTitle: 'Estimated finish time (Fix DNF)',
 	penaltyLabel: 'Penalty',
