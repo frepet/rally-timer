@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Button, Select } from 'flowbite-svelte';
+	import { Button } from 'flowbite-svelte';
 	import { startLiveRefresh } from '$lib/liveRefresh';
 	import { goto } from '$app/navigation';
 	import { kcFetch } from '$lib/kcFetch';
@@ -11,6 +11,7 @@
 		sortEvents,
 		type DisplayEvent
 	} from '$lib/domain/eventPresentation';
+	import EventCombobox from '$lib/components/EventCombobox.svelte';
 	import EventResults from '$lib/EventResults.svelte';
 	let { eventId = null }: { eventId?: number | null } = $props();
 	let events = $state<DisplayEvent[]>([]);
@@ -61,7 +62,7 @@
 <div class="page pb-0">
 	{#if error}<p role="alert" class="alert-error">{error}</p>{/if}
 	{#if loaded && event}
-		<section class="panel overflow-hidden">
+		<section class="panel overflow-visible">
 			<div class="flex flex-wrap items-end justify-between gap-x-6 gap-y-4 p-4 sm:p-6">
 				<div class="min-w-0 space-y-2">
 					<span class="chip chip--primary"
@@ -74,30 +75,26 @@
 					<h1 class="page-title break-words">{event.name}</h1>
 				</div>
 				<div class="flex w-full flex-wrap items-end gap-3 sm:w-auto">
-					<div class="w-full sm:w-56">
-						<label for="view-event" class="field-label">{t.navEvents}</label>
-						<Select
+					<div class="w-full sm:w-72">
+						<p class="field-label">{t.navEvents}</p>
+						<EventCombobox
 							id="view-event"
-							size="sm"
-							value={event.id}
-							onchange={(e) => goto(`/events/${e.currentTarget.value}`)}
-						>
-							{#each ordered as item (item.id)}<option value={item.id}>{item.name}</option>{/each}
-						</Select>
+							events={ordered}
+							selectedId={event.id}
+							onselect={(id) => id !== null && goto(`/events/${id}`)}
+						/>
 					</div>
 					{#if auth.isAdmin}
-						<div class="w-full sm:w-56">
-							<label for="homepage-event" class="field-label">{t.eventHomepage}</label>
-							<Select
+						<div class="w-full sm:w-72">
+							<p class="field-label">{t.eventHomepage}</p>
+							<EventCombobox
 								id="homepage-event"
-								size="sm"
+								events={ordered}
+								selectedId={pinnedId}
+								automaticLabel={t.eventAuto}
 								disabled={saving}
-								value={pinnedId ?? ''}
-								onchange={(e) => pin(e.currentTarget.value ? Number(e.currentTarget.value) : null)}
-							>
-								<option value="">{t.eventAuto}</option>
-								{#each ordered as item (item.id)}<option value={item.id}>{item.name}</option>{/each}
-							</Select>
+								onselect={pin}
+							/>
 						</div>
 						<Button color="alternative" size="sm" href={`/events/${event.id}/manage`}
 							>{t.eventManage}</Button

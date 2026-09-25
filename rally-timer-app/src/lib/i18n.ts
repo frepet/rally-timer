@@ -16,6 +16,9 @@ export const sv = {
 	eventSubmissionWarning:
 		'Alla sträckor eller heat måste vara stängda och grinden bortkopplad. Inskickning låser evenemanget. Skickar du in igen skapas ännu ett resultat och rallybetyget påverkas igen.',
 	eventLoadFailed: 'Kunde inte läsa evenemanget.',
+	eventSearchLabel: 'Sök evenemang',
+	eventSearchPlaceholder: 'Sök efter namn…',
+	eventSearchEmpty: 'Inga evenemang matchar sökningen.',
 	eventRename: 'Byt namn på evenemanget',
 	eventRenameLocked: 'Lås upp evenemanget för att byta namn',
 	eventDelete: 'Ta bort evenemang',
@@ -448,6 +451,9 @@ export const en: typeof sv = {
 	eventSubmissionWarning:
 		'All stages or heats must be closed and the gate disconnected. Submitting locks the event. Submitting again creates another result and applies rally ratings again.',
 	eventLoadFailed: 'Could not load the event.',
+	eventSearchLabel: 'Search events',
+	eventSearchPlaceholder: 'Search by name…',
+	eventSearchEmpty: 'No events match your search.',
 	eventRename: 'Rename event',
 	eventRenameLocked: 'Unlock the event to rename it',
 	eventDelete: 'Delete event',

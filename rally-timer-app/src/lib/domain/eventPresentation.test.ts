@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
 	chooseHomepageEvent,
+	filterEvents,
 	sortEvents,
 	participantIdsAfterToggle,
 	eventApiUrl
@@ -29,6 +30,15 @@ describe('event presentation', () => {
 	it('scopes API requests and preserves existing query parameters', () => {
 		expect(eventApiUrl('/api/bundle', 2)).toBe('/api/bundle?event_id=2');
 		expect(eventApiUrl('/api/stage?x=1', 3)).toBe('/api/stage?x=1&event_id=3');
+	});
+	it('filters events by name without changing their order', () => {
+		const list = [
+			{ ...events[0], name: 'Höstrallyt' },
+			{ ...events[1], name: 'Rallycross Knutby' }
+		];
+		expect(filterEvents(list, ' rally ')).toEqual(list);
+		expect(filterEvents(list, 'KNUTBY').map((event) => event.id)).toEqual([2]);
+		expect(filterEvents(list, '')).toBe(list);
 	});
 });
 

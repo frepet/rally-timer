@@ -3,6 +3,11 @@ export type { AppEvent as DisplayEvent } from './events';
 export function sortEvents<T extends { id: number; created_at: number }>(events: T[]): T[] {
 	return [...events].sort((a, b) => b.created_at - a.created_at || b.id - a.id);
 }
+export function filterEvents<T extends { name: string }>(events: T[], query: string): T[] {
+	const normalized = query.trim().toLocaleLowerCase();
+	if (!normalized) return events;
+	return events.filter((event) => event.name.toLocaleLowerCase().includes(normalized));
+}
 export function participantIdsAfterToggle(
 	drivers: { id: number; active: boolean }[],
 	id: number,
