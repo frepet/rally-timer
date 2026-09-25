@@ -11,7 +11,8 @@
 		selectedId,
 		onselect,
 		automaticLabel,
-		disabled = false
+		disabled = false,
+		prominent = false
 	}: {
 		id: string;
 		events: DisplayEvent[];
@@ -19,6 +20,7 @@
 		onselect: (id: number | null) => void;
 		automaticLabel?: string;
 		disabled?: boolean;
+		prominent?: boolean;
 	} = $props();
 
 	type Option =
@@ -135,13 +137,17 @@
 	<button
 		type="button"
 		class="event-trigger"
+		class:event-trigger--prominent={prominent}
 		aria-haspopup="listbox"
 		aria-expanded={open}
 		{disabled}
 		onclick={() => (open ? close() : show())}
 	>
 		<span class="min-w-0 flex-1 text-left">
-			<span class="block truncate font-semibold text-surface-900 dark:text-white">
+			<span
+				class="event-trigger-title block truncate font-semibold text-surface-900 dark:text-white"
+				class:event-trigger-title--prominent={prominent}
+			>
 				{selected?.name ?? automaticLabel ?? t.eventSearchPlaceholder}
 			</span>
 			{#if selected}
@@ -257,6 +263,22 @@
 		cursor: wait;
 		opacity: 0.6;
 	}
+	.event-trigger--prominent {
+		min-height: 4.25rem;
+		background: #fff;
+		padding: 0.75rem 1rem;
+		box-shadow:
+			0 1px 2px rgb(15 23 42 / 0.05),
+			inset 0 0 0 1px rgb(15 23 42 / 0.05);
+	}
+	.event-trigger-title--prominent {
+		font-family: var(--font-display);
+		font-size: 1.25rem;
+		line-height: 1;
+		font-weight: 700;
+		letter-spacing: 0.025em;
+		text-transform: uppercase;
+	}
 	.event-trigger:focus-visible {
 		outline: none;
 		box-shadow: inset 0 0 0 2px var(--color-primary-500);
@@ -289,6 +311,13 @@
 	:global(.dark) .event-trigger {
 		background: rgb(255 255 255 / 0.04);
 		box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.1);
+	}
+	:global(.dark) .event-trigger.event-trigger--prominent {
+		background: var(--color-surface-850);
+		box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.08);
+	}
+	:global(.dark) .event-trigger.event-trigger--prominent:hover {
+		background: var(--color-surface-800);
 	}
 	:global(.dark) .event-trigger:hover,
 	:global(.dark) .event-option.is-highlighted {

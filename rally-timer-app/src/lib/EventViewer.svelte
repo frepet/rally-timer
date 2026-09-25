@@ -62,44 +62,16 @@
 <div class="page pb-0">
 	{#if error}<p role="alert" class="alert-error">{error}</p>{/if}
 	{#if loaded && event}
-		<section class="panel overflow-visible">
-			<div class="flex flex-wrap items-end justify-between gap-x-6 gap-y-4 p-4 sm:p-6">
-				<div class="min-w-0 space-y-2">
-					<span class="chip chip--primary"
-						>{event.type === 'rally'
-							? t.navRally
-							: event.type === 'rallycross'
-								? t.navRallycross
-								: t.navTraining}</span
-					>
-					<h1 class="page-title break-words">{event.name}</h1>
-				</div>
-				<div class="flex w-full flex-wrap items-end gap-3 sm:w-auto">
-					<div class="w-full sm:w-72">
-						<p class="field-label">{t.navEvents}</p>
-						<EventCombobox
-							id="view-event"
-							events={ordered}
-							selectedId={event.id}
-							onselect={(id) => id !== null && goto(`/events/${id}`)}
-						/>
-					</div>
-					{#if auth.isAdmin}
-						<div class="w-full sm:w-72">
-							<p class="field-label">{t.eventHomepage}</p>
-							<EventCombobox
-								id="homepage-event"
-								events={ordered}
-								selectedId={pinnedId}
-								automaticLabel={t.eventAuto}
-								disabled={saving}
-								onselect={pin}
-							/>
-						</div>
-						<Button color="alternative" size="sm" href={`/events/${event.id}/manage`}
-							>{t.eventManage}</Button
-						>
-					{/if}
+		<section class="overflow-visible">
+			<div class="w-full">
+				<div class="w-full">
+					<EventCombobox
+						id="view-event"
+						events={ordered}
+						selectedId={event.id}
+						prominent
+						onselect={(id) => id !== null && goto(`/events/${id}`)}
+					/>
 				</div>
 			</div>
 		</section>
@@ -113,4 +85,28 @@
 		</div>
 	{/if}
 </div>
-{#if event}{#key event.id}<EventResults {event} />{/key}{/if}
+{#if event}
+	{#key event.id}<EventResults {event} />{/key}
+	{#if auth.isAdmin}
+		<div class="page pt-0">
+			<section
+				class="flex flex-wrap items-end justify-end gap-3 border-t border-surface-200 pt-6 dark:border-white/8"
+			>
+				<div class="w-full sm:w-72">
+					<p class="field-label">{t.eventHomepage}</p>
+					<EventCombobox
+						id="homepage-event"
+						events={ordered}
+						selectedId={pinnedId}
+						automaticLabel={t.eventAuto}
+						disabled={saving}
+						onselect={pin}
+					/>
+				</div>
+				<Button color="alternative" size="sm" href={`/events/${event.id}/manage`}
+					>{t.eventManage}</Button
+				>
+			</section>
+		</div>
+	{/if}
+{/if}
