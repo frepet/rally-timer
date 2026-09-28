@@ -60,6 +60,20 @@
 		}
 	}
 
+	async function deleteTrainingLap(gateEventId: number) {
+		if (!confirm(t.trainingDeleteLapConfirm)) return;
+		try {
+			const res = await kcFetch(
+				eventApiUrl(`/api/training/event/${gateEventId}`, event.id),
+				{ method: 'DELETE' }
+			);
+			if (!res.ok) throw new Error(await res.text());
+			await loadAll();
+		} catch (e) {
+			alert(t.trainingDeleteLapFailed + (e as Error).message);
+		}
+	}
+
 	let stopLive: (() => void) | null = null;
 
 	onMount(async () => {
@@ -78,7 +92,7 @@
 				<h2 class="panel-title">{t.trainingHeading}</h2>
 			</div>
 			<div class="panel-body space-y-6">
-				<TrainingResults drivers={trainingConfig.drivers} />
+				<TrainingResults drivers={trainingConfig.drivers} onDeleteLap={deleteTrainingLap} />
 			</div>
 		</section>
 	{:else if activeView === 'rallycross'}
