@@ -16,7 +16,6 @@
 	import RalliesManager from '$lib/RalliesManager.svelte';
 	import RallycrossManager from '$lib/RallycrossManager.svelte';
 	import TrainingManager from '$lib/TrainingManager.svelte';
-	import EventParticipants from '$lib/EventParticipants.svelte';
 	let event = $state<DisplayEvent | null>(null);
 	let error = $state('');
 	let saving = $state(false);
@@ -204,9 +203,6 @@
 				</div>
 			</div>
 		</section>
-		{#if auth.isAdmin && !event.is_locked && event.type === 'training'}<EventParticipants
-				{eventId}
-			/>{/if}
 	{/if}
 </div>
 {#if event && auth.isAdmin && !event.is_locked}

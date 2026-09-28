@@ -5,7 +5,7 @@ import { fetchTrainingDriverInputs } from './trainingData';
 import { fetchClosedHeatResults } from './rallycrossData';
 describe('saved event timing after gate release', () => {
 	beforeEach(() => vi.clearAllMocks());
-	it('retains training passes after its gate is disconnected', async () => {
+	it('includes every known driver in training without requiring event participation', async () => {
 		m.sql.mockResolvedValue([
 			{
 				gate_event_id: 1,
@@ -25,6 +25,7 @@ describe('saved event timing after gate release', () => {
 		expect(result[0].passes).toHaveLength(1);
 		const query = m.sql.mock.calls[0];
 		expect(query[0].join('')).toContain('gate_event_events');
+		expect(query[0].join('')).not.toContain('event_participants');
 		expect(query.slice(1)).toContain(42);
 	});
 	it('retains rallycross timed results after gate release', async () => {

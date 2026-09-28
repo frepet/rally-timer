@@ -24,7 +24,8 @@ export async function fetchTrainingConfig(
 
 // Loads every gate pass at the configured training gate since started_at,
 // joined to drivers (by tag), and shapes them into per-driver inputs ready
-// for the domain functions. Passes without a known driver are skipped.
+// for the domain functions. Training is open to every known driver; event
+// participation does not apply. Passes without a known driver are skipped.
 export async function fetchTrainingDriverInputs(
 	cfg: TrainingConfig,
 	eventId: number
@@ -54,7 +55,6 @@ export async function fetchTrainingDriverInputs(
 		FROM gate_events ge
 		JOIN gate_event_events gee ON gee.gate_event_id = ge.id
 		JOIN drivers d ON d.tag = ge.tag
-		JOIN event_participants ep ON ep.driver_id = d.id AND ep.event_id = ${eventId}
 		LEFT JOIN classes c ON c.id = d.class_id
 		WHERE gee.event_id = ${eventId}
 		  AND ge.timestamp >= ${cfg.started_at}
