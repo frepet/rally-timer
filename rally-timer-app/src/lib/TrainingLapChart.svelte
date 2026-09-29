@@ -1,13 +1,14 @@
 <script lang="ts">
 	import { Input, Toggle } from 'flowbite-svelte';
 	import type { TrainingDriverResult } from './domain/training';
-	import { buildTrainingChartSeries } from './domain/trainingChart';
+	import { buildTrackDevelopment, buildTrainingChartSeries } from './domain/trainingChart';
 	import { formatMs } from './results';
 	import { getLocale, t } from './stores/locale.svelte';
 
 	let { drivers }: { drivers: TrainingDriverResult[] } = $props();
 	let filterEnabled = $state(true);
 	let slowerPercent = $state(50);
+	let hiddenDriverIds = $state<number[]>([]);
 	let container = $state<HTMLDivElement | null>(null);
 	let width = $state(900);
 
@@ -16,19 +17,25 @@
 	const series = $derived(
 		buildTrainingChartSeries(drivers, filterEnabled ? Math.max(0, slowerPercent || 0) : null)
 	);
-	const points = $derived(series.flatMap((entry) => entry.points));
-	const excludedCount = $derived(series.reduce((sum, entry) => sum + entry.excluded_count, 0));
+	const visibleSeries = $derived(
+		series.filter((entry) => !hiddenDriverIds.includes(entry.driver_id))
+	);
+	const trackDevelopment = $derived(buildTrackDevelopment(visibleSeries));
+	const points = $derived(visibleSeries.flatMap((entry) => entry.points));
+	const excludedCount = $derived(
+		visibleSeries.reduce((sum, entry) => sum + entry.excluded_count, 0)
+	);
 
 	const bounds = $derived.by(() => {
 		if (points.length === 0) return null;
-		let minTime = Math.min(...points.map((point) => point.timestamp));
-		let maxTime = Math.max(...points.map((point) => point.timestamp));
+		let minTime =
+			trackDevelopment.at(0)?.start_timestamp ??
+			Math.min(...points.map((point) => point.timestamp));
+		let maxTime =
+			trackDevelopment.at(-1)?.end_timestamp ?? Math.max(...points.map((point) => point.timestamp));
 		let minLap = Math.min(...points.map((point) => point.lap_ms));
 		let maxLap = Math.max(...points.map((point) => point.lap_ms));
-		const timePad = minTime === maxTime ? 60_000 : (maxTime - minTime) * 0.03;
 		const lapPad = minLap === maxLap ? Math.max(1000, minLap * 0.05) : (maxLap - minLap) * 0.08;
-		minTime -= timePad;
-		maxTime += timePad;
 		minLap = Math.max(0, minLap - lapPad);
 		maxLap += lapPad;
 		return { minTime, maxTime, minLap, maxLap };
@@ -37,7 +44,12 @@
 	const plotWidth = $derived(Math.max(1, width - margin.left - margin.right));
 	const plotHeight = height - margin.top - margin.bottom;
 	const xTicks = $derived(
-		makeTicks(bounds?.minTime ?? 0, bounds?.maxTime ?? 1, width < 600 ? 4 : 7)
+		trackDevelopment.length > 0
+			? [
+					...trackDevelopment.map((interval) => interval.start_timestamp),
+					trackDevelopment.at(-1)!.end_timestamp
+				]
+			: makeTicks(bounds?.minTime ?? 0, bounds?.maxTime ?? 1, width < 600 ? 4 : 7)
 	);
 	const yTicks = $derived(makeTicks(bounds?.minLap ?? 0, bounds?.maxLap ?? 1, 5));
 
@@ -62,12 +74,21 @@
 		return `var(--training-chart-${(index % 8) + 1})`;
 	}
 
+	function trackHeatColor(intensity: number | null): string {
+		if (intensity === null) return 'var(--color-surface-200)';
+		return `hsl(${120 * (1 - intensity)} 72% 42%)`;
+	}
+
+	function toggleDriver(driverId: number): void {
+		hiddenDriverIds = hiddenDriverIds.includes(driverId)
+			? hiddenDriverIds.filter((id) => id !== driverId)
+			: [...hiddenDriverIds, driverId];
+	}
+
 	function formatClock(timestamp: number): string {
-		const showSeconds = bounds !== null && bounds.maxTime - bounds.minTime < 20 * 60_000;
 		return new Date(timestamp).toLocaleTimeString(getLocale() === 'sv' ? 'sv-SE' : 'en-GB', {
 			hour: '2-digit',
 			minute: '2-digit',
-			second: showSeconds ? '2-digit' : undefined,
 			hour12: false
 		});
 	}
@@ -121,11 +142,16 @@
 		<div class="panel-body space-y-3">
 			<div class="flex flex-wrap gap-x-4 gap-y-1 text-sm">
 				{#each series as entry, index (entry.driver_id)}
-					<span class="inline-flex items-center gap-1.5">
-						<span class="h-2.5 w-2.5 rounded-full" style={`background-color: ${seriesColor(index)}`}
-						></span>
+					<button
+						type="button"
+						class="legend-driver inline-flex items-center gap-1.5"
+						class:legend-driver--hidden={hiddenDriverIds.includes(entry.driver_id)}
+						aria-pressed={!hiddenDriverIds.includes(entry.driver_id)}
+						onclick={() => toggleDriver(entry.driver_id)}
+					>
+						<span class="h-0.5 w-5" style={`background-color: ${seriesColor(index)}`}></span>
 						{entry.driver_name}
-					</span>
+					</button>
 				{/each}
 			</div>
 
@@ -193,25 +219,91 @@
 						>
 
 						{#each series as entry, index (entry.driver_id)}
-							{#each entry.points as point (point.gate_event_id)}
-								<circle
-									cx={x(point.timestamp)}
-									cy={y(point.lap_ms)}
-									r="4"
-									fill={seriesColor(index)}
-									class="chart-point"
-								>
-									<title
-										>{entry.driver_name} · {formatMs(point.lap_ms)} · {formatClockWithSeconds(
-											point.timestamp
-										)}</title
+							{#if !hiddenDriverIds.includes(entry.driver_id)}
+								{#each entry.pace_segments as segment, segmentIndex (`${entry.driver_id}-${segmentIndex}`)}
+									<polyline
+										points={segment
+											.map((point) => `${x(point.timestamp)},${y(point.pace_ms)}`)
+											.join(' ')}
+										fill="none"
+										stroke={seriesColor(index)}
+										class="chart-pace"
 									>
-								</circle>
-							{/each}
+										<title
+											>{entry.driver_name} · {t.trainingChartPace}: {formatMs(
+												segment.at(-1)?.pace_ms ?? entry.current_pace_ms
+											)}</title
+										>
+									</polyline>
+								{/each}
+								{#each entry.points as point (point.gate_event_id)}
+									<circle
+										cx={x(point.timestamp)}
+										cy={y(point.lap_ms)}
+										r="2"
+										fill={seriesColor(index)}
+										class="chart-point"
+									>
+										<title
+											>{entry.driver_name} · {formatMs(point.lap_ms)} · {formatClockWithSeconds(
+												point.timestamp
+											)}</title
+										>
+									</circle>
+								{/each}
+							{/if}
 						{/each}
 					</svg>
 				{/if}
 			</div>
+
+			{#if trackDevelopment.length > 0}
+				<div class="space-y-1.5 pt-1">
+					<div class="flex flex-wrap items-baseline justify-between gap-x-3">
+						<h3 class="text-sm font-semibold">{t.trainingTrackDevelopment}</h3>
+						<p class="text-xs text-surface-500 dark:text-surface-400">
+							{t.trainingTrackDevelopmentDescription}
+						</p>
+					</div>
+					<svg
+						viewBox={`0 0 ${width} 12`}
+						class="block w-full"
+						role="img"
+						aria-label={t.trainingTrackDevelopmentDescription}
+					>
+						<defs>
+							<clipPath id="track-development-clip">
+								<rect x={margin.left} y="0" width={plotWidth} height="12" rx="6" />
+							</clipPath>
+						</defs>
+						<g clip-path="url(#track-development-clip)">
+							{#each trackDevelopment as interval (interval.start_timestamp)}
+								<rect
+									x={x(interval.start_timestamp)}
+									y="0"
+									width={Math.max(0, x(interval.end_timestamp) - x(interval.start_timestamp))}
+									height="12"
+									fill={trackHeatColor(interval.intensity)}
+								>
+									<title
+										>{formatClock(interval.start_timestamp)}–{formatClock(interval.end_timestamp)} · {interval.average_lap_ms ===
+										null
+											? '—'
+											: formatMs(interval.average_lap_ms)}</title
+									>
+								</rect>
+							{/each}
+						</g>
+					</svg>
+					<div
+						class="flex items-center justify-end gap-2 text-xs text-surface-500 dark:text-surface-400"
+					>
+						<span>{t.trainingTrackFaster}</span>
+						<span class="h-1.5 w-20 rounded-full bg-gradient-to-r from-green-600 to-red-600"></span>
+						<span>{t.trainingTrackSlower}</span>
+					</div>
+				</div>
+			{/if}
 		</div>
 	</section>
 {/if}
@@ -232,6 +324,17 @@
 		stroke: var(--color-surface-300);
 		stroke-width: 1;
 	}
+	.legend-driver {
+		cursor: pointer;
+		transition: opacity 150ms ease;
+	}
+	.legend-driver:hover {
+		opacity: 0.7;
+	}
+	.legend-driver--hidden {
+		opacity: 0.35;
+		text-decoration: line-through;
+	}
 	.chart-grid {
 		stroke: var(--color-surface-200);
 		stroke-width: 1;
@@ -251,6 +354,11 @@
 	.chart-point {
 		stroke: white;
 		stroke-width: 1.5;
+	}
+	.chart-pace {
+		stroke-linecap: round;
+		stroke-linejoin: round;
+		stroke-width: 2;
 	}
 	:global(.dark) .training-chart {
 		--training-chart-1: var(--color-primary-400);
