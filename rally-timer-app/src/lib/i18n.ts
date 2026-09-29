@@ -423,6 +423,14 @@ export const sv = {
 		'Träningen sparas och låses. Den visas i valda mästerskap men påverkar inte poäng eller förarrating.',
 	trainingSubmitted: 'Träningen har skickats!',
 	trainingSubmitFailed: 'Inskickning misslyckades: ',
+	trainingChartTitle: 'Varvtider över tid',
+	trainingChartSubtitle: 'Varven är placerade efter klockslaget då de avslutades.',
+	trainingChartFilter: 'Filtrera långsamma varv',
+	trainingChartThreshold: 'Över bästa',
+	trainingChartExcluded: (count: number) => `${count} långsamma varv dolda`,
+	trainingChartTimeAxis: 'Klockslag',
+	trainingChartLapAxis: 'Varvtid (s)',
+	trainingChartAriaLabel: 'Punktdiagram över förarnas varvtider efter klockslag',
 
 	// Landing page view picker
 	viewPickerLabel: 'Visa på startsidan',
@@ -865,6 +873,14 @@ export const en: typeof sv = {
 		'The training is saved and locked. It appears in the selected championships but does not affect points or driver ratings.',
 	trainingSubmitted: 'Training submitted!',
 	trainingSubmitFailed: 'Submission failed: ',
+	trainingChartTitle: 'Lap times over time',
+	trainingChartSubtitle: 'Laps are positioned by the wall-clock time when they finished.',
+	trainingChartFilter: 'Filter slow laps',
+	trainingChartThreshold: 'Above best',
+	trainingChartExcluded: (count: number) => `${count} slow laps hidden`,
+	trainingChartTimeAxis: 'Wall clock',
+	trainingChartLapAxis: 'Lap time (s)',
+	trainingChartAriaLabel: 'Scatter plot of driver lap times by wall-clock finish time',
 
 	// Landing page view picker
 	viewPickerLabel: 'Show on home page',

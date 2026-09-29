@@ -5,6 +5,7 @@
 	import { auth } from './stores/auth.svelte';
 	import type { TrainingDriverResult } from './domain/training';
 	import TrainingLapList from './TrainingLapList.svelte';
+	import TrainingLapChart from './TrainingLapChart.svelte';
 
 	type Props = {
 		drivers: TrainingDriverResult[];
@@ -52,6 +53,8 @@
 			</tbody>
 		</table>
 	</div>
+
+	<TrainingLapChart {drivers} />
 
 	<div class="grid gap-4 md:grid-cols-2">
 		{#each drivers as d (d.driver_id)}
