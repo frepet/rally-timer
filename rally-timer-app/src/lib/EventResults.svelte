@@ -63,10 +63,9 @@
 	async function deleteTrainingLap(gateEventId: number) {
 		if (!confirm(t.trainingDeleteLapConfirm)) return;
 		try {
-			const res = await kcFetch(
-				eventApiUrl(`/api/training/event/${gateEventId}`, event.id),
-				{ method: 'DELETE' }
-			);
+			const res = await kcFetch(eventApiUrl(`/api/training/event/${gateEventId}`, event.id), {
+				method: 'DELETE'
+			});
 			if (!res.ok) throw new Error(await res.text());
 			await loadAll();
 		} catch (e) {
