@@ -28,7 +28,8 @@ export async function fetchTrainingConfig(
 // participation does not apply. Passes without a known driver are skipped.
 export async function fetchTrainingDriverInputs(
 	cfg: TrainingConfig,
-	eventId: number
+	eventId: number,
+	tx: typeof sql = sql
 ): Promise<TrainingDriverInput[]> {
 	if (cfg.started_at === null) return [];
 
@@ -43,7 +44,7 @@ export async function fetchTrainingDriverInputs(
 		class_name: string | null;
 	};
 
-	const rows = await sql<PassRow[]>`
+	const rows = await tx<PassRow[]>`
 		SELECT ge.id        AS gate_event_id,
 		       ge.timestamp AS timestamp,
 		       ge.tag       AS tag,

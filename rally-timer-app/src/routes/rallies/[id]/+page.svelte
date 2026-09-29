@@ -2,6 +2,7 @@
 	import { env } from '$env/dynamic/public';
 	import RallyResults from '../../../lib/RallyResults.svelte';
 	import RallycrossLeaderboard from '../../../lib/RallycrossLeaderboard.svelte';
+	import TrainingResults from '../../../lib/TrainingResults.svelte';
 	import { buildStageData } from '../../../lib/domain/submittedRally';
 	import { buildRallyRows } from '../../../lib/domain/summary';
 	import { computeRallyRatings } from '../../../lib/domain/ratings';
@@ -9,6 +10,8 @@
 		isRallycrossSubmission,
 		buildRxDisplayFromSubmission
 	} from '../../../lib/domain/rallycrossDisplay';
+	import type { TrainingDriverResult } from '../../../lib/domain/training';
+	import { t } from '../../../lib/stores/locale.svelte';
 
 	type Championship = { id: string; name: string };
 	type DriverRatingEntry = {
@@ -20,8 +23,10 @@
 	type RallyDetail = {
 		name: string;
 		submitted_at: number;
+		event_type: 'rally' | 'rallycross' | 'training';
 		championships: Championship[];
 		driver_ratings: DriverRatingEntry[];
+		training_results: TrainingDriverResult[];
 		results: {
 			driver_uuid: string;
 			driver_name: string;
@@ -62,6 +67,9 @@
 		<h1 class="page-title break-words">{data.name}</h1>
 		<div class="flex flex-wrap items-center gap-2 text-sm text-surface-500 dark:text-surface-400">
 			<span class="num">{fmtDate(Number(data.submitted_at))}</span>
+			{#if data.event_type === 'training'}
+				<span class="chip chip--ok">{t.navTraining}</span>
+			{/if}
 			{#each data.championships as c (c.id)}
 				<a href="/championships?id={c.id}" class="chip chip--primary hover:brightness-95"
 					>{c.name}</a
@@ -70,7 +78,9 @@
 		</div>
 	</section>
 
-	{#if isRx && rxDisplay}
+	{#if data.event_type === 'training'}
+		<TrainingResults drivers={data.training_results} />
+	{:else if isRx && rxDisplay}
 		<RallycrossLeaderboard standings={rxDisplay.standings} heats={rxDisplay.heats} />
 	{:else}
 		<RallyResults

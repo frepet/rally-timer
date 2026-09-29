@@ -215,7 +215,7 @@
 				{eventId}
 				eventName={event.name}
 				onsubmitted={load}
-			/>{:else}<TrainingManager {eventId} />{/if}
+			/>{:else}<TrainingManager {eventId} onsubmitted={load} />{/if}
 	{/key}
 {/if}
 

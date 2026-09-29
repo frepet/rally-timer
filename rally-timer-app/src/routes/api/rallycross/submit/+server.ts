@@ -53,8 +53,8 @@ export async function POST(event: RequestEvent): Promise<Response> {
 		const now = Date.now();
 
 		const [sr] = await sql`
-			INSERT INTO submitted_rallies (name, submitted_at, event_id)
-			VALUES (${appEvent.name}, ${now}, ${appEvent.id})
+			INSERT INTO submitted_rallies (name, submitted_at, event_id, event_type)
+			VALUES (${appEvent.name}, ${now}, ${appEvent.id}, 'rallycross')
 			RETURNING id
 		`;
 		const submittedRallyId = sr.id as string;

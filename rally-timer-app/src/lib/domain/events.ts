@@ -12,8 +12,21 @@ export function eventLockError(
 	locked: boolean,
 	hasAssignedGate = false
 ): string | null {
-	if (event.type === 'training' && locked) return 'Training events cannot be locked';
+	if (event.type === 'training' && locked)
+		return 'Training events can only be locked by submission';
 	if (locked && hasAssignedGate) return 'Release all gates before locking';
+	return null;
+}
+
+export function trainingSubmissionError(
+	event: AppEvent,
+	hasAssignedGate: boolean,
+	lapCount: number
+): string | null {
+	if (event.type !== 'training') return 'Only training events can be submitted here';
+	if (event.is_locked) return 'This training event has already been submitted';
+	if (hasAssignedGate) return 'Release the gate before submitting';
+	if (lapCount === 0) return 'There are no completed laps to submit';
 	return null;
 }
 

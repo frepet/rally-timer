@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { availableEventGates, eventApiUrl } from '$lib/domain/eventPresentation';
-	let { eventId }: { eventId: number } = $props();
+	import { SvelteSet } from 'svelte/reactivity';
+	let { eventId, onsubmitted }: { eventId: number; onsubmitted: () => void } = $props();
 	function kcFetch(url: string, init?: RequestInit): Promise<Response> {
 		return authenticatedFetch(eventApiUrl(url, eventId), init);
 	}
@@ -28,6 +29,7 @@
 		started_at: number | null;
 		drivers: TrainingDriverResult[];
 	};
+	type Championship = { id: string; name: string };
 
 	let tr = $state<TrainingState>({
 		gate_id: null,
@@ -43,6 +45,11 @@
 	let savingGate = $state(false);
 	let clearing = $state(false);
 	let clearModalOpen = $state(false);
+	let submitModalOpen = $state(false);
+	let championships = $state<Championship[]>([]);
+	let selectedChampIds = new SvelteSet<string>();
+	let submitting = $state(false);
+	let submitSuccess = $state<string | null>(null);
 
 	const eligibleGates = $derived(availableEventGates(gates, eventId));
 
@@ -148,6 +155,43 @@
 		}
 	}
 
+	async function openSubmitModal() {
+		const res = await authenticatedFetch('/api/championship');
+		if (!res.ok) {
+			alert(t.trainingSubmitFailed + (await res.text()));
+			return;
+		}
+		championships = await res.json();
+		selectedChampIds.clear();
+		submitSuccess = null;
+		submitModalOpen = true;
+	}
+
+	function toggleChampionship(id: string) {
+		if (selectedChampIds.has(id)) selectedChampIds.delete(id);
+		else selectedChampIds.add(id);
+	}
+
+	async function submitTraining() {
+		if (selectedChampIds.size === 0) return;
+		submitting = true;
+		try {
+			const res = await kcFetch('/api/submit-training', {
+				method: 'POST',
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify({ championship_ids: [...selectedChampIds] })
+			});
+			if (!res.ok) throw new Error(await res.text());
+			const { id } = (await res.json()) as { id: string };
+			submitSuccess = id;
+			onsubmitted();
+		} catch (e) {
+			alert(t.trainingSubmitFailed + (e as Error).message);
+		} finally {
+			submitting = false;
+		}
+	}
+
 	function formatStarted(ms: number | null): string {
 		if (ms === null) return '—';
 		return new Date(ms).toLocaleString();
@@ -214,18 +258,28 @@
 				</div>
 			</div>
 
-			{#if tr.gate_id}
+			{#if tr.started_at !== null}
 				<div
 					class="mt-4 flex flex-wrap items-center gap-2 border-t border-gray-200 pt-4 dark:border-gray-700"
 				>
-					<button
-						type="button"
-						class="ml-auto inline-flex items-center gap-1 rounded px-2 py-1 text-sm font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
-						onclick={() => (clearModalOpen = true)}
-					>
-						<RefreshOutline size="sm" />
-						{t.trainingClearButton}
-					</button>
+					{#if !tr.gate_id}
+						<Button
+							size="sm"
+							onclick={openSubmitModal}
+							disabled={!tr.drivers.some((driver) => driver.lap_count > 0)}
+							title={t.trainingSubmitDescription}>{t.trainingSubmitButton}</Button
+						>
+					{/if}
+					{#if tr.gate_id}
+						<button
+							type="button"
+							class="ml-auto inline-flex items-center gap-1 rounded px-2 py-1 text-sm font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
+							onclick={() => (clearModalOpen = true)}
+						>
+							<RefreshOutline size="sm" />
+							{t.trainingClearButton}
+						</button>
+					{/if}
 				</div>
 			{/if}
 		{:else if tr.gate_name}
@@ -255,4 +309,57 @@
 			</Button>
 		</div>
 	</div>
+</Modal>
+
+<Modal title={t.trainingSubmitModal} bind:open={submitModalOpen} size="md" autoclose={false}>
+	{#if submitSuccess}
+		<div class="space-y-4">
+			<p class="font-medium text-green-600 dark:text-green-400">{t.trainingSubmitted}</p>
+			<div class="flex justify-end gap-2">
+				<a href="/championships" class="text-sm text-blue-600 hover:underline dark:text-blue-400">
+					{t.viewChampionships}
+				</a>
+				<Button color="alternative" onclick={() => (submitModalOpen = false)}>{t.close}</Button>
+			</div>
+		</div>
+	{:else}
+		<div class="space-y-4">
+			<p class="text-sm text-surface-600 dark:text-surface-300">{t.trainingSubmitDescription}</p>
+			<div>
+				<p class="mb-2 text-sm font-medium">{t.submitToChampionshipLabel}</p>
+				{#if championships.length}
+					<ul class="max-h-48 space-y-1 overflow-y-auto">
+						{#each championships as championship (championship.id)}
+							<li>
+								<label
+									class="flex cursor-pointer items-center gap-2 rounded p-2 hover:bg-gray-50 dark:hover:bg-gray-700"
+								>
+									<input
+										type="checkbox"
+										checked={selectedChampIds.has(championship.id)}
+										onchange={() => toggleChampionship(championship.id)}
+										class="rounded"
+									/>
+									<span>{championship.name}</span>
+								</label>
+							</li>
+						{/each}
+					</ul>
+				{:else}
+					<p class="text-sm text-surface-500 dark:text-surface-400">
+						{t.noChampionshipsYetCreate}
+						<a href="/championships" class="text-blue-600 hover:underline dark:text-blue-400"
+							>{t.createOne}</a
+						>
+					</p>
+				{/if}
+			</div>
+			<div class="flex justify-end gap-2 border-t pt-3">
+				<Button color="alternative" onclick={() => (submitModalOpen = false)}>{t.cancel}</Button>
+				<Button onclick={submitTraining} disabled={submitting || selectedChampIds.size === 0}>
+					{submitting ? t.sending : t.send}
+				</Button>
+			</div>
+		</div>
+	{/if}
 </Modal>

@@ -9,7 +9,7 @@ export async function GET(event: RequestEvent): Promise<Response> {
 	if (!champ) throw error(404, 'Championship not found');
 
 	const rallies = await sql`
-		SELECT sr.id, sr.name, sr.submitted_at
+		SELECT sr.id, sr.name, sr.submitted_at, sr.event_type
 		FROM championship_rallies cr
 		JOIN submitted_rallies sr ON sr.id = cr.rally_id
 		WHERE cr.championship_id = ${id}::uuid

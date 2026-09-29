@@ -5,10 +5,10 @@ import { throwIfNotAdmin } from '../../../../lib/server/keycloak';
 export async function GET(event: RequestEvent): Promise<Response> {
 	const id = event.params.id!;
 	const [rally] =
-		await sql`SELECT id, name, submitted_at FROM submitted_rallies WHERE id = ${id}::uuid`;
+		await sql`SELECT id, name, submitted_at, event_type FROM submitted_rallies WHERE id = ${id}::uuid`;
 	if (!rally) throw error(404, 'Submitted rally not found');
 
-	const [championships, results, driverRatings] = await Promise.all([
+	const [championships, results, driverRatings, trainingResults] = await Promise.all([
 		sql`
 			SELECT c.id, c.name
 			FROM championship_rallies cr
@@ -28,6 +28,13 @@ export async function GET(event: RequestEvent): Promise<Response> {
 			JOIN rally_results rr
 				ON rr.rally_id = rdr.rally_id AND rr.driver_uuid = rdr.driver_uuid
 			WHERE rdr.rally_id = ${id}::uuid
+		`,
+		sql`
+			SELECT driver_id, driver_name, class_id, class_name, tag, lap_count,
+			       best_lap_ms, median_lap_ms, last_lap_ms, last_pass_ms, laps
+			FROM submitted_training_results
+			WHERE rally_id = ${id}::uuid
+			ORDER BY best_lap_ms NULLS LAST, driver_name
 		`
 	]);
 
@@ -45,6 +52,14 @@ export async function GET(event: RequestEvent): Promise<Response> {
 			driver_name: r.driver_name as string,
 			rating_before: r.rating_before as number,
 			rating_after: r.rating_after as number
+		})),
+		training_results: trainingResults.map((r) => ({
+			...r,
+			lap_count: Number(r.lap_count),
+			best_lap_ms: r.best_lap_ms === null ? null : Number(r.best_lap_ms),
+			median_lap_ms: r.median_lap_ms === null ? null : Number(r.median_lap_ms),
+			last_lap_ms: r.last_lap_ms === null ? null : Number(r.last_lap_ms),
+			last_pass_ms: r.last_pass_ms === null ? null : Number(r.last_pass_ms)
 		}))
 	});
 }

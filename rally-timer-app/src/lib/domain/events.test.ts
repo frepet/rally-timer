@@ -4,6 +4,7 @@ import {
 	eventLockError,
 	eventSubmissionError,
 	selectHomepageEvent,
+	trainingSubmissionError,
 	type AppEvent
 } from './events';
 const event = (id: number, type: AppEvent['type'] = 'rally', created_at = id): AppEvent => ({
@@ -14,9 +15,20 @@ const event = (id: number, type: AppEvent['type'] = 'rally', created_at = id): A
 	is_locked: false
 });
 describe('event lifecycle', () => {
-	it('training cannot be locked or submitted', () => {
+	it('training uses its own submission flow instead of manual locking', () => {
 		expect(eventLockError(event(1, 'training'), true)).toBeTruthy();
 		expect(eventSubmissionError(event(1, 'training'), [], false)).toBeTruthy();
+	});
+	it('training submission requires laps and a released gate', () => {
+		expect(trainingSubmissionError(event(1, 'training'), true, 2)).toBeTruthy();
+		expect(trainingSubmissionError(event(1, 'training'), false, 0)).toBeTruthy();
+		expect(trainingSubmissionError(event(1, 'training'), false, 2)).toBeNull();
+	});
+	it('training submission rejects locked and non-training events', () => {
+		expect(
+			trainingSubmissionError({ ...event(1, 'training'), is_locked: true }, false, 2)
+		).toBeTruthy();
+		expect(trainingSubmissionError(event(1, 'rally'), false, 2)).toBeTruthy();
 	});
 	it('submission requires closed stages and released gates', () => {
 		expect(eventSubmissionError(event(1), [false], false)).toBeTruthy();

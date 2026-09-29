@@ -13,6 +13,7 @@
 	import { auth } from '../../lib/stores/auth.svelte';
 	import { t } from '../../lib/stores/locale.svelte';
 	import { groupStandingsByClass } from '../../lib/domain/standings';
+	import { championshipRounds, type ChampionshipEvent } from '../../lib/domain/championshipEvents';
 
 	type Championship = { id: string; name: string; created_at: number; is_default: boolean };
 	type StandingRow = {
@@ -29,12 +30,10 @@
 			total_ms: number | null;
 		}[];
 	};
-	type SubmittedRally = { id: string; name: string; submitted_at: number };
-
 	let championships = $state<Championship[]>([]);
 	let selectedId = $state<string | null>(null);
 	let standings = $state<StandingRow[]>([]);
-	let rallies = $state<SubmittedRally[]>([]);
+	let rallies = $state<ChampionshipEvent[]>([]);
 	let loading = $state(false);
 
 	// Create championship
@@ -72,7 +71,7 @@
 		try {
 			const [s, detail] = await Promise.all([
 				fetchJSON<StandingRow[]>(`/api/championship/${id}/standings`),
-				fetchJSON<{ rallies: SubmittedRally[] }>(`/api/championship/${id}`)
+				fetchJSON<{ rallies: ChampionshipEvent[] }>(`/api/championship/${id}`)
 			]);
 			standings = s;
 			rallies = detail.rallies;
@@ -161,6 +160,7 @@
 
 	const standingsByClass = $derived(groupStandingsByClass(standings));
 	const classes = $derived(Object.keys(standingsByClass));
+	const rounds = $derived(championshipRounds(rallies));
 
 	function fmtDate(ms: number): string {
 		const dt = new Date(ms);
@@ -243,16 +243,23 @@
 							<div class="inline-flex overflow-hidden rounded-md text-xs font-semibold shadow-sm">
 								<a
 									href="/rallies/{r.id}"
-									class="bg-primary-600 px-2.5 py-1 text-white hover:bg-primary-700"
+									class="px-2.5 py-1 text-white {r.event_type === 'training'
+										? 'bg-green-600 hover:bg-green-700'
+										: 'bg-primary-600 hover:bg-primary-700'}"
 								>
-									{r.name} ({fmtDate(r.submitted_at)})
+									{r.name} ({fmtDate(r.submitted_at)}){r.event_type === 'training'
+										? ` · ${t.navTraining}`
+										: ''}
 								</a>
 								{#if auth.isAdmin}
 									<button
 										type="button"
 										title={t.delete}
 										onclick={() => removeRallyFromChampionship(r.id, r.name)}
-										class="flex items-center border-l border-white/25 bg-primary-600 px-1.5 text-white hover:bg-red-600"
+										class="flex items-center border-l border-white/25 px-1.5 text-white hover:bg-red-600 {r.event_type ===
+										'training'
+											? 'bg-green-600'
+											: 'bg-primary-600'}"
 									>
 										<svg
 											class="h-3 w-3"
@@ -301,7 +308,7 @@
 											<col class="w-12" />
 											<col class="w-40" />
 											<col class="w-16" />
-											{#each rallies as r (r.id)}
+											{#each rounds as r (r.id)}
 												<col class="w-14" />
 												<col class="w-14" />
 											{/each}
@@ -318,13 +325,13 @@
 												<th rowspan={2} class="px-2 py-3 text-right align-bottom"
 													>{t.pointsHeader}</th
 												>
-												{#each rallies as r (r.id)}
+												{#each rounds as r (r.id)}
 													<th colspan={2} class="px-2 py-3 text-center text-xs">{r.name}</th>
 												{/each}
 												<th rowspan={2}></th>
 											</tr>
 											<tr>
-												{#each rallies as r (r.id)}
+												{#each rounds as r (r.id)}
 													<th class="px-1 py-1 text-right text-xs font-normal whitespace-nowrap"
 														>{t.pointsHeader}</th
 													>
@@ -353,7 +360,7 @@
 														class="time px-2 py-2.5 text-right text-2xl text-surface-900 dark:text-white"
 														>{row.total_points}</td
 													>
-													{#each rallies as r (r.id)}
+													{#each rounds as r (r.id)}
 														{@const rp = row.rally_points.find((x) => x.rally_id === r.id)}
 														<td class="px-1 py-2.5 text-right whitespace-nowrap"
 															>{rp ? rp.points : ''}</td

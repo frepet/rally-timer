@@ -123,7 +123,7 @@ export const sv = {
 	newChampionship: 'Nytt mästerskap',
 	championshipName: 'Mästerskapsnamn',
 	loadingStandings: 'Laddar tabell…',
-	noResultsSubmitRally: 'Inga resultat än. Skicka in ett rally för att se tabellen.',
+	noResultsSubmitRally: 'Inga poänggivande resultat än. Skicka in ett rally för att se tabellen.',
 	goToManage: 'Gå till Hantera →',
 	driverHeader: 'Förare',
 	pointsHeader: 'Poäng',
@@ -131,7 +131,7 @@ export const sv = {
 	deleteChampionshipConfirm: (name: string) =>
 		`Ta bort mästerskapet "${name}"? Detta går inte att ångra.`,
 	removeRallyFromChampionshipConfirm: (name: string) =>
-		`Ta bort rallyt "${name}" från det här mästerskapet?`,
+		`Ta bort evenemanget "${name}" från det här mästerskapet?`,
 
 	// Classes page
 	addClass: 'Lägg till klass',
@@ -417,6 +417,12 @@ export const sv = {
 	trainingClearFailed: 'Kunde inte starta ny session: ',
 	trainingNewSessionConfirm: 'Starta ny session',
 	trainingRssi: 'RSSI',
+	trainingSubmitButton: 'Skicka träning till mästerskap',
+	trainingSubmitModal: 'Skicka träning till mästerskap',
+	trainingSubmitDescription:
+		'Träningen sparas och låses. Den visas i valda mästerskap men påverkar inte poäng eller förarrating.',
+	trainingSubmitted: 'Träningen har skickats!',
+	trainingSubmitFailed: 'Inskickning misslyckades: ',
 
 	// Landing page view picker
 	viewPickerLabel: 'Visa på startsidan',
@@ -561,7 +567,7 @@ export const en: typeof sv = {
 	newChampionship: 'New championship',
 	championshipName: 'Championship name',
 	loadingStandings: 'Loading standings…',
-	noResultsSubmitRally: 'No results yet. Submit a rally to see the standings.',
+	noResultsSubmitRally: 'No point-scoring results yet. Submit a rally to see the standings.',
 	goToManage: 'Go to Manage →',
 	driverHeader: 'Driver',
 	pointsHeader: 'Points',
@@ -569,7 +575,7 @@ export const en: typeof sv = {
 	deleteChampionshipConfirm: (name: string) =>
 		`Delete championship "${name}"? This cannot be undone.`,
 	removeRallyFromChampionshipConfirm: (name: string) =>
-		`Remove rally "${name}" from this championship?`,
+		`Remove event "${name}" from this championship?`,
 
 	// Classes page
 	addClass: 'Add class',
@@ -853,6 +859,12 @@ export const en: typeof sv = {
 	trainingClearFailed: 'Failed to start new session: ',
 	trainingNewSessionConfirm: 'Start new session',
 	trainingRssi: 'RSSI',
+	trainingSubmitButton: 'Submit training to championship',
+	trainingSubmitModal: 'Submit training to championship',
+	trainingSubmitDescription:
+		'The training is saved and locked. It appears in the selected championships but does not affect points or driver ratings.',
+	trainingSubmitted: 'Training submitted!',
+	trainingSubmitFailed: 'Submission failed: ',
 
 	// Landing page view picker
 	viewPickerLabel: 'Show on home page',
