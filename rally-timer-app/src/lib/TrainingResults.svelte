@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { TrashBinOutline } from 'flowbite-svelte-icons';
 	import { classChipClass } from './classColor';
 	import { formatMs } from './results';
 	import { t } from './stores/locale.svelte';
 	import { auth } from './stores/auth.svelte';
 	import type { TrainingDriverResult } from './domain/training';
+	import TrainingLapList from './TrainingLapList.svelte';
 
 	type Props = {
 		drivers: TrainingDriverResult[];
@@ -72,41 +72,12 @@
 							>
 						</p>
 					</div>
-					<ul class="divide-y divide-surface-100 dark:divide-white/5">
-						{#each d.laps as lap, idx (lap.gate_event_id)}
-							{@const isBest = lap.lap_ms === d.best_lap_ms}
-							<li
-								class="flex items-center justify-between gap-2 px-3 py-1.5 text-sm {isBest
-									? 'bg-green-50 dark:bg-green-500/8'
-									: ''}"
-							>
-								<div class="flex items-center gap-3">
-									<span class="stat-label w-12">{t.trainingLapNumber(idx + 1)}</span>
-									<span class="time text-base {isBest ? 'text-green-700 dark:text-green-400' : ''}"
-										>{formatMs(lap.lap_ms)}</span
-									>
-									{#if isBest}
-										<span class="chip chip--ok">{t.trainingBestLap}</span>
-									{/if}
-								</div>
-								<div class="flex items-center gap-3">
-									{#if lap.rssi !== null}
-										<span class="stat text-surface-400">{t.trainingRssi} {lap.rssi}</span>
-									{/if}
-									{#if canDelete}
-										<button
-											type="button"
-											class="rounded p-1 text-surface-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/10 dark:hover:text-red-400"
-											onclick={() => onDeleteLap!(lap.gate_event_id)}
-											aria-label={t.delete}
-										>
-											<TrashBinOutline size="xs" />
-										</button>
-									{/if}
-								</div>
-							</li>
-						{/each}
-					</ul>
+					<TrainingLapList
+						laps={d.laps}
+						bestLapMs={d.best_lap_ms}
+						{canDelete}
+						ondelete={onDeleteLap}
+					/>
 				</div>
 			{/if}
 		{/each}

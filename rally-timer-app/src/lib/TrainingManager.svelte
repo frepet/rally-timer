@@ -40,6 +40,7 @@
 
 	let cooldownSecondsInput = $state(10);
 	let selectedGateId = $state('');
+	let savingGate = $state(false);
 	let clearing = $state(false);
 	let clearModalOpen = $state(false);
 
@@ -84,6 +85,7 @@
 	}
 
 	async function saveGate() {
+		savingGate = true;
 		try {
 			const gate_id = selectedGateId || null;
 			const res = await kcFetch('/api/training', {
@@ -95,7 +97,15 @@
 			await Promise.all([loadState(true), loadGates()]);
 		} catch (e) {
 			alert(t.trainingSaveFailed + (e as Error).message);
+			selectedGateId = tr.gate_id ?? '';
+		} finally {
+			savingGate = false;
 		}
+	}
+
+	async function unassignGate() {
+		selectedGateId = '';
+		await saveGate();
 	}
 
 	async function saveCooldown() {
@@ -170,12 +180,26 @@
 			<div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
 				<div>
 					<label for="trainingGate" class="field-label">{t.trainingGateLabel}</label>
-					<Select id="trainingGate" bind:value={selectedGateId} onchange={saveGate}>
-						<option value="">{t.trainingChooseGate}</option>
-						{#each eligibleGates as g (g.id)}
-							<option value={g.id}>{g.name ?? g.id.slice(0, 8)}</option>
-						{/each}
-					</Select>
+					<div class="flex items-center gap-2">
+						<div class="min-w-0 flex-1">
+							<Select
+								id="trainingGate"
+								bind:value={selectedGateId}
+								onchange={saveGate}
+								disabled={savingGate}
+							>
+								<option value="">{t.trainingNoGateOption}</option>
+								{#each eligibleGates as g (g.id)}
+									<option value={g.id}>{g.name ?? g.id.slice(0, 8)}</option>
+								{/each}
+							</Select>
+						</div>
+						{#if tr.gate_id}
+							<Button color="alternative" size="sm" onclick={unassignGate} disabled={savingGate}
+								>{t.trainingUnassignGate}</Button
+							>
+						{/if}
+					</div>
 				</div>
 				<div>
 					<label for="trainingCooldown" class="field-label">{t.trainingCooldownLabel}</label>
@@ -217,9 +241,7 @@
 		{/if}
 	</section>
 
-	{#if tr.gate_id}
-		<TrainingResults drivers={tr.drivers} onDeleteLap={deleteLap} />
-	{/if}
+	<TrainingResults drivers={tr.drivers} onDeleteLap={deleteLap} />
 </div>
 
 <!-- Clear modal -->
