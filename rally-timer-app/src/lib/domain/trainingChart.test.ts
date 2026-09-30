@@ -100,6 +100,20 @@ describe('training chart series', () => {
 		expect(development[1].intensity).toBeNull();
 	});
 
+	it('aligns a driver heatmap to a shared track-development range', () => {
+		const interval = 15 * 60_000;
+		const series = buildTrainingChartSeries(
+			[driver(1, 'Anna', [lap(1, interval + 1000, 1000)])],
+			null
+		);
+
+		const development = buildTrackDevelopment(series, {
+			startTimestamp: 0,
+			endTimestamp: interval * 3
+		});
+		expect(development.map((entry) => entry.average_lap_ms)).toEqual([null, 1000, null]);
+	});
+
 	it('orders points by wall-clock finish time rather than input lap order', () => {
 		const [series] = buildTrainingChartSeries(
 			[driver(1, 'Anna', [lap(2, 3000, 1100), lap(1, 1000, 1000)])],

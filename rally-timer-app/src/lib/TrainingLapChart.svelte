@@ -20,7 +20,17 @@
 	const visibleSeries = $derived(
 		series.filter((entry) => !hiddenDriverIds.includes(entry.driver_id))
 	);
-	const trackDevelopment = $derived(buildTrackDevelopment(visibleSeries));
+	const trackDevelopment = $derived(buildTrackDevelopment(series));
+	const trackDevelopmentRows = $derived.by(() => {
+		const startTimestamp = trackDevelopment.at(0)?.start_timestamp;
+		const endTimestamp = trackDevelopment.at(-1)?.end_timestamp;
+		if (startTimestamp === undefined || endTimestamp === undefined) return [];
+		return series.map((entry) => ({
+			driver_id: entry.driver_id,
+			driver_name: entry.driver_name,
+			intervals: buildTrackDevelopment([entry], { startTimestamp, endTimestamp })
+		}));
+	});
 	const points = $derived(visibleSeries.flatMap((entry) => entry.points));
 	const excludedCount = $derived(
 		visibleSeries.reduce((sum, entry) => sum + entry.excluded_count, 0)
@@ -265,36 +275,32 @@
 							{t.trainingTrackDevelopmentDescription}
 						</p>
 					</div>
-					<svg
-						viewBox={`0 0 ${width} 12`}
-						class="block w-full"
-						role="img"
-						aria-label={t.trainingTrackDevelopmentDescription}
-					>
-						<defs>
-							<clipPath id="track-development-clip">
-								<rect x={margin.left} y="0" width={plotWidth} height="12" rx="6" />
-							</clipPath>
-						</defs>
-						<g clip-path="url(#track-development-clip)">
-							{#each trackDevelopment as interval (interval.start_timestamp)}
-								<rect
-									x={x(interval.start_timestamp)}
-									y="0"
-									width={Math.max(0, x(interval.end_timestamp) - x(interval.start_timestamp))}
-									height="12"
-									fill={trackHeatColor(interval.intensity)}
-								>
-									<title
-										>{formatClock(interval.start_timestamp)}–{formatClock(interval.end_timestamp)} · {interval.average_lap_ms ===
-										null
-											? '—'
-											: formatMs(interval.average_lap_ms)}</title
-									>
-								</rect>
-							{/each}
-						</g>
-					</svg>
+					{#each [{ driver_id: null, driver_name: '', intervals: trackDevelopment }, ...trackDevelopmentRows] as row (row.driver_id)}
+						<div
+							class="grid items-center"
+							style={`grid-template-columns: ${margin.left}px minmax(0, 1fr) ${margin.right}px`}
+						>
+							<span
+								class="truncate pr-2 text-right text-xs text-surface-600 dark:text-surface-300"
+								title={row.driver_id === null ? t.trainingTrackOverall : row.driver_name}
+							>
+								{row.driver_id === null ? t.trainingTrackOverall : row.driver_name}
+							</span>
+							<div
+								class="flex h-3 overflow-hidden rounded-full"
+								role="img"
+								aria-label={`${row.driver_id === null ? t.trainingTrackOverall : row.driver_name}: ${t.trainingTrackDevelopmentDescription}`}
+							>
+								{#each row.intervals as interval (interval.start_timestamp)}
+									<span
+										class="min-w-0 flex-1"
+										style={`background-color: ${trackHeatColor(interval.intensity)}`}
+										title={`${formatClock(interval.start_timestamp)}–${formatClock(interval.end_timestamp)} · ${interval.average_lap_ms === null ? '—' : formatMs(interval.average_lap_ms)}`}
+									></span>
+								{/each}
+							</div>
+						</div>
+					{/each}
 					<div
 						class="flex items-center justify-end gap-2 text-xs text-surface-500 dark:text-surface-400"
 					>

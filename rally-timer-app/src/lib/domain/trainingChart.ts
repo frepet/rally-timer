@@ -32,6 +32,11 @@ export const RACE_PACE_MAX_GAP_MS = 3 * 60_000;
 export const TRACK_DEVELOPMENT_INTERVAL_MS = 15 * 60_000;
 export const TRACK_DEVELOPMENT_FASTEST_LAPS = 5;
 
+export type TrackDevelopmentOptions = {
+	startTimestamp?: number;
+	endTimestamp?: number;
+};
+
 export function rollingRacePace(
 	laps: TrainingLap[],
 	windowSize = RACE_PACE_WINDOW
@@ -66,17 +71,25 @@ export function segmentRacePace(
 
 export function buildTrackDevelopment(
 	series: TrainingChartSeries[],
-	intervalMs = TRACK_DEVELOPMENT_INTERVAL_MS,
-	fastestLapCount = TRACK_DEVELOPMENT_FASTEST_LAPS
+	options: TrackDevelopmentOptions = {}
 ): TrackDevelopmentInterval[] {
 	const laps = series.flatMap((entry) => entry.all_points);
-	if (laps.length === 0) return [];
+	if (
+		laps.length === 0 &&
+		(options.startTimestamp === undefined || options.endTimestamp === undefined)
+	) {
+		return [];
+	}
 
-	const duration = Math.max(1, Math.floor(intervalMs));
-	const count = Math.max(1, Math.floor(fastestLapCount));
+	const duration = TRACK_DEVELOPMENT_INTERVAL_MS;
+	const count = TRACK_DEVELOPMENT_FASTEST_LAPS;
 	const firstStart =
+		options.startTimestamp ??
 		Math.floor(Math.min(...laps.map((lap) => lap.timestamp)) / duration) * duration;
-	const lastStart = Math.floor(Math.max(...laps.map((lap) => lap.timestamp)) / duration) * duration;
+	const lastStart =
+		options.endTimestamp === undefined
+			? Math.floor(Math.max(...laps.map((lap) => lap.timestamp)) / duration) * duration
+			: options.endTimestamp - duration;
 	const lapsByInterval = new Map<number, number[]>();
 
 	for (const lap of laps) {
