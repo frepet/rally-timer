@@ -12,10 +12,18 @@
 #
 # Creates:
 #   - 2 championships
-#   - 3 drivers (one per class), 1 stage, 1 finish gate
-#   - Rally Finland 2024  → Nordic Rally Championship + Regional Cup
-#   - Rally Sweden 2025   → Nordic Rally Championship only
-#   - Ongoing (no submit) → live timing in progress
+#   - 4 drivers (one per class + Diana in Group A), 1 finish gate
+#   - one rally event per scenario (the submitted rally takes the event's name):
+#     - Rally Finland 2024 → Nordic Rally Championship + Regional Cup
+#     - Rally Sweden 2025  → Nordic Rally Championship only
+#     - Rally Norway 2025  → Nordic Rally Championship only (2 stages)
+#     - Rally DNF Test     → Regional Cup (Diana DNFs)
+#     - Rally Penalty Test → Penalty Cup (manual 15 s penalty)
+#     - Rally Status Check → not submitted; keeps one stage open (live timing)
+#
+# Timestamps are anchored at the seed run: a gate pass is only captured while
+# the gate is assigned to its stage, so the fixtures cannot be back-dated.
+# The elapsed times below are unchanged — only the absolute clock shifts.
 #
 # BASE_URL defaults to http://localhost:5173
 
@@ -43,6 +51,11 @@ patch() {
   curl -sf -X PATCH "$BASE$url" -d "$data" "$@"
 }
 
+put() {
+  local url="$1" data="$2"; shift 2
+  curl -sf -X PUT "$BASE$url" -d "$data" "$@"
+}
+
 # Record a start for a driver at the given timestamp.
 # Prints the new start_event id.
 start_at() {
@@ -60,33 +73,42 @@ finish_at() {
     "${anon[@]}" > /dev/null
 }
 
-# Submit a rally and print its id.
-# Usage: submit_rally "name" champ_id1 [champ_id2 ...]
+# Create a rally event and register the seeded drivers as its participants.
+# Prints the new event id.
+new_event() {
+  local name="$1" ev
+  ev=$(post /api/events "{\"name\":\"$name\",\"type\":\"rally\"}" "${auth[@]}" | jq -r '.id')
+  put /api/events/"$ev"/participants \
+    "{\"driver_ids\":[$id_a,$id_b,$id_s,$id_d]}" "${auth[@]}" > /dev/null
+  echo "$ev"
+}
+
+# Create a stage in the given event. Prints the new stage id.
+new_stage() {
+  local ev="$1" name="$2"
+  post "/api/stage?event_id=$ev" "{\"name\":\"$name\"}" "${auth[@]}" | jq -r '.id'
+}
+
+# Submit the event's results as a rally — named after the event — and print its
+# id. Any stage still open is closed first: submitting requires every stage
+# closed and no gate assigned, and closing inserts the synthetic DNF finishes.
+# Usage: submit_rally event_id champ_id1 [champ_id2 ...]
 submit_rally() {
-  local name="$1"; shift
-  local ids_json
+  local ev="$1"; shift
+  local ids_json sid
   ids_json=$(printf '"%s",' "$@" | sed 's/,$//')
+  for sid in $(curl -sf "$BASE/api/stage?event_id=$ev" \
+      | jq -r '.[] | select(.is_closed == false) | .id'); do
+    post /api/stage/"$sid"/close "" "${auth[@]}" > /dev/null
+  done
   local row
-  row=$(post /api/submit-rally \
-    "{\"name\":\"$name\",\"championship_ids\":[$ids_json]}" \
+  row=$(post "/api/submit-rally?event_id=$ev" \
+    "{\"championship_ids\":[$ids_json]}" \
     "${auth[@]}")
   echo "$row" | jq -r '.id'
 }
 
-# Clear all stages and events, then recreate the stage and reassign the gate.
-# Prints the new stage_id.
-clear_and_setup_stage() {
-  local stage_name="$1"
-  curl -sf -X DELETE "$BASE/api/clear-rally" "${auth[@]}" > /dev/null
-  local sid
-  sid=$(post /api/stage "{\"name\":\"$stage_name\"}" "${auth[@]}" | jq -r '.id')
-  patch /api/gate/"$gate_id" "{\"stage_id\":$sid}" "${anon[@]}" > /dev/null
-  echo "$sid"
-}
-
 now=$(date +%s%3N)
-week=$((7 * 24 * 3600 * 1000))
-day=$((24 * 3600 * 1000))
 
 # ---------------------------------------------------------------------------
 echo "==> Fetching classes..."
@@ -101,10 +123,6 @@ champ1_id=$(post /api/championship '{"name":"Nordic Rally Championship"}' "${aut
 champ2_id=$(post /api/championship '{"name":"Regional Cup"}' "${auth[@]}" | jq -r '.id')
 echo "    Nordic Rally Championship id=$champ1_id"
 echo "    Regional Cup              id=$champ2_id"
-
-echo "==> Creating stage..."
-stage_id=$(post /api/stage '{"name":"SS1 - Forest Road"}' "${auth[@]}" | jq -r '.id')
-echo "    Stage id=$stage_id"
 
 echo "==> Creating drivers..."
 driver_a=$(post /api/driver \
@@ -134,17 +152,21 @@ rm -f "$_SEED_KEY"
 post /api/gate/"$gate_id" \
   "{\"id\":\"$gate_id\",\"name\":\"SS1 Finish Gate\",\"public_key\":$gate_pubkey}" "${anon[@]}" > /dev/null
 patch /api/gate/"$gate_id" \
-  "{\"status\":\"accepted\",\"stage_id\":$stage_id}" "${anon[@]}" > /dev/null
-echo "    Gate $gate_id assigned to stage $stage_id"
+  '{"status":"accepted"}' "${anon[@]}" > /dev/null
+echo "    Gate $gate_id accepted (assigned to each rally's stage below)"
 
 # ---------------------------------------------------------------------------
-# Rally Finland 2024 — 2 weeks ago
+# Rally Finland 2024
 # Charlie wins: 3:42 | Alice: 3:58 | Bob: 4:11
 # → both championships
 # ---------------------------------------------------------------------------
 echo ""
-echo "==> Rally Finland 2024 (2 weeks ago)..."
-t1=$((now - 2 * week))
+echo "==> Rally Finland 2024..."
+ev1=$(new_event "Rally Finland 2024")
+stage_id=$(new_stage "$ev1" "SS1 - Forest Road")
+patch /api/gate/"$gate_id" "{\"stage_id\":$stage_id}" "${anon[@]}" > /dev/null
+echo "    Event id=$ev1  Stage id=$stage_id  Gate assigned"
+t1=$now
 
 start_at "$stage_id" "$id_s" "$t1"                  > /dev/null
 start_at "$stage_id" "$id_a" "$((t1 + 30000))"      > /dev/null
@@ -153,21 +175,21 @@ finish_at "$gate_id" "$tag_s" "$((t1 + 222000))"  -65
 finish_at "$gate_id" "$tag_a" "$((t1 + 268000))"  -68  # 3:58 from Alice's start
 finish_at "$gate_id" "$tag_b" "$((t1 + 311000))"  -72  # 4:11 from Bob's start
 
-rally1_id=$(submit_rally "Rally Finland 2024" "$champ1_id" "$champ2_id")
+rally1_id=$(submit_rally "$ev1" "$champ1_id" "$champ2_id")
 echo "    Submitted id=$rally1_id  (1. Charlie 3:42  2. Alice 3:58  3. Bob 4:11)"
 
-echo "    Clearing..."
-stage_id=$(clear_and_setup_stage "SS1 - Forest Road")
-echo "    Stage reset id=$stage_id"
-
 # ---------------------------------------------------------------------------
-# Rally Sweden 2025 — 1 week ago
+# Rally Sweden 2025
 # Alice wins: 3:35 | Charlie: 3:48 | Bob: 4:20
 # → Nordic Rally Championship only
 # ---------------------------------------------------------------------------
 echo ""
-echo "==> Rally Sweden 2025 (1 week ago)..."
-t2=$((now - week))
+echo "==> Rally Sweden 2025..."
+ev2=$(new_event "Rally Sweden 2025")
+stage_id=$(new_stage "$ev2" "SS1 - Forest Road")
+patch /api/gate/"$gate_id" "{\"stage_id\":$stage_id}" "${anon[@]}" > /dev/null
+echo "    Event id=$ev2  Stage id=$stage_id  Gate assigned"
+t2=$now
 
 start_at "$stage_id" "$id_s" "$t2"                  > /dev/null
 start_at "$stage_id" "$id_a" "$((t2 + 30000))"      > /dev/null
@@ -176,18 +198,14 @@ finish_at "$gate_id" "$tag_s" "$((t2 + 228000))"  -63  # 3:48 from Charlie's sta
 finish_at "$gate_id" "$tag_a" "$((t2 + 245000))"  -70  # 3:35 from Alice's start
 finish_at "$gate_id" "$tag_b" "$((t2 + 320000))"  -75  # 4:20 from Bob's start
 
-rally2_id=$(submit_rally "Rally Sweden 2025" "$champ1_id")
+rally2_id=$(submit_rally "$ev2" "$champ1_id")
 echo "    Submitted id=$rally2_id  (1. Alice 3:35  2. Charlie 3:48  3. Bob 4:20)"
-
-echo "    Clearing..."
-stage_id=$(clear_and_setup_stage "SS1 - Forest Road")
-echo "    Stage reset id=$stage_id"
 
 # ---------------------------------------------------------------------------
 # Rally Norway 2025 — 2 stages, submitted to Nordic only, NOT cleared
 # Group A has 2 drivers so we can test class deltas and that SS1 leader ≠ winner.
 #
-# SS1 - Forest Road  (stage_id from clear after Sweden)
+# SS1 - Forest Road  (created in the Norway event above)
 #   Alice:   3:30 (210 000 ms)  — P1 Group A on SS1
 #   Diana:   3:38 (218 000 ms)  — P2 Group A on SS1
 #   Charlie: 3:45 (225 000 ms)  — P1 Group S
@@ -204,7 +222,11 @@ echo "    Stage reset id=$stage_id"
 # ---------------------------------------------------------------------------
 echo ""
 echo "==> Rally Norway 2025 (2 stages, submitted to Nordic)..."
-t3=$((now - day))
+ev3=$(new_event "Rally Norway 2025")
+stage_id=$(new_stage "$ev3" "SS1 - Forest Road")
+patch /api/gate/"$gate_id" "{\"stage_id\":$stage_id}" "${anon[@]}" > /dev/null
+echo "    Event id=$ev3  Stage id=$stage_id  Gate assigned"
+t3=$now
 t3_2=$((t3 + 2 * 3600 * 1000))
 
 # SS1 - Forest Road
@@ -217,8 +239,10 @@ finish_at "$gate_id" "$tag_d" "$((t3 + 248000))"    -68  # 3:38
 finish_at "$gate_id" "$tag_s" "$((t3 + 285000))"    -64  # 3:45
 finish_at "$gate_id" "$tag_b" "$((t3 + 335000))"    -71  # 4:05
 
-# Reassign gate to SS2 - Mountain Pass
-stage2_id=$(post /api/stage '{"name":"SS2 - Mountain Pass"}' "${auth[@]}" | jq -r '.id')
+# Reassign gate to SS2 - Mountain Pass (disconnect it first — a gate can only
+# be moved while unassigned)
+stage2_id=$(new_stage "$ev3" "SS2 - Mountain Pass")
+patch /api/gate/"$gate_id" '{"stage_id":null}' "${anon[@]}" > /dev/null
 patch /api/gate/"$gate_id" "{\"stage_id\":$stage2_id}" "${anon[@]}" > /dev/null
 echo "    SS1 done. Gate reassigned to stage2 id=$stage2_id"
 
@@ -232,7 +256,7 @@ finish_at "$gate_id" "$tag_d" "$((t3_2 + 235000))"    -67  # 3:25
 finish_at "$gate_id" "$tag_s" "$((t3_2 + 280000))"    -63  # 3:40
 finish_at "$gate_id" "$tag_b" "$((t3_2 + 325000))"    -72  # 3:55
 
-rally3_id=$(submit_rally "Rally Norway 2025" "$champ1_id")
+rally3_id=$(submit_rally "$ev3" "$champ1_id")
 echo "    Submitted id=$rally3_id"
 echo "    NOT cleared — events remain visible in manage view"
 
@@ -243,11 +267,12 @@ echo "    NOT cleared — events remain visible in manage view"
 # Bob (Group B) finishes 4:15 = 255 000 ms (unaffected)
 # ---------------------------------------------------------------------------
 echo ""
-echo "==> Rally DNF Test (now, not in any championship)..."
-echo "    Clearing..."
-stage_id=$(clear_and_setup_stage "SS1 - DNF Test")
-echo "    Stage id=$stage_id"
-t4=$((now - 3600000))  # 1 hour ago
+echo "==> Rally DNF Test (Regional Cup)..."
+ev4=$(new_event "Rally DNF Test")
+stage_id=$(new_stage "$ev4" "SS1 - DNF Test")
+patch /api/gate/"$gate_id" "{\"stage_id\":$stage_id}" "${anon[@]}" > /dev/null
+echo "    Event id=$ev4  Stage id=$stage_id  Gate assigned"
+t4=$now
 
 start_at "$stage_id" "$id_a" "$t4"               > /dev/null
 start_at "$stage_id" "$id_d" "$((t4 + 30000))"   > /dev/null  # Diana starts but will DNF
@@ -267,7 +292,7 @@ echo "    Closing stage (applying DNF penalties)..."
 close_result=$(post /api/stage/"$stage_id"/close "" "${auth[@]}")
 echo "    Close result: $close_result"
 
-rally_dnf_id=$(submit_rally "Rally DNF Test" "$champ2_id")
+rally_dnf_id=$(submit_rally "$ev4" "$champ2_id")
 echo "    Submitted id=$rally_dnf_id (Regional Cup)"
 echo "    Group A: Alice 4:00 (240000ms), Diana DNF → penalty 4:30 (270000ms)"
 echo "    Group S: Charlie 3:50 (230000ms)"
@@ -277,8 +302,9 @@ echo "    Group B: Bob 4:15 (255000ms)"
 # Create one more open stage so verify.sh can assert is_closed=false on it.
 echo ""
 echo "==> Creating open stage for status verification..."
-open_stage_id=$(post /api/stage '{"name":"SS1 - Status Check (open)"}' "${auth[@]}" | jq -r '.id')
-echo "    Open stage id=$open_stage_id (not closed, no starts)"
+ev5=$(new_event "Rally Status Check")
+open_stage_id=$(new_stage "$ev5" "SS1 - Status Check (open)")
+echo "    Event id=$ev5  Open stage id=$open_stage_id (not closed, no starts)"
 
 # ---------------------------------------------------------------------------
 # Penalty Test — apply a manual penalty to Alice and verify it shifts elapsed_ms
@@ -290,11 +316,12 @@ echo "==> Penalty Test..."
 penalty_champ_id=$(post /api/championship '{"name":"Penalty Cup"}' "${auth[@]}" | jq -r '.id')
 echo "    Penalty Cup id=$penalty_champ_id"
 
-penalty_stage_id=$(post /api/stage '{"name":"SS1 - Penalty Test"}' "${auth[@]}" | jq -r '.id')
+ev6=$(new_event "Rally Penalty Test")
+penalty_stage_id=$(new_stage "$ev6" "SS1 - Penalty Test")
 patch /api/gate/"$gate_id" "{\"stage_id\":$penalty_stage_id}" "${anon[@]}" > /dev/null
-echo "    Penalty stage id=$penalty_stage_id, gate reassigned"
+echo "    Event id=$ev6  Penalty stage id=$penalty_stage_id, gate reassigned"
 
-t5=$((now - 1800000))  # 30 min ago
+t5=$now
 start_at "$penalty_stage_id" "$id_a" "$t5"               > /dev/null  # Alice
 start_at "$penalty_stage_id" "$id_b" "$((t5 + 30000))"  > /dev/null  # Bob
 
@@ -307,7 +334,7 @@ patch /api/finish/"$alice_penalty_finish_id" '{"penalty_ms":15000}' "${auth[@]}"
 echo "    Applied 15s penalty to Alice (finish_event_id=$alice_penalty_finish_id)"
 echo "    Alice effective: 315000ms  Bob: 310000ms → Bob P1"
 
-penalty_rally_id=$(submit_rally "Rally Penalty Test" "$penalty_champ_id")
+penalty_rally_id=$(submit_rally "$ev6" "$penalty_champ_id")
 echo "    Submitted id=$penalty_rally_id"
 
 # ---------------------------------------------------------------------------
