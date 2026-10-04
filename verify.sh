@@ -154,13 +154,26 @@ fi
 echo ""
 echo "── Stage Status (is_closed) ────────────────────────────────────────────"
 
-bundle=$(get /api/bundle)
+# Stages are scoped to events since the events feature: /api/bundle requires an
+# event_id and only lists that event's stages. Look the two seeded events up by
+# name and check the stage flags in each event's bundle.
+events=$(get /api/events)
+dnf_event_id=$(echo "$events"     | jq -r '.events[] | select(.name == "Rally DNF Test")    | .id')
+status_event_id=$(echo "$events" | jq -r '.events[] | select(.name == "Rally Status Check") | .id')
 
-dnf_stage_closed=$(echo "$bundle" | jq -r '.stages[] | select(.name == "SS1 - DNF Test") | .is_closed')
-check "SS1 - DNF Test is_closed=true after close API call" "true" "$dnf_stage_closed"
+if [[ -z "$dnf_event_id" || -z "$status_event_id" ]]; then
+  echo "  ERROR: Seeded events not found. Did you run seed.sh first?"
+  ((fail++)) || true
+else
+  dnf_bundle=$(get /api/bundle?event_id="$dnf_event_id")
+  status_bundle=$(get /api/bundle?event_id="$status_event_id")
 
-open_stage_closed=$(echo "$bundle" | jq -r '.stages[] | select(.name == "SS1 - Status Check (open)") | .is_closed')
-check "SS1 - Status Check (open) is_closed=false (never closed)" "false" "$open_stage_closed"
+  dnf_stage_closed=$(echo "$dnf_bundle" | jq -r '.stages[] | select(.name == "SS1 - DNF Test") | .is_closed')
+  check "SS1 - DNF Test is_closed=true after close API call" "true" "$dnf_stage_closed"
+
+  open_stage_closed=$(echo "$status_bundle" | jq -r '.stages[] | select(.name == "SS1 - Status Check (open)") | .is_closed')
+  check "SS1 - Status Check (open) is_closed=false (never closed)" "false" "$open_stage_closed"
+fi
 
 # ---------------------------------------------------------------------------
 echo ""
