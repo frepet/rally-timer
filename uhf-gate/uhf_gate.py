@@ -17,7 +17,7 @@ from config import config
 from reader import YRM100Reader, extract_frames, parse_inventory, find_serial_ports
 from event_queue import EventQueue
 from api import APIClient
-from ntp_sync import sync_time, get_local_time_ms
+from ntp_sync import sync_time, get_local_time_ms, is_synced
 from feedback import Feedback
 
 # Configure logging
@@ -114,6 +114,8 @@ class UHFGate:
 
     def process_tag(self, epc: str, rssi: int):
         """Process a detected tag."""
+        if not is_synced():
+            return  # defensive: run() already blocks until the first sync
         now = get_local_time_ms()
         short_id = epc[-config.epc_chars :]
 
@@ -147,10 +149,19 @@ class UHFGate:
         for warning in config.validate():
             logger.warning(f"CONFIG: {warning}")
 
-        # NTP sync
-        logger.info("Syncing time with NTP...")
-        ntp_time = sync_time(config.ntp_server)
-        logger.info(f"NTP time: {ntp_time}")
+        # Never record passes on an unverified clock: a Pi that boots without
+        # a battery-backed RTC can be days off, and timestamps are what the
+        # whole timing system rests on. Block until NTP answers once.
+        logger.info("Waiting for first NTP sync before recording passes...")
+        attempt = 0
+        while not is_synced():
+            attempt += 1
+            ntp_time = sync_time(config.ntp_server)
+            if ntp_time is not None:
+                logger.info(f"NTP time: {ntp_time:.0f} (attempt {attempt})")
+                break
+            logger.warning(f"NTP sync attempt {attempt} failed, retrying in 5s")
+            time.sleep(5)
 
         # Connect to reader
         if not self.reader.connect():

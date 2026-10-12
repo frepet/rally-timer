@@ -1,9 +1,10 @@
 """NTP time synchronization.
 
-Tracks the offset between the NTP reference and the local system clock so
-`get_local_time_ms()` returns corrected timestamps. Call `sync_time()` at
-startup and periodically — system clocks on SBCs drift noticeably over an
-event day.
+Time is anchored to the last successful NTP reply and advanced with the
+monotonic clock, so later steps of the system clock (e.g. timesyncd fixing a
+Pi that booted with a wrong date) cannot corrupt timestamps. Nothing may be
+timestamped until the first successful sync: `get_local_time_ms()` raises
+`NotSyncedError` before that. Call `sync_time()` periodically to correct drift.
 """
 import socket
 import struct
@@ -15,14 +16,37 @@ logger = logging.getLogger(__name__)
 
 NTP_EPOCH = 2208988800
 
-# Measured NTP-minus-system offset in milliseconds; applied to all timestamps.
-_offset_ms = 0.0
-# Highest timestamp emitted so far. An NTP re-sync can correct the offset
-# downward; without this guard the corrected time would jump backwards,
-# reordering passes server-side and breaking client dedup. Guarded by a lock
-# because the offset is written from the NTP thread and read from the main thread.
+# Earliest believable NTP time (2025-01-01); rejects zeroed/garbage replies.
+MIN_PLAUSIBLE_MS = 1_735_689_600_000
+# Backward corrections smaller than this are hidden by holding the last issued
+# timestamp (keeps passes ordered). Larger ones are real clock errors and must
+# be applied immediately — holding them would freeze time for as long as the
+# error, which collapsed a whole event's passes into one timestamp.
+MAX_HOLD_MS = 5000.0
+
+
+class NotSyncedError(RuntimeError):
+    """Raised when time is requested before the first successful NTP sync."""
+
+
+_anchor_ntp_ms: float | None = None
+_anchor_mono: float = 0.0
 _last_issued_ms = 0.0
+# Written from the NTP thread, read from the main thread.
 _lock = threading.Lock()
+
+
+def reset() -> None:
+    """Forget all sync state (tests)."""
+    global _anchor_ntp_ms, _anchor_mono, _last_issued_ms
+    with _lock:
+        _anchor_ntp_ms = None
+        _anchor_mono = 0.0
+        _last_issued_ms = 0.0
+
+
+def is_synced() -> bool:
+    return _anchor_ntp_ms is not None
 
 
 def get_ntp_time(ntp_server: str = "pool.ntp.org") -> float | None:
@@ -51,35 +75,43 @@ def get_ntp_time(ntp_server: str = "pool.ntp.org") -> float | None:
         return None
 
 
-def sync_time(ntp_server: str = "pool.ntp.org") -> float:
+def sync_time(ntp_server: str = "pool.ntp.org") -> float | None:
     """
-    Measure the offset between NTP and the system clock.
-    Returns the current corrected time in milliseconds since epoch.
-    Keeps the previous offset (initially 0 = plain system time) if NTP fails.
+    Re-anchor time to NTP. Returns the corrected time in ms since epoch, or
+    None if NTP failed (any previous anchor is kept; before the first success
+    the gate stays unsynced).
     """
-    global _offset_ms
+    global _anchor_ntp_ms, _anchor_mono
+    mono = time.monotonic()
     ntp_ms = get_ntp_time(ntp_server)
 
-    if ntp_ms:
-        local_ms = time.time() * 1000
-        _offset_ms = ntp_ms - local_ms
-        if abs(_offset_ms) > 1000:
-            logger.warning(f"System clock is {_offset_ms:+.0f} ms off NTP — correcting")
-        else:
-            logger.info(f"NTP offset: {_offset_ms:+.1f} ms")
-        return get_local_time_ms()
+    if not ntp_ms or ntp_ms < MIN_PLAUSIBLE_MS:
+        if ntp_ms:
+            logger.warning(f"Ignoring implausible NTP time {ntp_ms}")
+        logger.warning("NTP unavailable — keeping previous anchor")
+        return None
 
-    logger.warning("NTP unavailable — using previous offset (local clock)")
+    with _lock:
+        if _anchor_ntp_ms is None:
+            logger.info(f"First NTP sync: system clock is {ntp_ms - time.time() * 1000:+.0f} ms off")
+        else:
+            step = ntp_ms - (_anchor_ntp_ms + (mono - _anchor_mono) * 1000)
+            level = logging.WARNING if abs(step) > 1000 else logging.INFO
+            logger.log(level, f"NTP correction: {step:+.1f} ms")
+        _anchor_ntp_ms = ntp_ms
+        _anchor_mono = mono
     return get_local_time_ms()
 
 
 def get_local_time_ms() -> float:
-    """Current time in ms since epoch, corrected by the NTP offset and clamped
-    to be monotonically non-decreasing across offset corrections."""
+    """Current NTP-anchored time in ms since epoch. Small backward corrections
+    are held back so timestamps stay non-decreasing."""
     global _last_issued_ms
     with _lock:
-        t = time.time() * 1000 + _offset_ms
-        if t < _last_issued_ms:
+        if _anchor_ntp_ms is None:
+            raise NotSyncedError("no NTP sync yet")
+        t = _anchor_ntp_ms + (time.monotonic() - _anchor_mono) * 1000
+        if _last_issued_ms - MAX_HOLD_MS < t < _last_issued_ms:
             t = _last_issued_ms
         _last_issued_ms = t
         return t
