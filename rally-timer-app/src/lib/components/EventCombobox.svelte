@@ -43,9 +43,11 @@
 				: [];
 		return [
 			...automatic,
-			...filterEvents(events, query).map(
-				(event): Option => ({ kind: 'event', id: event.id, event })
-			)
+			...filterEvents(events, query).map((event): Option => ({
+				kind: 'event',
+				id: event.id,
+				event
+			}))
 		];
 	});
 	const listId = $derived(`${id}-options`);
@@ -183,7 +185,7 @@
 					aria-controls={listId}
 					aria-activedescendant={options[highlighted] ? optionId(options[highlighted]) : undefined}
 					placeholder={t.eventSearchPlaceholder}
-					class="w-full rounded-lg border-0 bg-surface-50 py-2.5 pr-3 pl-9 text-sm text-surface-900 outline-none ring-1 ring-surface-200 placeholder:text-surface-400 focus:ring-2 focus:ring-primary-500 dark:bg-white/5 dark:text-white dark:ring-white/10 dark:focus:ring-primary-500"
+					class="w-full rounded-lg border-0 bg-surface-50 py-2.5 pr-3 pl-9 text-sm text-surface-900 ring-1 ring-surface-200 outline-none placeholder:text-surface-400 focus:ring-2 focus:ring-primary-500 dark:bg-white/5 dark:text-white dark:ring-white/10 dark:focus:ring-primary-500"
 					{oninput}
 					{onkeydown}
 				/>

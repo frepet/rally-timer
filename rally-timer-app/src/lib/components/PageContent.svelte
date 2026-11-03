@@ -10,11 +10,11 @@
 		slug,
 		content: initialContent,
 		html: initialHtml
-	} = $props<{
+	}: {
 		slug: string;
 		content: string;
 		html: string;
-	}>();
+	} = $props();
 
 	let editing = $state(false);
 	let draft = $state(untrack(() => initialContent));
