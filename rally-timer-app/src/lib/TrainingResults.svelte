@@ -62,13 +62,13 @@
 
 	<TrainingLapChart {drivers} />
 
-	<div class="grid gap-4 md:grid-cols-2">
+	<div class="grid grid-cols-[minmax(0,1fr)] gap-4 md:grid-cols-2">
 		{#each drivers as d (d.driver_id)}
 			{#if d.laps.length}
 				{@const bestNo = bestLapNumber(d.laps, d.best_lap_ms)}
-				<div class="rounded-lg ring-1 ring-surface-200 dark:ring-white/8">
+				<div class="min-w-0 rounded-lg ring-1 ring-surface-200 dark:ring-white/8">
 					<div
-						class="flex items-baseline justify-between gap-2 border-b border-surface-100 px-3 py-2 dark:border-white/8"
+						class="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5 border-b border-surface-100 px-3 py-2 dark:border-white/8"
 					>
 						<div class="flex min-w-0 items-center gap-2">
 							<p class="truncate font-semibold">{d.driver_name}</p>
