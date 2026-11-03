@@ -19,8 +19,8 @@
 	let isDark = $state(false);
 	let view = $state<TimeRange | null>(null);
 
-	const height = 360;
-	const margin = { top: 30, right: 18, bottom: 48, left: 68 };
+	const height = 410;
+	const margin = { top: 30, right: 18, bottom: 84, left: 68 };
 	const series = $derived(
 		buildTrainingChartSeries(drivers, filterEnabled ? Math.max(0, slowerPercent || 0) : null)
 	);
@@ -140,6 +140,7 @@
 		const textColor = color(isDark ? '--color-surface-400' : '--color-surface-600');
 		const gridColor = color(isDark ? '--color-surface-750' : '--color-surface-200');
 		const frameColor = color(isDark ? '--color-surface-600' : '--color-surface-300');
+		const sliderFill = isDark ? 'rgba(148, 163, 184, 0.25)' : 'rgba(100, 116, 139, 0.2)';
 		const pointBorder = isDark ? color('--color-surface-850') : '#ffffff';
 		const axisTitle = { color: textColor, fontWeight: 600, fontSize: 12 };
 
@@ -227,6 +228,30 @@
 					filterMode: 'none',
 					zoomOnMouseWheel: 'ctrl',
 					moveOnMouseMove: false
+				},
+				{
+					type: 'slider',
+					xAxisIndex: 0,
+					filterMode: 'none',
+					left: margin.left,
+					right: margin.right,
+					bottom: 8,
+					height: 22,
+					borderColor: frameColor,
+					backgroundColor: 'transparent',
+					fillerColor: sliderFill,
+					dataBackground: {
+						lineStyle: { color: frameColor },
+						areaStyle: { color: gridColor }
+					},
+					selectedDataBackground: {
+						lineStyle: { color: textColor },
+						areaStyle: { color: frameColor }
+					},
+					handleStyle: { color: textColor, borderColor: frameColor },
+					moveHandleStyle: { color: frameColor },
+					textStyle: { color: textColor },
+					showDetail: false
 				}
 			],
 			xAxis: {
@@ -382,7 +407,7 @@
 			{/if}
 
 			<div
-				class="flex items-center justify-between gap-3 text-xs text-surface-500 dark:text-surface-400"
+				class="flex min-h-8 items-center justify-between gap-3 text-xs text-surface-500 dark:text-surface-400"
 			>
 				<p>{t.trainingChartZoomHint}</p>
 				{#if zoomed}
