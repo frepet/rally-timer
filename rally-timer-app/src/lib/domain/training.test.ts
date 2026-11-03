@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+	bestLapNumber,
 	buildTrainingLeaderboard,
 	computeTrainingDriverResult,
 	computeTrainingLaps,
@@ -144,5 +145,27 @@ describe('buildTrainingLeaderboard', () => {
 		];
 		const board = buildTrainingLeaderboard(drivers, 1000);
 		expect(board.map((d) => d.driver_name)).toEqual(['Bo', 'Anna', 'Cecilia']);
+	});
+});
+
+describe('bestLapNumber', () => {
+	const lap = (id: number, lapMs: number) => ({
+		gate_event_id: id,
+		timestamp: id * 1000,
+		lap_ms: lapMs,
+		rssi: null
+	});
+
+	it('returns the 1-based number of the best lap', () => {
+		expect(bestLapNumber([lap(1, 3000), lap(2, 1500), lap(3, 2000)], 1500)).toBe(2);
+	});
+
+	it('returns the first lap when the best time is tied', () => {
+		expect(bestLapNumber([lap(1, 3000), lap(2, 1500), lap(3, 1500)], 1500)).toBe(2);
+	});
+
+	it('returns null without laps or best time', () => {
+		expect(bestLapNumber([], null)).toBeNull();
+		expect(bestLapNumber([lap(1, 3000)], null)).toBeNull();
 	});
 });

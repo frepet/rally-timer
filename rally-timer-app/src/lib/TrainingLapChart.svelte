@@ -1,25 +1,30 @@
 <script lang="ts">
-	import { Input, Toggle } from 'flowbite-svelte';
+	import { untrack } from 'svelte';
+	import { Button, Input, Toggle } from 'flowbite-svelte';
+	import type { ECharts, EChartsCoreOption } from 'echarts/core';
 	import type { TrainingDriverResult } from './domain/training';
 	import { buildTrackDevelopment, buildTrainingChartSeries } from './domain/trainingChart';
 	import { formatMs } from './results';
 	import { getLocale, t } from './stores/locale.svelte';
 
+	type TimeRange = { min: number; max: number };
+
 	let { drivers }: { drivers: TrainingDriverResult[] } = $props();
 	let filterEnabled = $state(true);
 	let slowerPercent = $state(50);
-	let hiddenDriverIds = $state<number[]>([]);
+	// Empty means every driver is shown; otherwise only the listed drivers.
+	let selectedDriverIds = $state<number[]>([]);
 	let container = $state<HTMLDivElement | null>(null);
-	let width = $state(900);
+	let chart = $state<ECharts | null>(null);
+	let isDark = $state(false);
+	let view = $state<TimeRange | null>(null);
 
 	const height = 360;
-	const margin = { top: 18, right: 18, bottom: 48, left: 68 };
+	const margin = { top: 30, right: 18, bottom: 48, left: 68 };
 	const series = $derived(
 		buildTrainingChartSeries(drivers, filterEnabled ? Math.max(0, slowerPercent || 0) : null)
 	);
-	const visibleSeries = $derived(
-		series.filter((entry) => !hiddenDriverIds.includes(entry.driver_id))
-	);
+	const visibleSeries = $derived(series.filter((entry) => isVisible(entry.driver_id)));
 	const trackDevelopment = $derived(buildTrackDevelopment(series));
 	const trackDevelopmentRows = $derived.by(() => {
 		const startTimestamp = trackDevelopment.at(0)?.start_timestamp;
@@ -48,40 +53,34 @@
 		const lapPad = minLap === maxLap ? Math.max(1000, minLap * 0.05) : (maxLap - minLap) * 0.08;
 		minLap = Math.max(0, minLap - lapPad);
 		maxLap += lapPad;
+		if (minTime === maxTime) maxTime = minTime + 1;
 		return { minTime, maxTime, minLap, maxLap };
 	});
-
-	const plotWidth = $derived(Math.max(1, width - margin.left - margin.right));
-	const plotHeight = height - margin.top - margin.bottom;
-	const xTicks = $derived(
-		trackDevelopment.length > 0
-			? [
-					...trackDevelopment.map((interval) => interval.start_timestamp),
-					trackDevelopment.at(-1)!.end_timestamp
-				]
-			: makeTicks(bounds?.minTime ?? 0, bounds?.maxTime ?? 1, width < 600 ? 4 : 7)
+	// The heat strips follow the zoomed window; fall back to the full range.
+	const viewRange = $derived<TimeRange | null>(
+		view ?? (bounds ? { min: bounds.minTime, max: bounds.maxTime } : null)
 	);
-	const yTicks = $derived(makeTicks(bounds?.minLap ?? 0, bounds?.maxLap ?? 1, 5));
+	const zoomed = $derived(
+		!!view && !!bounds && (view.min > bounds.minTime + 1 || view.max < bounds.maxTime - 1)
+	);
 
-	function makeTicks(min: number, max: number, count: number): number[] {
-		if (count <= 1) return [min];
-		return Array.from({ length: count }, (_, index) => min + ((max - min) * index) / (count - 1));
+	function isVisible(driverId: number): boolean {
+		return selectedDriverIds.length === 0 || selectedDriverIds.includes(driverId);
 	}
 
-	function x(timestamp: number): number {
-		if (!bounds) return margin.left;
-		return (
-			margin.left + ((timestamp - bounds.minTime) / (bounds.maxTime - bounds.minTime)) * plotWidth
-		);
+	// Click a name to isolate it, click more to add them, unclick the last to show everyone again.
+	function toggleDriver(driverId: number): void {
+		if (selectedDriverIds.length === 0) {
+			selectedDriverIds = [driverId];
+		} else if (selectedDriverIds.includes(driverId)) {
+			selectedDriverIds = selectedDriverIds.filter((id) => id !== driverId);
+		} else {
+			selectedDriverIds = [...selectedDriverIds, driverId];
+		}
 	}
 
-	function y(lapMs: number): number {
-		if (!bounds) return margin.top;
-		return margin.top + ((bounds.maxLap - lapMs) / (bounds.maxLap - bounds.minLap)) * plotHeight;
-	}
-
-	function seriesColor(index: number): string {
-		return `var(--training-chart-${(index % 8) + 1})`;
+	function seriesColorName(index: number): string {
+		return `--training-chart-${(index % 8) + 1}`;
 	}
 
 	function trackHeatColor(intensity: number | null): string {
@@ -89,36 +88,246 @@
 		return `hsl(${120 * (1 - intensity)} 72% 42%)`;
 	}
 
-	function toggleDriver(driverId: number): void {
-		hiddenDriverIds = hiddenDriverIds.includes(driverId)
-			? hiddenDriverIds.filter((id) => id !== driverId)
-			: [...hiddenDriverIds, driverId];
+	function intervalStyle(startTimestamp: number, endTimestamp: number): string {
+		if (!viewRange) return '';
+		const span = viewRange.max - viewRange.min;
+		const left = ((startTimestamp - viewRange.min) / span) * 100;
+		const width = ((endTimestamp - startTimestamp) / span) * 100;
+		return `left: ${left}%; width: ${width}%;`;
 	}
 
-	function formatClock(timestamp: number): string {
+	function formatClock(timestamp: number, withSeconds = false): string {
 		return new Date(timestamp).toLocaleTimeString(getLocale() === 'sv' ? 'sv-SE' : 'en-GB', {
 			hour: '2-digit',
 			minute: '2-digit',
+			second: withSeconds ? '2-digit' : undefined,
 			hour12: false
 		});
 	}
 
-	function formatClockWithSeconds(timestamp: number): string {
-		return new Date(timestamp).toLocaleTimeString(getLocale() === 'sv' ? 'sv-SE' : 'en-GB', {
-			hour: '2-digit',
-			minute: '2-digit',
-			second: '2-digit',
-			hour12: false
-		});
+	function escapeHtml(text: string): string {
+		return text.replace(/[&<>"']/g, (char) => `&#${char.charCodeAt(0)};`);
 	}
+
+	// Canvas needs concrete colours, so resolve CSS variables (possibly oklch) to rgb.
+	function resolveColor(cssColor: string): string {
+		const canvas = document.createElement('canvas');
+		canvas.width = canvas.height = 1;
+		const context = canvas.getContext('2d', { willReadFrequently: true });
+		if (!context) return cssColor;
+		context.fillStyle = '#000';
+		context.fillStyle = cssColor;
+		context.fillRect(0, 0, 1, 1);
+		const [r, g, b, a] = context.getImageData(0, 0, 1, 1).data;
+		return `rgba(${r}, ${g}, ${b}, ${a / 255})`;
+	}
+
+	function readView(instance: ECharts): TimeRange | null {
+		const option = instance.getOption() as unknown as {
+			dataZoom?: { startValue?: number; endValue?: number }[];
+		};
+		const zoom = option.dataZoom?.[0];
+		if (typeof zoom?.startValue !== 'number' || typeof zoom.endValue !== 'number') return null;
+		return { min: zoom.startValue, max: zoom.endValue };
+	}
+
+	function resetZoom(): void {
+		chart?.dispatchAction({ type: 'dataZoom', start: 0, end: 100 });
+	}
+
+	function buildOption(host: HTMLElement, range: NonNullable<typeof bounds>): EChartsCoreOption {
+		const color = (name: string) => resolveColor(getComputedStyle(host).getPropertyValue(name));
+		const textColor = color(isDark ? '--color-surface-400' : '--color-surface-600');
+		const gridColor = color(isDark ? '--color-surface-750' : '--color-surface-200');
+		const frameColor = color(isDark ? '--color-surface-600' : '--color-surface-300');
+		const pointBorder = isDark ? color('--color-surface-850') : '#ffffff';
+		const axisTitle = { color: textColor, fontWeight: 600, fontSize: 12 };
+
+		const lineSeries: unknown[] = [];
+		const pointSeries: unknown[] = [];
+		series.forEach((entry, index) => {
+			if (!isVisible(entry.driver_id)) return;
+			const driverColor = color(seriesColorName(index));
+			// A null between segments breaks the line across long pauses.
+			const paceData = entry.pace_segments.flatMap((segment, segmentIndex) => [
+				...(segmentIndex > 0 ? [[segment[0].timestamp - 1, null]] : []),
+				...segment.map((point) => [point.timestamp, point.pace_ms])
+			]);
+			lineSeries.push({
+				id: `pace-${entry.driver_id}`,
+				name: entry.driver_name,
+				type: 'line',
+				data: paceData,
+				connectNulls: false,
+				symbol: 'circle',
+				symbolSize: 10,
+				itemStyle: { color: driverColor, opacity: 0 },
+				lineStyle: { color: driverColor, width: 2, cap: 'round', join: 'round' },
+				emphasis: { itemStyle: { opacity: 1 }, lineStyle: { width: 2 } },
+				z: 2,
+				meta: 'pace'
+			});
+			pointSeries.push({
+				id: `lap-${entry.driver_id}`,
+				name: entry.driver_name,
+				type: 'scatter',
+				data: entry.points.map((point) => [point.timestamp, point.lap_ms]),
+				symbolSize: 6,
+				itemStyle: { color: driverColor, borderColor: pointBorder, borderWidth: 1.5 },
+				z: 3,
+				meta: 'lap'
+			});
+		});
+
+		return {
+			animation: false,
+			grid: {
+				left: margin.left,
+				right: margin.right,
+				top: margin.top,
+				bottom: margin.bottom,
+				show: true,
+				borderColor: frameColor
+			},
+			textStyle: { color: textColor },
+			tooltip: {
+				trigger: 'item',
+				confine: true,
+				formatter: (raw: unknown): string => {
+					const params = raw as {
+						seriesName?: string;
+						value?: [number, number];
+						componentSubType?: string;
+					};
+					if (!params.value) return '';
+					const [timestamp, ms] = params.value;
+					const label =
+						params.componentSubType === 'line'
+							? `${t.trainingChartPace}: ${formatMs(ms)}`
+							: formatMs(ms);
+					return `${escapeHtml(params.seriesName ?? '')} · ${label} · ${formatClock(timestamp, true)}`;
+				}
+			},
+			toolbox: {
+				right: margin.right,
+				top: 0,
+				itemSize: 14,
+				iconStyle: { borderColor: textColor },
+				feature: {
+					dataZoom: {
+						yAxisIndex: 'none',
+						title: { zoom: t.trainingChartZoomSelect, back: t.trainingChartZoomBack }
+					}
+				}
+			},
+			dataZoom: [
+				{
+					type: 'inside',
+					xAxisIndex: 0,
+					filterMode: 'none',
+					zoomOnMouseWheel: 'ctrl',
+					moveOnMouseMove: false
+				}
+			],
+			xAxis: {
+				type: 'time',
+				min: range.minTime,
+				max: range.maxTime,
+				name: t.trainingChartTimeAxis,
+				nameLocation: 'middle',
+				nameGap: 30,
+				nameTextStyle: axisTitle,
+				axisLabel: { color: textColor, formatter: (value: number) => formatClock(value) },
+				axisLine: { show: false },
+				axisTick: { show: false },
+				splitLine: { show: true, lineStyle: { color: gridColor, type: [2, 4] } }
+			},
+			yAxis: {
+				type: 'value',
+				min: range.minLap,
+				max: range.maxLap,
+				splitNumber: 4,
+				name: t.trainingChartLapAxis,
+				nameLocation: 'middle',
+				nameGap: 46,
+				nameTextStyle: axisTitle,
+				axisLabel: { color: textColor, formatter: (value: number) => (value / 1000).toFixed(1) },
+				axisLine: { show: false },
+				axisTick: { show: false },
+				splitLine: { lineStyle: { color: gridColor } }
+			},
+			series: [...lineSeries, ...pointSeries]
+		};
+	}
+
+	// Client-only: ECharts needs the DOM, so it is loaded lazily after mount.
+	$effect(() => {
+		const host = container;
+		if (!host) return;
+		let instance: ECharts | null = null;
+		let disposed = false;
+		let observer: ResizeObserver | null = null;
+
+		(async () => {
+			const [core, charts, components, renderers] = await Promise.all([
+				import('echarts/core'),
+				import('echarts/charts'),
+				import('echarts/components'),
+				import('echarts/renderers')
+			]);
+			if (disposed) return;
+			core.use([
+				charts.LineChart,
+				charts.ScatterChart,
+				components.GridComponent,
+				components.TooltipComponent,
+				components.DataZoomComponent,
+				components.ToolboxComponent,
+				renderers.CanvasRenderer
+			]);
+			const created = core.init(host, undefined, { height });
+			instance = created;
+			created.on('datazoom', () => {
+				view = readView(created);
+			});
+			created
+				.getZr()
+				.on('dblclick', () => created.dispatchAction({ type: 'dataZoom', start: 0, end: 100 }));
+			observer = new ResizeObserver(() => created.resize());
+			observer.observe(host);
+			chart = created;
+		})();
+
+		return () => {
+			disposed = true;
+			observer?.disconnect();
+			instance?.dispose();
+			chart = null;
+			view = null;
+		};
+	});
 
 	$effect(() => {
-		if (!container) return;
-		const updateWidth = () => (width = Math.max(320, Math.round(container?.clientWidth ?? 900)));
-		updateWidth();
-		const observer = new ResizeObserver(updateWidth);
-		observer.observe(container);
+		const root = document.documentElement;
+		isDark = root.classList.contains('dark');
+		const observer = new MutationObserver(() => (isDark = root.classList.contains('dark')));
+		observer.observe(root, { attributes: true, attributeFilter: ['class'] });
 		return () => observer.disconnect();
+	});
+
+	$effect(() => {
+		if (!chart || !container || !bounds) return;
+		const keepZoom = untrack(() => zoomed);
+		// replaceMerge: series that are no longer visible must be removed, not merged.
+		chart.setOption(buildOption(container, bounds), { replaceMerge: ['series'] });
+		// Plain drag selects a time window instead of requiring the toolbox button first.
+		chart.dispatchAction({
+			type: 'takeGlobalCursor',
+			key: 'dataZoomSelect',
+			dataZoomSelectActive: true
+		});
+		// A live refresh extends the data; follow it unless the user has zoomed in.
+		if (!keepZoom) chart.dispatchAction({ type: 'dataZoom', start: 0, end: 100 });
 	});
 </script>
 
@@ -155,11 +364,12 @@
 					<button
 						type="button"
 						class="legend-driver inline-flex items-center gap-1.5"
-						class:legend-driver--hidden={hiddenDriverIds.includes(entry.driver_id)}
-						aria-pressed={!hiddenDriverIds.includes(entry.driver_id)}
+						class:legend-driver--hidden={!isVisible(entry.driver_id)}
+						aria-pressed={isVisible(entry.driver_id)}
 						onclick={() => toggleDriver(entry.driver_id)}
 					>
-						<span class="h-0.5 w-5" style={`background-color: ${seriesColor(index)}`}></span>
+						<span class="h-0.5 w-5" style={`background-color: var(${seriesColorName(index)})`}
+						></span>
 						{entry.driver_name}
 					</button>
 				{/each}
@@ -171,101 +381,22 @@
 				</p>
 			{/if}
 
-			<div bind:this={container} class="w-full overflow-hidden">
-				{#if bounds}
-					<svg
-						viewBox={`0 0 ${width} ${height}`}
-						class="block w-full"
-						role="img"
-						aria-label={t.trainingChartAriaLabel}
-					>
-						<rect
-							x={margin.left}
-							y={margin.top}
-							width={plotWidth}
-							height={plotHeight}
-							class="chart-frame"
-						/>
-						{#each yTicks as tick (tick)}
-							<line
-								x1={margin.left}
-								x2={width - margin.right}
-								y1={y(tick)}
-								y2={y(tick)}
-								class="chart-grid"
-							/>
-							<text x={margin.left - 9} y={y(tick) + 4} text-anchor="end" class="chart-label"
-								>{(tick / 1000).toFixed(1)}</text
-							>
-						{/each}
-						{#each xTicks as tick (tick)}
-							<line
-								x1={x(tick)}
-								x2={x(tick)}
-								y1={margin.top}
-								y2={height - margin.bottom}
-								class="chart-grid chart-grid--vertical"
-							/>
-							<text
-								x={x(tick)}
-								y={height - margin.bottom + 20}
-								text-anchor="middle"
-								class="chart-label">{formatClock(tick)}</text
-							>
-						{/each}
-
-						<text
-							x={margin.left + plotWidth / 2}
-							y={height - 5}
-							text-anchor="middle"
-							class="chart-axis-title">{t.trainingChartTimeAxis}</text
-						>
-						<text
-							x={15}
-							y={margin.top + plotHeight / 2}
-							text-anchor="middle"
-							transform={`rotate(-90 15 ${margin.top + plotHeight / 2})`}
-							class="chart-axis-title">{t.trainingChartLapAxis}</text
-						>
-
-						{#each series as entry, index (entry.driver_id)}
-							{#if !hiddenDriverIds.includes(entry.driver_id)}
-								{#each entry.pace_segments as segment, segmentIndex (`${entry.driver_id}-${segmentIndex}`)}
-									<polyline
-										points={segment
-											.map((point) => `${x(point.timestamp)},${y(point.pace_ms)}`)
-											.join(' ')}
-										fill="none"
-										stroke={seriesColor(index)}
-										class="chart-pace"
-									>
-										<title
-											>{entry.driver_name} · {t.trainingChartPace}: {formatMs(
-												segment.at(-1)?.pace_ms ?? entry.current_pace_ms
-											)}</title
-										>
-									</polyline>
-								{/each}
-								{#each entry.points as point (point.gate_event_id)}
-									<circle
-										cx={x(point.timestamp)}
-										cy={y(point.lap_ms)}
-										r="2"
-										fill={seriesColor(index)}
-										class="chart-point"
-									>
-										<title
-											>{entry.driver_name} · {formatMs(point.lap_ms)} · {formatClockWithSeconds(
-												point.timestamp
-											)}</title
-										>
-									</circle>
-								{/each}
-							{/if}
-						{/each}
-					</svg>
+			<div
+				class="flex items-center justify-between gap-3 text-xs text-surface-500 dark:text-surface-400"
+			>
+				<p>{t.trainingChartZoomHint}</p>
+				{#if zoomed}
+					<Button size="xs" color="light" onclick={resetZoom}>{t.trainingChartResetZoom}</Button>
 				{/if}
 			</div>
+
+			<div
+				bind:this={container}
+				class="w-full"
+				style={`height: ${height}px`}
+				role="img"
+				aria-label={t.trainingChartAriaLabel}
+			></div>
 
 			{#if trackDevelopment.length > 0}
 				<div class="space-y-1.5 pt-1">
@@ -287,14 +418,14 @@
 								{row.driver_id === null ? t.trainingTrackOverall : row.driver_name}
 							</span>
 							<div
-								class="flex h-3 overflow-hidden rounded-full"
+								class="relative h-3 overflow-hidden rounded-full"
 								role="img"
 								aria-label={`${row.driver_id === null ? t.trainingTrackOverall : row.driver_name}: ${t.trainingTrackDevelopmentDescription}`}
 							>
 								{#each row.intervals as interval (interval.start_timestamp)}
 									<span
-										class="min-w-0 flex-1"
-										style={`background-color: ${trackHeatColor(interval.intensity)}`}
+										class="absolute inset-y-0"
+										style={`${intervalStyle(interval.start_timestamp, interval.end_timestamp)} background-color: ${trackHeatColor(interval.intensity)}`}
 										title={`${formatClock(interval.start_timestamp)}–${formatClock(interval.end_timestamp)} · ${interval.average_lap_ms === null ? '—' : formatMs(interval.average_lap_ms)}`}
 									></span>
 								{/each}
@@ -325,11 +456,6 @@
 		--training-chart-7: #ca8a04;
 		--training-chart-8: #db2777;
 	}
-	.chart-frame {
-		fill: transparent;
-		stroke: var(--color-surface-300);
-		stroke-width: 1;
-	}
 	.legend-driver {
 		cursor: pointer;
 		transition: opacity 150ms ease;
@@ -341,31 +467,6 @@
 		opacity: 0.35;
 		text-decoration: line-through;
 	}
-	.chart-grid {
-		stroke: var(--color-surface-200);
-		stroke-width: 1;
-	}
-	.chart-grid--vertical {
-		stroke-dasharray: 2 4;
-	}
-	.chart-label,
-	.chart-axis-title {
-		fill: var(--color-surface-600);
-		font-family: var(--font-sans);
-		font-size: 12px;
-	}
-	.chart-axis-title {
-		font-weight: 600;
-	}
-	.chart-point {
-		stroke: white;
-		stroke-width: 1.5;
-	}
-	.chart-pace {
-		stroke-linecap: round;
-		stroke-linejoin: round;
-		stroke-width: 2;
-	}
 	:global(.dark) .training-chart {
 		--training-chart-1: var(--color-primary-400);
 		--training-chart-2: var(--color-secondary-400);
@@ -375,18 +476,5 @@
 		--training-chart-6: #22d3ee;
 		--training-chart-7: #facc15;
 		--training-chart-8: #f472b6;
-	}
-	:global(.dark) .chart-frame {
-		stroke: var(--color-surface-600);
-	}
-	:global(.dark) .chart-grid {
-		stroke: var(--color-surface-750);
-	}
-	:global(.dark) .chart-label,
-	:global(.dark) .chart-axis-title {
-		fill: var(--color-surface-400);
-	}
-	:global(.dark) .chart-point {
-		stroke: var(--color-surface-850);
 	}
 </style>

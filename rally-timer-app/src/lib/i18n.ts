@@ -437,6 +437,11 @@ export const sv = {
 	trainingChartTimeAxis: 'Klockslag',
 	trainingChartLapAxis: 'Varvtid (s)',
 	trainingChartAriaLabel: 'Punktdiagram över förarnas varvtider efter klockslag',
+	trainingChartZoomHint:
+		'Dra i diagrammet för att zooma in på ett tidsfönster. Dubbelklicka för att återställa.',
+	trainingChartZoomBack: 'Ångra zoom',
+	trainingChartZoomSelect: 'Dra för att zooma',
+	trainingChartResetZoom: 'Återställ zoom',
 
 	// Landing page view picker
 	viewPickerLabel: 'Visa på startsidan',
@@ -893,6 +898,10 @@ export const en: typeof sv = {
 	trainingChartTimeAxis: 'Wall clock',
 	trainingChartLapAxis: 'Lap time (s)',
 	trainingChartAriaLabel: 'Scatter plot of driver lap times by wall-clock finish time',
+	trainingChartZoomHint: 'Drag on the chart to zoom into a time window. Double-click to reset.',
+	trainingChartZoomBack: 'Undo zoom',
+	trainingChartZoomSelect: 'Drag to zoom',
+	trainingChartResetZoom: 'Reset zoom',
 
 	// Landing page view picker
 	viewPickerLabel: 'Show on home page',
