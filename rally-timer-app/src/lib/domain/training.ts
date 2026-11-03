@@ -67,6 +67,13 @@ export function computeTrainingLaps(passes: TrainingPass[], cooldownMs: number):
 	return laps;
 }
 
+// 1-based number of the first lap matching the best lap time, or null when there are no laps.
+export function bestLapNumber(laps: TrainingLap[], bestLapMs: number | null): number | null {
+	if (bestLapMs === null) return null;
+	const index = laps.findIndex((lap) => lap.lap_ms === bestLapMs);
+	return index === -1 ? null : index + 1;
+}
+
 export function medianOf(values: number[]): number | null {
 	if (values.length === 0) return null;
 	const sorted = [...values].sort((a, b) => a - b);

@@ -3,7 +3,7 @@
 	import { formatMs } from './results';
 	import { t } from './stores/locale.svelte';
 	import { auth } from './stores/auth.svelte';
-	import type { TrainingDriverResult } from './domain/training';
+	import { bestLapNumber, type TrainingDriverResult } from './domain/training';
 	import TrainingLapList from './TrainingLapList.svelte';
 	import TrainingLapChart from './TrainingLapChart.svelte';
 
@@ -32,6 +32,7 @@
 			</thead>
 			<tbody>
 				{#each drivers as d, i (d.driver_id)}
+					{@const bestNo = bestLapNumber(d.laps, d.best_lap_ms)}
 					<tr>
 						<td>
 							{#if d.lap_count > 0}
@@ -45,7 +46,12 @@
 							{/if}
 						</td>
 						<td class="text-right">{d.lap_count}</td>
-						<td class="time text-right text-base">{formatMs(d.best_lap_ms)}</td>
+						<td class="time text-right text-base">
+							{formatMs(d.best_lap_ms)}
+							{#if bestNo !== null}
+								<span class="stat text-surface-400">({bestNo})</span>
+							{/if}
+						</td>
 						<td class="text-right">{formatMs(d.median_lap_ms)}</td>
 						<td class="text-right">{formatMs(d.last_lap_ms)}</td>
 					</tr>
@@ -59,6 +65,7 @@
 	<div class="grid gap-4 md:grid-cols-2">
 		{#each drivers as d (d.driver_id)}
 			{#if d.laps.length}
+				{@const bestNo = bestLapNumber(d.laps, d.best_lap_ms)}
 				<div class="rounded-lg ring-1 ring-surface-200 dark:ring-white/8">
 					<div
 						class="flex items-baseline justify-between gap-2 border-b border-surface-100 px-3 py-2 dark:border-white/8"
@@ -72,7 +79,7 @@
 						<p class="stat">
 							{d.lap_count} · <span class="stat-label">{t.trainingBestLap}</span><span
 								class="time text-sm">{formatMs(d.best_lap_ms)}</span
-							>
+							>{#if bestNo !== null}<span class="text-surface-400"> ({bestNo})</span>{/if}
 						</p>
 					</div>
 					<TrainingLapList

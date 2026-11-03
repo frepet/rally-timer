@@ -50,6 +50,7 @@
 		"vitest": "^4.1.2"
 	},
 	"dependencies": {
+		"echarts": "^6.1.0",
 		"jose": "^6.1.0",
 		"keycloak-js": "^26.2.0",
 		"marked": "^18.0.2",
