@@ -2,4 +2,4 @@ pyserial==3.5
 requests==2.34.2
 python-dotenv==1.2.3
 gpiozero==2.0.1.post3
-cryptography>=50.0.1
+cryptography>=50.0.2
