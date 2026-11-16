@@ -7,8 +7,8 @@
 	import RallycrossLeaderboard from '$lib/RallycrossLeaderboard.svelte';
 	import TrainingResults from '$lib/TrainingResults.svelte';
 	import { buildStageData, buildRallyRows } from '$lib/domain/summary';
-	import type { OverallResult } from '$lib/domain/rallycross';
-	import { buildRxDisplay } from '$lib/domain/rallycrossDisplay';
+	import type { OverallResult, HeatResult } from '$lib/domain/rallycross';
+	import { buildRxDisplay, rankHeatEntries } from '$lib/domain/rallycrossDisplay';
 	import type { TrainingDriverResult } from '$lib/domain/training';
 	import { eventApiUrl, type DisplayEvent } from '$lib/domain/eventPresentation';
 	import { t } from '$lib/stores/locale.svelte';
@@ -27,6 +27,10 @@
 
 	let rxConfig = $state<RallycrossConfig>({ heats: [], active_heat: null });
 	let rxLeaderboard = $state<OverallResult[]>([]);
+	let rxLive = $state<{
+		heat: { number: number; required_laps: number } | null;
+		results: HeatResult[];
+	}>({ heat: null, results: [] });
 	let trainingConfig = $state<TrainingConfig>({ gate_id: null, drivers: [] });
 
 	let bundle = $state<BundleResponse>({
@@ -42,6 +46,21 @@
 	const rallyRows = $derived(buildRallyRows(stageData));
 
 	const rxDisplay = $derived(buildRxDisplay(rxLeaderboard));
+	const rxLiveHeat = $derived(
+		rxLive.heat
+			? {
+					number: rxLive.heat.number,
+					required_laps: rxLive.heat.required_laps,
+					entries: rankHeatEntries(
+						rxLive.results.map((r) => ({
+							result: r,
+							driver_name: r.driver_name,
+							class_name: r.class_name
+						}))
+					)
+				}
+			: null
+	);
 
 	async function loadAll() {
 		if (event.type === 'rally') {
@@ -51,12 +70,14 @@
 			const res = await kcFetch(eventApiUrl('/api/training', event.id));
 			if (res.ok) trainingConfig = await res.json();
 		} else {
-			const [rx, board] = await Promise.all([
+			const [rx, board, live] = await Promise.all([
 				kcFetch(eventApiUrl('/api/rallycross', event.id)),
-				kcFetch(eventApiUrl('/api/rallycross/leaderboard', event.id))
+				kcFetch(eventApiUrl('/api/rallycross/leaderboard', event.id)),
+				kcFetch(eventApiUrl('/api/rallycross/live', event.id))
 			]);
 			if (rx.ok) rxConfig = await rx.json();
 			if (board.ok) rxLeaderboard = await board.json();
+			if (live.ok) rxLive = await live.json();
 		}
 	}
 
@@ -104,8 +125,12 @@
 				</span>
 			{/if}
 		</div>
-		{#if rxLeaderboard.length}
-			<RallycrossLeaderboard standings={rxDisplay.standings} heats={rxDisplay.heats} />
+		{#if rxLeaderboard.length || rxLiveHeat}
+			<RallycrossLeaderboard
+				standings={rxDisplay.standings}
+				heats={rxDisplay.heats}
+				live={rxLiveHeat}
+			/>
 		{:else}
 			<p class="empty dark:text-surface-400">{t.rxWaitingForHeats}</p>
 		{/if}

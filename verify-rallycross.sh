@@ -5,7 +5,7 @@
 # This suite asserts the wiring, not the scoring math: config CRUD, heat
 # lifecycle (create → start → active_heat), gate events driving auto-close,
 # timed close with synthetic DNF, manual close, suggest-heat coverage, and
-# reset. Exact points (n-pos+1), best_total_ms lap sums, DNF penalty times, and
+# reset. Exact points (n-pos+1), best_total_ms lap sums, and
 # leaderboard/suggest ordering are covered exhaustively by
 # src/lib/domain/rallycross.test.ts (56 unit tests) and are deliberately NOT
 # re-pinned here — that only duplicated the unit suite and broke on legitimate
@@ -160,14 +160,14 @@ check "close returns closed_at" "true" "$( [[ "$(echo "$close_result" | jq '.clo
 cfg=$(get /api/rallycross)
 check "no active heat after close" "null" "$(echo "$cfg" | jq '.active_heat')"
 
-# DNF detection on close is wired: Diana DNF with a numeric penalty time,
-# Charlie finished. The exact penalty ms is domain-tested (computeDnfTime).
+# DNF detection on close is wired: Diana DNF with no time penalty (ranked by
+# laps instead), Charlie finished.
 h2_detail=$(get "/api/rallycross/heat/$h2_id")
 diana=$(echo "$h2_detail"   | jq -c '.entries[] | select(.driver_name == "Diana Dahl")')
 charlie=$(echo "$h2_detail" | jq -c '.entries[] | select(.driver_name == "Charlie Svensson")')
 
 check "Diana is DNF"                    "true"   "$(echo "$diana" | jq '.dnf')"
-check "Diana has a numeric dnf_time_ms" "number" "$(echo "$diana" | jq -r '.dnf_time_ms | type')"
+check "Diana has no dnf_time_ms penalty" "null" "$(echo "$diana" | jq -r '.dnf_time_ms | type')"
 check "Charlie is not DNF"              "false"  "$(echo "$charlie" | jq '.dnf')"
 
 # A DNF'd driver has no best_total_ms on the overall board.

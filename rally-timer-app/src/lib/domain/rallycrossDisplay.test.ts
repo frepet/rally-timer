@@ -42,6 +42,29 @@ function overall(partial: Partial<OverallResult> & { driver_name: string }): Ove
 }
 
 describe('buildRxDisplay', () => {
+	it('ranks DNF drivers by laps with delta 0 across lap counts and a delta within equal laps', () => {
+		const mk = (name: string, laps: number[], finished: boolean, dnf: boolean) =>
+			heatResult({
+				driver_name: name,
+				laps,
+				lap_count: laps.length,
+				finished,
+				dnf,
+				total_ms: finished ? laps.reduce((a, b) => a + b, 0) : null
+			});
+		const results = [
+			mk('Fin', [50000, 50000, 50000], true, false),
+			mk('TwoA', [50000, 52000], false, true),
+			mk('TwoB', [50000, 55000], false, true),
+			mk('One', [60000], false, true)
+		];
+		const lb = results.map((r) => overall({ driver_name: r.driver_name, heat_results: [r] }));
+		const entries = buildRxDisplay(lb).heats[0].entries;
+		expect(entries.map((e) => e.driver_name)).toEqual(['Fin', 'TwoA', 'TwoB', 'One']);
+		expect(entries.map((e) => e.total_ms)).toEqual([150000, 102000, 105000, 60000]);
+		expect(entries.map((e) => e.delta_ms)).toEqual([0, 0, 3000, 0]);
+	});
+
 	it('returns empty display for empty leaderboard', () => {
 		expect(buildRxDisplay([])).toEqual({ standings: [], heats: [] });
 	});

@@ -39,6 +39,7 @@
 	};
 
 	let gates = $state<Gate[]>([]);
+	let driverNameByTag = $state<Record<string, string>>({});
 	let flashingGates = new SvelteSet<string>();
 	let openMenuId = $state<string | null>(null);
 	let menuPos = $state({ top: 0, right: 0 });
@@ -168,12 +169,26 @@
 		playBeep(880, 0.3, 0.3);
 	}
 
+	async function loadDrivers() {
+		try {
+			const res = await kcFetch('/api/driver');
+			if (!res.ok) return;
+			const rows = (await res.json()) as { name: string; tag: string }[];
+			driverNameByTag = Object.fromEntries(rows.map((d) => [d.tag, d.name]));
+		} catch {
+			/* keep previous mapping */
+		}
+	}
+
 	let poller: number | null = null;
 	let eventSource: EventSource | null = null;
 
 	onMount(async () => {
-		await loadGates();
-		poller = window.setInterval(loadGates, 5000);
+		await Promise.all([loadGates(), loadDrivers()]);
+		poller = window.setInterval(() => {
+			loadGates();
+			loadDrivers();
+		}, 5000);
 
 		eventSource = new EventSource('/api/gate-events/stream');
 		eventSource.onmessage = (e) => {
@@ -381,6 +396,9 @@
 						<span class="text-blue-300">{gateLabel(entry.gate_id)}</span>
 						<span class="text-gray-400">tag=</span>
 						<span class="text-yellow-200">{entry.tag}</span>
+						{#if driverNameByTag[entry.tag]}
+							<span class="text-green-300">{driverNameByTag[entry.tag]}</span>
+						{/if}
 						<span class="ml-auto">
 							<Badge color={rssiColor(entry.rssi)}>
 								{entry.rssi != null ? `${entry.rssi} dBm` : t.noRssi}

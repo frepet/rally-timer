@@ -1,23 +1,87 @@
 <script lang="ts">
 	import { classChipClass } from './classColor';
 	import { formatMs } from './results';
-	import type { RxStandingDisplay, RxHeatDisplay } from './domain/rallycrossDisplay';
+	import type {
+		RxStandingDisplay,
+		RxHeatDisplay,
+		RxHeatEntryDisplay
+	} from './domain/rallycrossDisplay';
 	import { t } from './stores/locale.svelte';
 
 	let {
 		standings,
-		heats
+		heats,
+		live = null
 	}: {
 		standings: RxStandingDisplay[];
 		heats: RxHeatDisplay[];
+		live?: { number: number; required_laps: number; entries: RxHeatEntryDisplay[] } | null;
 	} = $props();
 
-	function hasTimes(heat: RxHeatDisplay): boolean {
+	function fmtDelta(ms: number | null): string {
+		return ms ? `+${formatMs(ms)}` : '0';
+	}
+
+	function hasTimes(heat: { entries: RxHeatEntryDisplay[] }): boolean {
 		return heat.entries.some((e) => e.total_ms !== null);
+	}
+
+	function hasDelta(heat: { entries: RxHeatEntryDisplay[] }): boolean {
+		return heat.entries.some((e) => e.delta_ms !== null);
 	}
 </script>
 
 <div class="space-y-6">
+	{#if live}
+		<section class="panel overflow-hidden">
+			<div class="panel-head">
+				<h3 class="panel-title text-lg">{t.rxHeatLabel(live.number)}</h3>
+				<span class="chip chip--ok">
+					<span class="status-dot status-dot--live"></span>
+					{t.rxStatusInProgress}
+				</span>
+			</div>
+			<div class="overflow-x-auto p-2 sm:p-3">
+				{#if live.entries.length}
+					<table class="data-table">
+						<thead>
+							<tr>
+								<th class="w-10">#</th>
+								<th>{t.driverHeader}</th>
+								<th class="text-right">{t.rxLapsColumn}</th>
+								<th class="text-right">{t.rxBestLap}</th>
+								<th class="text-right">{t.rxDeltaColumn}</th>
+								<th class="text-right">{t.totalLabel}</th>
+							</tr>
+						</thead>
+						<tbody>
+							{#each live.entries as e (e.driver_name)}
+								<tr class={e.dnf ? 'opacity-60' : ''}>
+									<td class="time text-base">{e.position}</td>
+									<td>
+										<span class="font-semibold">{e.driver_name}</span>
+										<span class="chip ml-1 {classChipClass(e.class_name)}">{e.class_name}</span>
+										{#if e.dnf}<span class="chip chip--danger ml-1">DNF</span>{/if}
+									</td>
+									<td class="time text-right text-base">{e.lap_count ?? 0}/{live.required_laps}</td>
+									<td class="text-right text-surface-500 dark:text-surface-400"
+										>{formatMs(e.best_lap_ms)}</td
+									>
+									<td class="text-right text-surface-500 dark:text-surface-400"
+										>{fmtDelta(e.delta_ms)}</td
+									>
+									<td class="time text-right text-base">{formatMs(e.total_ms)}</td>
+								</tr>
+							{/each}
+						</tbody>
+					</table>
+				{:else}
+					<p class="empty dark:text-surface-400">{t.rxWaitingForDrivers}</p>
+				{/if}
+			</div>
+		</section>
+	{/if}
+
 	{#if standings.length}
 		<section class="panel overflow-hidden">
 			<div class="panel-head">
@@ -75,6 +139,7 @@
 								<th>{t.driverHeader}</th>
 								{#if hasTimes(heat)}
 									<th class="text-right">{t.rxBestLap}</th>
+									{#if hasDelta(heat)}<th class="text-right">{t.rxDeltaColumn}</th>{/if}
 									<th class="text-right">{t.totalLabel}</th>
 								{/if}
 							</tr>
@@ -82,7 +147,7 @@
 						<tbody>
 							{#each heat.entries as e (e.driver_name)}
 								<tr class={e.dnf ? 'opacity-60' : ''}>
-									<td class="time text-base">{e.dnf ? '—' : e.position}</td>
+									<td class="time text-base">{e.dnf && e.lap_count === null ? '—' : e.position}</td>
 									<td>
 										<span class="font-semibold">{e.driver_name}</span>
 										<span class="chip ml-1 {classChipClass(e.class_name)}">{e.class_name}</span>
@@ -92,6 +157,11 @@
 										<td class="text-right text-surface-500 dark:text-surface-400"
 											>{formatMs(e.best_lap_ms)}</td
 										>
+										{#if hasDelta(heat)}
+											<td class="text-right text-surface-500 dark:text-surface-400"
+												>{fmtDelta(e.delta_ms)}</td
+											>
+										{/if}
 										<td class="time text-right text-base">{formatMs(e.total_ms)}</td>
 									{/if}
 								</tr>

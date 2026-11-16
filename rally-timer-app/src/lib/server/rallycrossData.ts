@@ -134,3 +134,20 @@ export async function fetchStartedHeatResults(
 		)
 	).flat();
 }
+
+/** The heat currently in progress (started, not closed) with live results, or null. */
+export async function fetchLiveHeat(
+	cfg: Cfg,
+	eventId: number,
+	sql: typeof db = db
+): Promise<{ heat: HeatRow; results: Array<HeatResult & { driver_uuid: string }> } | null> {
+	const [heat] = await sql<HeatRow[]>`
+		SELECT id, number, required_laps, started_at, closed_at
+		FROM rallycross_heats
+		WHERE event_id = ${eventId} AND started_at IS NOT NULL AND closed_at IS NULL
+		ORDER BY number DESC LIMIT 1
+	`;
+	if (!heat) return null;
+	const entries = await fetchEntriesForHeat(heat, cfg, eventId, sql);
+	return { heat, results: toHeatResultsWithUuid(entries, heat, cfg.cooldown_ms) };
+}

@@ -5,7 +5,6 @@ import {
 	computeHeatResult,
 	computeLaps,
 	filterByCooldown,
-	computeDnfTime,
 	buildHeatLeaderboard,
 	buildOverallLeaderboard,
 	computeHeatPoints,
@@ -287,28 +286,6 @@ describe('computeHeatResult with manual_position', () => {
 	});
 });
 
-describe('computeDnfTime', () => {
-	it('returns null when no finishers', () => {
-		expect(computeDnfTime([])).toBeNull();
-	});
-
-	it('returns slowest total_ms + 30s', () => {
-		const results = [
-			{ total_ms: 60000, finished: true } as Parameters<typeof computeDnfTime>[0][0],
-			{ total_ms: 90000, finished: true } as Parameters<typeof computeDnfTime>[0][0],
-			{ total_ms: null, finished: false } as Parameters<typeof computeDnfTime>[0][0]
-		];
-		expect(computeDnfTime(results)).toBe(120000); // 90000 + 30000
-	});
-
-	it('ignores non-finishers', () => {
-		const results = [
-			{ total_ms: null, finished: false } as Parameters<typeof computeDnfTime>[0][0]
-		];
-		expect(computeDnfTime(results)).toBeNull();
-	});
-});
-
 describe('buildHeatLeaderboard', () => {
 	const mkEntry = (
 		name: string,
@@ -329,15 +306,31 @@ describe('buildHeatLeaderboard', () => {
 		manual_position
 	});
 
-	it('finishers ranked by total_ms, then DNF by dnf_time_ms, then unfinished last', () => {
+	it('finishers by total_ms, then DNF/unfinished by laps desc, then last-lap time', () => {
 		const entries = [
 			mkEntry('Unfinished', [60000]), // 1 of 3 laps
-			mkEntry('DNF', [], true, 130000), // dnf
+			mkEntry('DNF', [], true), // dnf, 0 laps
 			mkEntry('Slow', [70000, 140000, 210000]), // 3 laps, 210 000 ms total
-			mkEntry('Fast', [50000, 100000, 150000]) // 3 laps, 150 000 ms total
+			mkEntry('Fast', [50000, 100000, 150000]), // 3 laps, 150 000 ms total
+			mkEntry('TwoLaps', [40000, 90000], true) // dnf after 2 of 3 laps
 		];
 		const board = buildHeatLeaderboard(entries, 1, 3, 500);
-		expect(board.map((r) => r.driver_name)).toEqual(['Fast', 'Slow', 'DNF', 'Unfinished']);
+		expect(board.map((r) => r.driver_name)).toEqual([
+			'Fast',
+			'Slow',
+			'TwoLaps',
+			'Unfinished',
+			'DNF'
+		]);
+	});
+
+	it('DNF drivers with equal laps are ranked by time of the last lap', () => {
+		const entries = [
+			mkEntry('Late', [50000, 110000], true),
+			mkEntry('Early', [40000, 90000], true)
+		];
+		const board = buildHeatLeaderboard(entries, 1, 3, 500);
+		expect(board.map((r) => r.driver_name)).toEqual(['Early', 'Late']);
 	});
 
 	it('heat_number is forwarded to each result', () => {

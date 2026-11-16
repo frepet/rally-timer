@@ -3,11 +3,7 @@ import { requireHeatEvent } from '$lib/server/eventContext';
 import { json, error, type RequestEvent } from '@sveltejs/kit';
 import { sql as db } from '../../../../../../lib/server/db';
 import { throwIfNotAdmin } from '../../../../../../lib/server/keycloak';
-import {
-	computeHeatResult,
-	computeDnfTime,
-	type HeatEntry
-} from '../../../../../../lib/domain/rallycross';
+import { computeHeatResult, type HeatEntry } from '../../../../../../lib/domain/rallycross';
 
 export async function POST(event: RequestEvent): Promise<Response> {
 	return db.begin(async (tx) => {
@@ -87,14 +83,13 @@ export async function POST(event: RequestEvent): Promise<Response> {
 		const heatResults = heatEntries.map((e) =>
 			computeHeatResult(e, heat.number, heat.required_laps, cfg.cooldown_ms)
 		);
-		const dnfTime = computeDnfTime(heatResults);
 
 		// Mark unfinished entries as DNF
 		for (const result of heatResults) {
 			if (!result.finished && !result.dnf) {
 				await sql`
 				UPDATE rallycross_heat_entries
-				SET dnf = true, dnf_time_ms = ${dnfTime}
+				SET dnf = true
 				WHERE heat_id = ${heatId} AND driver_id = ${result.driver_id}
 			`;
 			}

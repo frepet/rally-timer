@@ -220,14 +220,9 @@ export function computeHeatResult(
 	};
 }
 
-export function computeDnfTime(
-	results: Pick<HeatResult, 'total_ms' | 'finished'>[]
-): number | null {
-	const finisherTimes = results
-		.filter((r) => r.finished && r.total_ms !== null)
-		.map((r) => r.total_ms as number);
-	if (finisherTimes.length === 0) return null;
-	return Math.max(...finisherTimes) + 30_000;
+/** Time of the last completed lap: the final time for a driver who did not finish. */
+export function heatElapsedMs(r: Pick<HeatResult, 'laps'>): number | null {
+	return r.laps.length ? r.laps.reduce((a, b) => a + b, 0) : null;
 }
 
 export function heatResultComparator(a: HeatResult, b: HeatResult): number {
@@ -240,13 +235,12 @@ export function heatResultComparator(a: HeatResult, b: HeatResult): number {
 	if (a.finished) return -1;
 	if (b.finished) return 1;
 
-	// 2. DNF by dnf_time_ms asc
-	if (a.dnf && b.dnf) return (a.dnf_time_ms ?? 0) - (b.dnf_time_ms ?? 0);
-	if (a.dnf) return -1;
-	if (b.dnf) return 1;
-
-	// 3. Unfinished by lap_count desc, then name
+	// 2. Everyone else (DNF or still running): most finished laps first, then the
+	// time of the last completed lap. No time penalty is added for a DNF.
 	if (a.lap_count !== b.lap_count) return b.lap_count - a.lap_count;
+	const aMs = heatElapsedMs(a);
+	const bMs = heatElapsedMs(b);
+	if (aMs !== null && bMs !== null && aMs !== bMs) return aMs - bMs;
 	return a.driver_name.localeCompare(b.driver_name);
 }
 

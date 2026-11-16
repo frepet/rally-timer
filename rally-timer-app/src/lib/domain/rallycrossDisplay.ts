@@ -1,4 +1,9 @@
-import { heatResultComparator, type OverallResult, type HeatResult } from './rallycross';
+import {
+	heatElapsedMs,
+	heatResultComparator,
+	type OverallResult,
+	type HeatResult
+} from './rallycross';
 import { positionToPoints } from './scoring';
 
 export type RxHeatEntryDisplay = {
@@ -6,8 +11,13 @@ export type RxHeatEntryDisplay = {
 	class_name: string;
 	position: number;
 	dnf: boolean;
+	/** Finishers: total time. DNF: time of the last completed lap. */
 	total_ms: number | null;
 	best_lap_ms: number | null;
+	/** Completed laps; null when unknown (submitted results). */
+	lap_count: number | null;
+	/** Gap to the driver ahead when on the same lap count, else 0; null when unknown. */
+	delta_ms: number | null;
 };
 
 export type RxHeatDisplay = {
@@ -27,6 +37,32 @@ export type RxDisplay = {
 	standings: RxStandingDisplay[];
 	heats: RxHeatDisplay[];
 };
+
+/** Ranks one heat's results (finishers, then DNF/unfinished by laps) and computes deltas. */
+export function rankHeatEntries(
+	entries: Array<{ result: HeatResult; driver_name: string; class_name: string }>
+): RxHeatEntryDisplay[] {
+	const sorted = [...entries].sort((a, b) => heatResultComparator(a.result, b.result));
+	let prev: { group: number; ms: number | null } | null = null;
+	return sorted.map((e, i) => {
+		const ms = e.result.finished ? e.result.total_ms : heatElapsedMs(e.result);
+		// Drivers are only comparable when they completed the same number of laps.
+		const group = e.result.finished ? -1 : e.result.lap_count;
+		const delta_ms =
+			prev && prev.group === group && prev.ms !== null && ms !== null ? ms - prev.ms : 0;
+		prev = { group, ms };
+		return {
+			driver_name: e.driver_name,
+			class_name: e.class_name,
+			position: i + 1,
+			dnf: e.result.dnf,
+			total_ms: ms,
+			best_lap_ms: e.result.best_lap_ms,
+			lap_count: e.result.lap_count,
+			delta_ms
+		};
+	});
+}
 
 export function buildRxDisplay(leaderboard: OverallResult[]): RxDisplay {
 	const standings: RxStandingDisplay[] = leaderboard.map((r) => ({
@@ -52,18 +88,7 @@ export function buildRxDisplay(leaderboard: OverallResult[]): RxDisplay {
 	const heats: RxHeatDisplay[] = [...heatMap.entries()]
 		.sort(([a], [b]) => b - a)
 		.map(([number, entries]) => {
-			const sorted = [...entries].sort((a, b) => heatResultComparator(a.result, b.result));
-			return {
-				number,
-				entries: sorted.map((e, i) => ({
-					driver_name: e.driver_name,
-					class_name: e.class_name,
-					position: i + 1,
-					dnf: e.result.dnf,
-					total_ms: e.result.total_ms,
-					best_lap_ms: e.result.best_lap_ms
-				}))
-			};
+			return { number, entries: rankHeatEntries(entries) };
 		});
 
 	return { standings, heats };
@@ -144,7 +169,9 @@ export function buildRxDisplayFromSubmission(
 						position,
 						dnf: e.dnf,
 						total_ms: e.elapsed_ms,
-						best_lap_ms: e.best_lap_ms
+						best_lap_ms: e.best_lap_ms,
+						lap_count: null,
+						delta_ms: null
 					};
 				})
 			};
