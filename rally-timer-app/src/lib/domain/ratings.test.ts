@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeRallyRatings } from './ratings';
+import { computeRallyRatings, computeRallycrossRatings } from './ratings';
 import type { StageData } from '../results';
 
 const BASE = 1500;
@@ -240,5 +240,37 @@ describe('computeRallyRatings', () => {
 		const closeDelta = close.get('a')! - BASE;
 		const wideDelta = wide.get('a')! - BASE;
 		expect(closeDelta).toBeLessThan(wideDelta);
+	});
+});
+
+describe('computeRallycrossRatings', () => {
+	it('pairs everyone against everyone by position; equal ratings give winner +K/2 per win', () => {
+		const { finalRatings, heatDeltas } = computeRallycrossRatings([
+			{ heat_number: 1, ranked: ['a', 'b', 'c'] }
+		]);
+		// a beats b and c (+16 each), b beats c (+16) but loses to a (-16), c loses twice (-16 each)
+		expect(heatDeltas.get(1)!.get('a')).toBe(32);
+		expect(heatDeltas.get(1)!.get('b')).toBe(0);
+		expect(heatDeltas.get(1)!.get('c')).toBe(-32);
+		expect(finalRatings.get('a')).toBe(1532);
+		expect(finalRatings.get('c')).toBe(1468);
+	});
+
+	it('is zero-sum and updates heat by heat from initial ratings', () => {
+		const { finalRatings } = computeRallycrossRatings(
+			[
+				{ heat_number: 2, ranked: ['b', 'a'] },
+				{ heat_number: 1, ranked: ['a', 'b'] }
+			],
+			new Map([['a', 1600]])
+		);
+		const sum = [...finalRatings.values()].reduce((x, y) => x + y, 0);
+		expect(Math.abs(sum - 3100)).toBeLessThanOrEqual(1);
+		expect(finalRatings.get('a')).toBeGreaterThan(1500);
+	});
+
+	it('ignores single-driver heats', () => {
+		const { finalRatings } = computeRallycrossRatings([{ heat_number: 1, ranked: ['a'] }]);
+		expect(finalRatings.get('a')).toBe(1500);
 	});
 });

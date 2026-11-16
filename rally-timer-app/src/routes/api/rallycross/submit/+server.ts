@@ -6,6 +6,7 @@ import { throwIfNotAdmin } from '../../../../lib/server/keycloak';
 import { submitRallySchema } from '../../../../lib/server/schemas';
 import { fetchClosedHeatResults } from '../../../../lib/server/rallycrossData';
 import { buildRallycrossSubmission } from '../../../../lib/domain/rallycross';
+import { computeRallycrossRatings } from '../../../../lib/domain/ratings';
 
 export async function POST(event: RequestEvent): Promise<Response> {
 	await throwIfNotAdmin(event);
@@ -50,6 +51,29 @@ export async function POST(event: RequestEvent): Promise<Response> {
 
 		if (stageTimes.length === 0) throw error(422, 'Inga färdiga resultat att skicka in');
 
+		// Heat results arrive sorted per heat (best first), so grouping keeps finishing order.
+		const rankingByHeat = new Map<number, string[]>();
+		for (const r of allHeatResults) {
+			const list = rankingByHeat.get(r.heat_number) ?? [];
+			list.push(r.driver_uuid);
+			rankingByHeat.set(r.heat_number, list);
+		}
+		const driverUuids = [...new Set(allHeatResults.map((r) => r.driver_uuid))];
+		// Lock the rows so concurrent submissions cannot both apply deltas to the same base rating.
+		const driverRows =
+			driverUuids.length > 0
+				? await sql`
+						SELECT uuid::text AS uuid, rating FROM drivers
+						WHERE uuid = ANY(${driverUuids}::uuid[])
+						ORDER BY uuid FOR UPDATE
+					`
+				: [];
+		const initialRatings = new Map(driverRows.map((r) => [r.uuid as string, r.rating as number]));
+		const { finalRatings } = computeRallycrossRatings(
+			[...rankingByHeat].map(([heat_number, ranked]) => ({ heat_number, ranked })),
+			initialRatings
+		);
+
 		const now = Date.now();
 
 		const [sr] = await sql`
@@ -65,6 +89,15 @@ export async function POST(event: RequestEvent): Promise<Response> {
 			await sql`
 				INSERT INTO championship_rallies (championship_id, rally_id)
 				VALUES (${champId}::uuid, ${submittedRallyId}::uuid)
+			`;
+		}
+
+		for (const [driverUuid, ratingAfter] of finalRatings) {
+			const ratingBefore = initialRatings.get(driverUuid) ?? 1500;
+			await sql`UPDATE drivers SET rating = ${ratingAfter} WHERE uuid = ${driverUuid}::uuid`;
+			await sql`
+				INSERT INTO rally_driver_ratings (rally_id, driver_uuid, rating_before, rating_after)
+				VALUES (${submittedRallyId}::uuid, ${driverUuid}::uuid, ${ratingBefore}, ${ratingAfter})
 			`;
 		}
 		await sql`UPDATE events SET is_locked = true WHERE id = ${appEvent.id}`;

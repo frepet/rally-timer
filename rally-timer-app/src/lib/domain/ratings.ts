@@ -96,3 +96,52 @@ export function computeRallyRatings(
 
 	return { finalRatings, stageDeltas };
 }
+
+export type RallycrossHeatRanking = {
+	heat_number: number;
+	/** Driver uuids in finishing order, best first (DNFs ranked after finishers). */
+	ranked: string[];
+};
+
+// Rallycross: within each heat everyone is paired against everyone (all classes
+// together, like the heat points) and the better finishing position wins the
+// pair with a full K. Ratings update heat by heat, in heat order.
+export function computeRallycrossRatings(
+	heats: RallycrossHeatRanking[],
+	initialRatings?: Map<string, number>
+): { finalRatings: Map<string, number>; heatDeltas: Map<number, Map<string, number>> } {
+	const ratings = new Map<string, number>();
+	const heatDeltas = new Map<number, Map<string, number>>();
+
+	for (const heat of heats) {
+		for (const uuid of heat.ranked) {
+			if (!ratings.has(uuid)) ratings.set(uuid, initialRatings?.get(uuid) ?? BASE_RATING);
+		}
+	}
+
+	for (const heat of [...heats].sort((a, b) => a.heat_number - b.heat_number)) {
+		if (heat.ranked.length < 2) continue;
+		const deltas = new Map<string, number>(heat.ranked.map((u) => [u, 0]));
+		for (let i = 0; i < heat.ranked.length; i++) {
+			for (let j = i + 1; j < heat.ranked.length; j++) {
+				const winner = heat.ranked[i];
+				const loser = heat.ranked[j];
+				const rW = ratings.get(winner) ?? BASE_RATING;
+				const rL = ratings.get(loser) ?? BASE_RATING;
+				const expectedW = 1 / (1 + Math.pow(10, (rL - rW) / 400));
+				deltas.set(winner, (deltas.get(winner) ?? 0) + K_FACTOR * (1 - expectedW));
+				deltas.set(loser, (deltas.get(loser) ?? 0) + K_FACTOR * (0 - (1 - expectedW)));
+			}
+		}
+		const rounded = new Map<string, number>();
+		for (const [uuid, delta] of deltas) {
+			ratings.set(uuid, (ratings.get(uuid) ?? BASE_RATING) + delta);
+			rounded.set(uuid, Math.round(delta));
+		}
+		heatDeltas.set(heat.heat_number, rounded);
+	}
+
+	const finalRatings = new Map<string, number>();
+	for (const [uuid, rating] of ratings) finalRatings.set(uuid, Math.round(rating));
+	return { finalRatings, heatDeltas };
+}
