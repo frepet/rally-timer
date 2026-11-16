@@ -286,6 +286,32 @@ describe('computeHeatResult with manual_position', () => {
 	});
 });
 
+describe('computeHeatResult lap cap', () => {
+	it('stops counting laps once the required laps are done', () => {
+		const r = computeHeatResult(
+			{
+				driver_id: 1,
+				driver_name: 'A',
+				class_id: 1,
+				class_name: 'A',
+				tag: 'A',
+				ts_ms: 0,
+				dnf: false,
+				dnf_time_ms: null,
+				passes: [1000, 2000, 3000, 4000, 5000],
+				manual_position: null
+			},
+			1,
+			3,
+			500
+		);
+		expect(r.lap_count).toBe(3);
+		expect(r.laps).toEqual([1000, 1000, 1000]);
+		expect(r.total_ms).toBe(3000);
+		expect(r.finished).toBe(true);
+	});
+});
+
 describe('buildHeatLeaderboard', () => {
 	const mkEntry = (
 		name: string,

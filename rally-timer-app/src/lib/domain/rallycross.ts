@@ -197,7 +197,8 @@ export function computeHeatResult(
 			manual_position: entry.manual_position
 		};
 	}
-	const laps = computeLaps(entry.passes, entry.ts_ms, cooldownMs);
+	// A driver stops accumulating laps once the required number is reached.
+	const laps = computeLaps(entry.passes, entry.ts_ms, cooldownMs).slice(0, requiredLaps);
 	const finished = laps.length >= requiredLaps;
 	const total = finished ? laps.slice(0, requiredLaps).reduce((a, b) => a + b, 0) : null;
 	// Exclude the first lap (out lap) from best_lap_ms

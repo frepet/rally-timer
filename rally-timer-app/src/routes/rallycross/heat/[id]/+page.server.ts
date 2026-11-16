@@ -63,15 +63,16 @@ export async function load({ params }: { params: { id: string } }) {
 		const timestamps = eventsByTag.get(e.tag) ?? [];
 
 		// Mark which passes survive the cooldown filter
+		// Laps = first pass (the start lap) plus each cooldown-surviving pass; counting stops at
+		// the heat's required laps.
 		const counted: boolean[] = new Array(timestamps.length).fill(false);
-		if (timestamps.length > 0) {
-			counted[0] = true;
-			let lastKept = timestamps[0];
-			for (let i = 1; i < timestamps.length; i++) {
-				if (timestamps[i] - lastKept >= cfg.cooldown_ms) {
-					counted[i] = true;
-					lastKept = timestamps[i];
-				}
+		let countedLaps = 0;
+		let lastKept: number | null = null;
+		for (let i = 0; i < timestamps.length && countedLaps < heat.required_laps; i++) {
+			if (lastKept === null || timestamps[i] - lastKept >= cfg.cooldown_ms) {
+				counted[i] = true;
+				countedLaps++;
+				lastKept = timestamps[i];
 			}
 		}
 
