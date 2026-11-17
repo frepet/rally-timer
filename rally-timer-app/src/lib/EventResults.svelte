@@ -8,7 +8,8 @@
 	import TrainingResults from '$lib/TrainingResults.svelte';
 	import { buildStageData, buildRallyRows } from '$lib/domain/summary';
 	import type { OverallResult, HeatResult } from '$lib/domain/rallycross';
-	import { buildRxDisplay, rankHeatEntries } from '$lib/domain/rallycrossDisplay';
+	import { env } from '$env/dynamic/public';
+	import { applyRxRatings, buildRxDisplay, rankHeatEntries } from '$lib/domain/rallycrossDisplay';
 	import type { TrainingDriverResult } from '$lib/domain/training';
 	import { eventApiUrl, type DisplayEvent } from '$lib/domain/eventPresentation';
 	import { t } from '$lib/stores/locale.svelte';
@@ -45,7 +46,17 @@
 	);
 	const rallyRows = $derived(buildRallyRows(stageData));
 
-	const rxDisplay = $derived(buildRxDisplay(rxLeaderboard));
+	const ratingsEnabled = env.PUBLIC_FEATURE_DRIVER_RATINGS === 'true';
+	const rxDisplay = $derived.by(() => {
+		const display = buildRxDisplay(rxLeaderboard);
+		if (!ratingsEnabled) return display;
+		const initial = new Map(
+			rxLeaderboard.flatMap((r) =>
+				r.driver_uuid && r.rating_before != null ? [[r.driver_uuid, r.rating_before] as const] : []
+			)
+		);
+		return applyRxRatings(display, initial);
+	});
 	const rxLiveHeat = $derived(
 		rxLive.heat
 			? {
@@ -130,6 +141,7 @@
 				standings={rxDisplay.standings}
 				heats={rxDisplay.heats}
 				live={rxLiveHeat}
+				showRatings={ratingsEnabled}
 			/>
 		{:else}
 			<p class="empty dark:text-surface-400">{t.rxWaitingForHeats}</p>

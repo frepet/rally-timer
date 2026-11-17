@@ -5,8 +5,10 @@ import {
 	type HeatResult
 } from './rallycross';
 import { positionToPoints } from './scoring';
+import { computeRallycrossRatings } from './ratings';
 
 export type RxHeatEntryDisplay = {
+	driver_uuid: string | null;
 	driver_name: string;
 	class_name: string;
 	position: number;
@@ -18,6 +20,8 @@ export type RxHeatEntryDisplay = {
 	lap_count: number | null;
 	/** Gap to the driver ahead when on the same lap count, else 0; null when unknown. */
 	delta_ms: number | null;
+	/** Rating change from this heat; null until ratings are applied. */
+	rating_delta: number | null;
 };
 
 export type RxHeatDisplay = {
@@ -26,11 +30,15 @@ export type RxHeatDisplay = {
 };
 
 export type RxStandingDisplay = {
+	driver_uuid: string | null;
 	driver_name: string;
 	class_name: string;
 	total_points: number;
 	best_total_ms: number | null;
 	best_lap_ms: number | null;
+	/** Rating after the event and the change over the whole event; null until ratings are applied. */
+	rating: number | null;
+	rating_delta: number | null;
 };
 
 export type RxDisplay = {
@@ -40,7 +48,12 @@ export type RxDisplay = {
 
 /** Ranks one heat's results (finishers, then DNF/unfinished by laps) and computes deltas. */
 export function rankHeatEntries(
-	entries: Array<{ result: HeatResult; driver_name: string; class_name: string }>
+	entries: Array<{
+		result: HeatResult;
+		driver_name: string;
+		class_name: string;
+		driver_uuid?: string | null;
+	}>
 ): RxHeatEntryDisplay[] {
 	const sorted = [...entries].sort((a, b) => heatResultComparator(a.result, b.result));
 	let prev: { group: number; ms: number | null } | null = null;
@@ -52,6 +65,7 @@ export function rankHeatEntries(
 			prev && prev.group === group && prev.ms !== null && ms !== null ? ms - prev.ms : 0;
 		prev = { group, ms };
 		return {
+			driver_uuid: e.driver_uuid ?? null,
 			driver_name: e.driver_name,
 			class_name: e.class_name,
 			position: i + 1,
@@ -59,28 +73,42 @@ export function rankHeatEntries(
 			total_ms: ms,
 			best_lap_ms: e.result.best_lap_ms,
 			lap_count: e.result.lap_count,
-			delta_ms
+			delta_ms,
+			rating_delta: null
 		};
 	});
 }
 
 export function buildRxDisplay(leaderboard: OverallResult[]): RxDisplay {
 	const standings: RxStandingDisplay[] = leaderboard.map((r) => ({
+		driver_uuid: r.driver_uuid || null,
 		driver_name: r.driver_name,
 		class_name: r.class_name,
 		total_points: r.total_points,
 		best_total_ms: r.best_total_ms,
-		best_lap_ms: r.best_lap_ms
+		best_lap_ms: r.best_lap_ms,
+		rating: null,
+		rating_delta: null
 	}));
 
 	const heatMap = new Map<
 		number,
-		Array<{ result: HeatResult; driver_name: string; class_name: string }>
+		Array<{
+			result: HeatResult;
+			driver_name: string;
+			class_name: string;
+			driver_uuid: string | null;
+		}>
 	>();
 	for (const driver of leaderboard) {
 		for (const hr of driver.heat_results) {
 			const arr = heatMap.get(hr.heat_number) ?? [];
-			arr.push({ result: hr, driver_name: driver.driver_name, class_name: driver.class_name });
+			arr.push({
+				result: hr,
+				driver_name: driver.driver_name,
+				class_name: driver.class_name,
+				driver_uuid: driver.driver_uuid || null
+			});
 			heatMap.set(hr.heat_number, arr);
 		}
 	}
@@ -103,6 +131,8 @@ export function isRallycrossSubmission(results: { stage_name: string }[]): boole
 export function buildRxDisplayFromSubmission(
 	results: {
 		stage_name: string;
+		driver_uuid?: string;
+		heat_position?: number | null;
 		driver_name: string;
 		class_name: string;
 		elapsed_ms: number | null;
@@ -122,13 +152,22 @@ export function buildRxDisplayFromSubmission(
 
 	const driverMap = new Map<
 		string,
-		{ points: number; class_name: string; best_total_ms: number | null; best_lap_ms: number | null }
+		{
+			points: number;
+			class_name: string;
+			driver_uuid: string | null;
+			best_total_ms: number | null;
+			best_lap_ms: number | null;
+		}
 	>();
 
 	const heats: RxHeatDisplay[] = [...heatMap.entries()]
 		.sort(([a], [b]) => b - a)
 		.map(([number, entries]) => {
 			const sorted = [...entries].sort((a, b) => {
+				// Submissions made after heat_position was introduced keep the exact heat order.
+				if (a.heat_position != null && b.heat_position != null)
+					return a.heat_position - b.heat_position;
 				if (a.dnf && b.dnf) return a.driver_name.localeCompare(b.driver_name);
 				if (a.dnf) return 1;
 				if (b.dnf) return -1;
@@ -144,6 +183,7 @@ export function buildRxDisplayFromSubmission(
 					const prev = driverMap.get(e.driver_name) ?? {
 						points: 0,
 						class_name: e.class_name,
+						driver_uuid: e.driver_uuid ?? null,
 						best_total_ms: null,
 						best_lap_ms: null
 					};
@@ -160,10 +200,12 @@ export function buildRxDisplayFromSubmission(
 					driverMap.set(e.driver_name, {
 						points: prev.points + pts,
 						class_name: e.class_name,
+						driver_uuid: e.driver_uuid ?? prev.driver_uuid,
 						best_total_ms: newBestTotal,
 						best_lap_ms: newBestLap
 					});
 					return {
+						driver_uuid: e.driver_uuid ?? null,
 						driver_name: e.driver_name,
 						class_name: e.class_name,
 						position,
@@ -171,21 +213,60 @@ export function buildRxDisplayFromSubmission(
 						total_ms: e.elapsed_ms,
 						best_lap_ms: e.best_lap_ms,
 						lap_count: null,
-						delta_ms: null
+						delta_ms: null,
+						rating_delta: null
 					};
 				})
 			};
 		});
 
 	const standings: RxStandingDisplay[] = [...driverMap.entries()]
-		.map(([driver_name, { points, class_name, best_total_ms, best_lap_ms }]) => ({
+		.map(([driver_name, { points, class_name, driver_uuid, best_total_ms, best_lap_ms }]) => ({
+			driver_uuid,
 			driver_name,
 			class_name,
 			total_points: points,
 			best_total_ms,
-			best_lap_ms
+			best_lap_ms,
+			rating: null,
+			rating_delta: null
 		}))
 		.sort((a, b) => b.total_points - a.total_points);
 
 	return { standings, heats };
+}
+
+/**
+ * Fills in rating changes: per heat for each entry and over the whole event for each
+ * standing. Rating deltas are computed all-vs-all by heat position, the same way as
+ * when the event is submitted. Drivers without a uuid are left without rating info.
+ */
+export function applyRxRatings(display: RxDisplay, initialRatings: Map<string, number>): RxDisplay {
+	const { finalRatings, heatDeltas } = computeRallycrossRatings(
+		display.heats.map((h) => ({
+			heat_number: h.number,
+			ranked: h.entries.flatMap((e) => (e.driver_uuid ? [e.driver_uuid] : []))
+		})),
+		initialRatings
+	);
+	return {
+		heats: display.heats.map((h) => ({
+			...h,
+			entries: h.entries.map((e) => ({
+				...e,
+				rating_delta: e.driver_uuid ? (heatDeltas.get(h.number)?.get(e.driver_uuid) ?? null) : null
+			}))
+		})),
+		standings: display.standings.map((s) => {
+			const rating = s.driver_uuid ? (finalRatings.get(s.driver_uuid) ?? null) : null;
+			return {
+				...s,
+				rating,
+				rating_delta:
+					rating !== null && s.driver_uuid
+						? rating - (initialRatings.get(s.driver_uuid) ?? 1500)
+						: null
+			};
+		})
+	};
 }

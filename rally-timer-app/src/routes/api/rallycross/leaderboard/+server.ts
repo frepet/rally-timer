@@ -16,5 +16,26 @@ export async function GET(event: RequestEvent): Promise<Response> {
 	const overall = buildOverallLeaderboard(allHeatResults);
 
 	const uuidMap = new Map(allHeatResults.map((r) => [r.driver_id, r.driver_uuid]));
-	return json(overall.map((r) => ({ ...r, driver_uuid: uuidMap.get(r.driver_id) ?? '' })));
+	const driverUuids = [...uuidMap.values()];
+
+	// Rating each driver had before this event: the stored "before" once the event is
+	// submitted, otherwise their current rating (ratings only change on submission).
+	const currentRatings = await sql<{ uuid: string; rating: number }[]>`
+		SELECT uuid::text AS uuid, rating FROM drivers WHERE uuid = ANY(${driverUuids}::uuid[])
+	`;
+	const submittedBefore = await sql<{ uuid: string; rating_before: number }[]>`
+		SELECT rdr.driver_uuid::text AS uuid, rdr.rating_before
+		FROM rally_driver_ratings rdr
+		JOIN submitted_rallies sr ON sr.id = rdr.rally_id
+		WHERE sr.event_id = ${appEvent.id}
+	`;
+	const ratingBefore = new Map(currentRatings.map((r) => [r.uuid, Number(r.rating)]));
+	for (const r of submittedBefore) ratingBefore.set(r.uuid, Number(r.rating_before));
+
+	return json(
+		overall.map((r) => {
+			const driver_uuid = uuidMap.get(r.driver_id) ?? '';
+			return { ...r, driver_uuid, rating_before: ratingBefore.get(driver_uuid) ?? null };
+		})
+	);
 }

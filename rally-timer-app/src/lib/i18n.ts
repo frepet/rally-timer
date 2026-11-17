@@ -112,6 +112,7 @@ export const sv = {
 	resultsSubheading: 'Resultat',
 	ratingLabel: 'Rating',
 	ratingDeltaLabel: 'Δ Rating',
+	rxRatingColumn: 'Rating',
 
 	// Championships page
 	noChampionshipsYet: 'Inga mästerskap än.',
@@ -576,6 +577,7 @@ export const en: typeof sv = {
 	resultsSubheading: 'Results',
 	ratingLabel: 'Rating',
 	ratingDeltaLabel: 'Δ Rating',
+	rxRatingColumn: 'Rating',
 
 	// Championships page
 	noChampionshipsYet: 'No championships yet.',

@@ -8,7 +8,8 @@
 	import { computeRallyRatings } from '../../../lib/domain/ratings';
 	import {
 		isRallycrossSubmission,
-		buildRxDisplayFromSubmission
+		buildRxDisplayFromSubmission,
+		applyRxRatings
 	} from '../../../lib/domain/rallycrossDisplay';
 	import type { TrainingDriverResult } from '../../../lib/domain/training';
 	import { t } from '../../../lib/stores/locale.svelte';
@@ -37,6 +38,7 @@
 			best_lap_ms: number | null;
 			dnf: boolean;
 			synthetic: boolean;
+			heat_position: number | null;
 		}[];
 	};
 
@@ -45,12 +47,16 @@
 	let { data }: { data: RallyDetail } = $props();
 
 	const isRx = $derived(isRallycrossSubmission(data.results));
-	const rxDisplay = $derived(isRx ? buildRxDisplayFromSubmission(data.results) : null);
 	const stages = $derived(isRx ? [] : buildStageData(data.results));
 	const rallyRows = $derived(isRx ? [] : buildRallyRows(stages));
 	const initialRatings = $derived(
 		new Map((data.driver_ratings ?? []).map((r) => [r.driver_uuid, r.rating_before]))
 	);
+	const rxDisplay = $derived.by(() => {
+		if (!isRx) return null;
+		const display = buildRxDisplayFromSubmission(data.results);
+		return driverRatingsEnabled ? applyRxRatings(display, initialRatings) : display;
+	});
 	const ratings = $derived(
 		driverRatingsEnabled && !isRx
 			? computeRallyRatings(stages, initialRatings.size > 0 ? initialRatings : undefined)
@@ -81,7 +87,11 @@
 	{#if data.event_type === 'training'}
 		<TrainingResults drivers={data.training_results} />
 	{:else if isRx && rxDisplay}
-		<RallycrossLeaderboard standings={rxDisplay.standings} heats={rxDisplay.heats} />
+		<RallycrossLeaderboard
+			standings={rxDisplay.standings}
+			heats={rxDisplay.heats}
+			showRatings={driverRatingsEnabled}
+		/>
 	{:else}
 		<RallyResults
 			{rallyRows}

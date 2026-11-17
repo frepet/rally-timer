@@ -58,6 +58,7 @@ import { runMigration as run023 } from './migrations/023_synthetic_finish';
 
 import { runMigration as run024 } from './migrations/024_events';
 import { runMigration as run025 } from './migrations/025_training_submissions';
+import { runMigration as run026 } from './migrations/026_rx_heat_position';
 
 const MIGRATIONS: Array<[name: string, run: (tx: Sql) => Promise<void>]> = [
 	['000_initial_schema', run000],
@@ -85,7 +86,8 @@ const MIGRATIONS: Array<[name: string, run: (tx: Sql) => Promise<void>]> = [
 	['022_championship_default', run022],
 	['023_synthetic_finish', run023],
 	['024_events', run024],
-	['025_training_submissions', run025]
+	['025_training_submissions', run025],
+	['026_rx_heat_position', run026]
 ];
 
 const MIGRATION_LOCK_ID = 72727201;

@@ -11,12 +11,24 @@
 	let {
 		standings,
 		heats,
-		live = null
+		live = null,
+		showRatings = false
 	}: {
 		standings: RxStandingDisplay[];
 		heats: RxHeatDisplay[];
 		live?: { number: number; required_laps: number; entries: RxHeatEntryDisplay[] } | null;
+		showRatings?: boolean;
 	} = $props();
+
+	function fmtRating(delta: number | null): string {
+		if (delta === null) return '';
+		return delta > 0 ? `+${delta}` : `${delta}`;
+	}
+
+	function ratingClass(delta: number | null): string {
+		if (!delta) return 'text-surface-500 dark:text-surface-400';
+		return delta > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
+	}
 
 	function fmtDelta(ms: number | null): string {
 		return ms ? `+${formatMs(ms)}` : '0';
@@ -96,6 +108,7 @@
 							<th class="text-right">{t.rxPoints}</th>
 							<th class="text-right">{t.rxBestLap}</th>
 							<th class="text-right">{t.rxBestTime}</th>
+							{#if showRatings}<th class="text-right">{t.rxRatingColumn}</th>{/if}
 						</tr>
 					</thead>
 					<tbody>
@@ -116,6 +129,16 @@
 								<td class="text-right text-surface-500 dark:text-surface-400"
 									>{formatMs(r.best_total_ms)}</td
 								>
+								{#if showRatings}
+									<td class="time text-right">
+										{#if r.rating !== null}
+											{r.rating}
+											<span class="ml-1 text-sm {ratingClass(r.rating_delta)}"
+												>({fmtRating(r.rating_delta)})</span
+											>
+										{/if}
+									</td>
+								{/if}
 							</tr>
 						{/each}
 					</tbody>
@@ -142,6 +165,7 @@
 									{#if hasDelta(heat)}<th class="text-right">{t.rxDeltaColumn}</th>{/if}
 									<th class="text-right">{t.totalLabel}</th>
 								{/if}
+								{#if showRatings}<th class="text-right">{t.ratingDeltaLabel}</th>{/if}
 							</tr>
 						</thead>
 						<tbody>
@@ -163,6 +187,11 @@
 											>
 										{/if}
 										<td class="time text-right text-base">{formatMs(e.total_ms)}</td>
+									{/if}
+									{#if showRatings}
+										<td class="time text-right text-base {ratingClass(e.rating_delta)}"
+											>{fmtRating(e.rating_delta)}</td
+										>
 									{/if}
 								</tr>
 							{/each}

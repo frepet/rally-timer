@@ -68,6 +68,8 @@ export type OverallResult = {
 	class_id: number;
 	class_name: string;
 	driver_uuid: string;
+	/** Rating before the event; only set by the leaderboard API. */
+	rating_before?: number | null;
 	total_points: number;
 	best_total_ms: number | null;
 	best_lap_ms: number | null;
@@ -84,6 +86,8 @@ export type SubmissionRow = {
 	elapsed_ms: number | null;
 	best_lap_ms: number | null;
 	dnf: boolean;
+	/** 1-based finishing position within the heat. */
+	heat_position: number;
 };
 
 // ---------------------------------------------------------------------------
@@ -370,7 +374,7 @@ export function buildRallycrossSubmission(
 
 	const rows: SubmissionRow[] = [];
 	for (const results of byHeat.values()) {
-		results.forEach((r) => {
+		results.forEach((r, i) => {
 			rows.push({
 				driver_uuid: r.driver_uuid,
 				driver_name: r.driver_name,
@@ -379,7 +383,8 @@ export function buildRallycrossSubmission(
 				stage_name: `Rallycross heat ${r.heat_number}`,
 				elapsed_ms: r.finished ? r.total_ms : null,
 				best_lap_ms: r.best_lap_ms,
-				dnf: r.dnf
+				dnf: r.dnf,
+				heat_position: i + 1
 			});
 		});
 	}

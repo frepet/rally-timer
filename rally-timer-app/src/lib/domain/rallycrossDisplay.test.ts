@@ -3,6 +3,7 @@ import { describe, it, expect } from 'vitest';
 import {
 	buildRxDisplay,
 	buildRxDisplayFromSubmission,
+	applyRxRatings,
 	isRallycrossSubmission
 } from './rallycrossDisplay';
 import type { HeatResult, OverallResult } from './rallycross';
@@ -195,5 +196,33 @@ describe('buildRxDisplayFromSubmission', () => {
 	it('lists heats newest first', () => {
 		const display = buildRxDisplayFromSubmission([row(1, 'A', 1000), row(3, 'A', 1000)]);
 		expect(display.heats.map((h) => h.number)).toEqual([3, 1]);
+	});
+});
+
+describe('applyRxRatings', () => {
+	const rows = (heat: number, order: string[]) =>
+		order.map((n, i) => ({
+			stage_name: `Rallycross heat ${heat}`,
+			driver_uuid: `u-${n}`,
+			heat_position: i + 1,
+			driver_name: n,
+			class_name: 'A',
+			elapsed_ms: null,
+			best_lap_ms: null,
+			dnf: false
+		}));
+
+	it('keeps the stored heat order and adds per-heat and event rating deltas', () => {
+		const display = applyRxRatings(
+			buildRxDisplayFromSubmission([...rows(1, ['Zed', 'Amy']), ...rows(2, ['Amy', 'Zed'])]),
+			new Map()
+		);
+		const heat1 = display.heats.find((h) => h.number === 1)!;
+		expect(heat1.entries.map((e) => e.driver_name)).toEqual(['Zed', 'Amy']);
+		expect(heat1.entries.map((e) => e.rating_delta)).toEqual([16, -16]);
+		const amy = display.standings.find((s) => s.driver_name === 'Amy')!;
+		// lost heat 1 (-16), won heat 2 against a now-lower-rated Zed (+16 +/- small)
+		expect(amy.rating).toBe(1500 + (amy.rating_delta ?? 0));
+		expect(amy.rating_delta).toBeGreaterThan(-1);
 	});
 });
