@@ -1,5 +1,10 @@
 <script lang="ts">
 	import { env } from '$env/dynamic/public';
+	import { page } from '$app/state';
+	import { Button, Input } from 'flowbite-svelte';
+	import { EditOutline } from 'flowbite-svelte-icons';
+	import { kcFetch } from '../../../lib/kcFetch';
+	import { auth } from '../../../lib/stores/auth.svelte';
 	import RallyResults from '../../../lib/RallyResults.svelte';
 	import RallycrossLeaderboard from '../../../lib/RallycrossLeaderboard.svelte';
 	import TrainingResults from '../../../lib/TrainingResults.svelte';
@@ -63,6 +68,48 @@
 			: null
 	);
 
+	let shownName = $state<string | null>(null);
+	let editingName = $state(false);
+	let nameDraft = $state('');
+	let renaming = $state(false);
+	let renameError = $state('');
+
+	function startRename() {
+		nameDraft = shownName ?? data.name;
+		renameError = '';
+		editingName = true;
+	}
+
+	async function saveName() {
+		const name = nameDraft.trim();
+		if (!name) return;
+		if (name === (shownName ?? data.name)) {
+			editingName = false;
+			return;
+		}
+		renaming = true;
+		renameError = '';
+		try {
+			const res = await kcFetch(`/api/submitted-rally/${page.params.id}`, {
+				method: 'PATCH',
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify({ name })
+			});
+			if (!res.ok) throw new Error(await res.text());
+			shownName = ((await res.json()) as { name: string }).name;
+			editingName = false;
+		} catch (e) {
+			renameError = String(e);
+		} finally {
+			renaming = false;
+		}
+	}
+
+	function onNameKeydown(e: KeyboardEvent) {
+		if (e.key === 'Enter') saveName();
+		if (e.key === 'Escape') editingName = false;
+	}
+
 	function fmtDate(ms: number): string {
 		return new Date(ms).toLocaleDateString('sv-SE');
 	}
@@ -70,7 +117,44 @@
 
 <div class="page">
 	<section class="panel panel-body space-y-3">
-		<h1 class="page-title break-words">{data.name}</h1>
+		{#if editingName}
+			<div class="flex w-full max-w-lg items-center gap-2">
+				<div class="min-w-0 flex-1">
+					<Input
+						aria-label={t.eventName}
+						bind:value={nameDraft}
+						onkeydown={onNameKeydown}
+						disabled={renaming}
+						autofocus
+					/>
+				</div>
+				<Button size="sm" onclick={saveName} disabled={renaming || !nameDraft.trim()}
+					>{t.save}</Button
+				>
+				<Button
+					size="sm"
+					color="alternative"
+					onclick={() => (editingName = false)}
+					disabled={renaming}>{t.cancel}</Button
+				>
+			</div>
+			{#if renameError}<p class="text-sm text-red-600">{renameError}</p>{/if}
+		{:else}
+			<div class="flex flex-wrap items-center gap-3">
+				<h1 class="page-title break-words">{shownName ?? data.name}</h1>
+				{#if auth.isAdmin}
+					<button
+						type="button"
+						class="rounded p-1 text-surface-400 hover:bg-surface-100 hover:text-surface-800 dark:hover:bg-white/10 dark:hover:text-surface-100"
+						onclick={startRename}
+						aria-label={t.eventRename}
+						title={t.eventRename}
+					>
+						<EditOutline size="md" />
+					</button>
+				{/if}
+			</div>
+		{/if}
 		<div class="flex flex-wrap items-center gap-2 text-sm text-surface-500 dark:text-surface-400">
 			<span class="num">{fmtDate(Number(data.submitted_at))}</span>
 			{#if data.event_type === 'training'}

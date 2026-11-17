@@ -1,6 +1,9 @@
 import { json, error, type RequestEvent } from '@sveltejs/kit';
 import { sql } from '../../../../lib/server/db';
+import { z } from 'zod';
 import { throwIfNotAdmin } from '../../../../lib/server/keycloak';
+
+const renameSchema = z.object({ name: z.string().trim().min(1).max(200) });
 
 export async function GET(event: RequestEvent): Promise<Response> {
 	const id = event.params.id!;
@@ -70,4 +73,23 @@ export async function DELETE(event: RequestEvent): Promise<Response> {
 	const result = await sql`DELETE FROM submitted_rallies WHERE id = ${id}::uuid`;
 	if (result.count === 0) throw error(404, 'Submitted rally not found');
 	return new Response(null, { status: 204 });
+}
+
+export async function PATCH(event: RequestEvent): Promise<Response> {
+	await throwIfNotAdmin(event);
+	const parsed = renameSchema.safeParse(await event.request.json().catch(() => null));
+	if (!parsed.success) throw error(400, 'Invalid name');
+	const id = event.params.id!;
+	const { name } = parsed.data;
+	return sql.begin(async (tx) => {
+		const [row] = await tx`
+			UPDATE submitted_rallies SET name = ${name} WHERE id = ${id}::uuid
+			RETURNING id, name, event_id
+		`;
+		if (!row) throw error(404, 'Submitted rally not found');
+		// Keep the originating event's name in step so the two never disagree.
+		if (row.event_id !== null)
+			await tx`UPDATE events SET name = ${name} WHERE id = ${row.event_id}`;
+		return json({ id: row.id as string, name: row.name as string });
+	});
 }
