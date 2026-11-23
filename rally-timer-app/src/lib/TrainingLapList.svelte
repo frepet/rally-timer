@@ -80,8 +80,8 @@
 				{#if lap.rssi !== null}
 					<span class="stat text-surface-400"
 						>{t.trainingRssi}
-						{lap.rssi}{#if lap.rssi_delta != null}
-							(<span class={rssiDeltaClass(lap.rssi_delta)}>{rssiDeltaText(lap.rssi_delta)}</span
+						{lap.rssi}{#if lap.rssi_delta != null}&nbsp;(<span
+								class={rssiDeltaClass(lap.rssi_delta)}>{rssiDeltaText(lap.rssi_delta)}</span
 							>){/if}</span
 					>
 				{/if}

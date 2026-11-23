@@ -224,8 +224,8 @@
 						</TableBodyCell>
 
 						<TableBodyCell class="font-mono">
-							{#if e.rssi != null}{e.rssi} dBm{#if e.rssi_delta != null}
-									(<span class={rssiDeltaClass(e.rssi_delta)}>{rssiDeltaText(e.rssi_delta)}</span
+							{#if e.rssi != null}{e.rssi} dBm{#if e.rssi_delta != null}&nbsp;(<span
+										class={rssiDeltaClass(e.rssi_delta)}>{rssiDeltaText(e.rssi_delta)}</span
 									>){/if}{:else}—{/if}
 						</TableBodyCell>
 
