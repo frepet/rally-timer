@@ -148,6 +148,53 @@ describe('buildTrainingLeaderboard', () => {
 	});
 });
 
+describe('buildTrainingLeaderboard rssi deltas', () => {
+	const rp = (id: number, timestamp: number, rssi: number | null): TrainingPass => ({
+		gate_event_id: id,
+		timestamp,
+		rssi
+	});
+	const driver = (id: number, passes: TrainingPass[]) => ({
+		driver_id: id,
+		driver_name: `D${id}`,
+		class_id: null,
+		class_name: null,
+		tag: `T${id}`,
+		passes
+	});
+
+	it("compares each lap with the mean of every driver's passes in the event", () => {
+		// Passes: -60, -70 (D1) and -65, -76 (D2): mean -67.75.
+		const board = buildTrainingLeaderboard(
+			[
+				driver(1, [rp(1, 0, -60), rp(2, 10000, -70)]),
+				driver(2, [rp(3, 0, -65), rp(4, 12000, -76)])
+			],
+			1000
+		);
+		const lap = (name: string) => board.find((d) => d.driver_name === name)!.laps[0];
+		expect(lap('D1').rssi_delta).toBe(-2); // -70 vs -67.75
+		expect(lap('D2').rssi_delta).toBe(-8); // -76 vs -67.75
+	});
+
+	it('only counts passes that survive the cooldown', () => {
+		const board = buildTrainingLeaderboard(
+			[
+				driver(1, [rp(1, 0, -60), rp(2, 100, -20), rp(3, 10000, -60)]),
+				driver(2, [rp(4, 0, -60), rp(5, 10000, -60)])
+			],
+			1000
+		);
+		// -20 is inside the cooldown, so the mean stays -60 and the deltas are 0.
+		expect(board.flatMap((d) => d.laps.map((l) => l.rssi_delta))).toEqual([0, 0]);
+	});
+
+	it('gives no delta when the event has too few reads', () => {
+		const board = buildTrainingLeaderboard([driver(1, [rp(1, 0, -60), rp(2, 10000, -70)])], 1000);
+		expect(board[0].laps[0].rssi_delta).toBeNull();
+	});
+});
+
 describe('bestLapNumber', () => {
 	const lap = (id: number, lapMs: number) => ({
 		gate_event_id: id,

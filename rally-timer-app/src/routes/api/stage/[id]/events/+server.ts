@@ -3,6 +3,7 @@ import { requireStageEvent } from '$lib/server/eventContext';
 import { json } from '@sveltejs/kit';
 import type { RequestEvent } from './$types';
 import { sql } from '../../../../../lib/server/db';
+import { meanRssi, rssiDelta } from '../../../../../lib/domain/rssi';
 
 export async function GET(event: RequestEvent) {
 	const appEvent = await requireStageEvent(Number(event.params.id));
@@ -44,11 +45,13 @@ export async function GET(event: RequestEvent) {
 		ORDER BY timestamp ASC, kind ASC, id ASC
 	`;
 
-	return json(
-		rows.map((r) => ({
-			...r,
-			timestamp: Number(r.timestamp),
-			rssi: r.rssi == null ? null : Number(r.rssi)
-		}))
-	);
+	const events = rows.map((r) => ({
+		...r,
+		timestamp: Number(r.timestamp),
+		rssi: r.rssi == null ? null : Number(r.rssi)
+	}));
+
+	// The gate moves between stages, so the baseline is this stage's own finish reads.
+	const stageMean = meanRssi(events.map((e) => e.rssi));
+	return json(events.map((e) => ({ ...e, rssi_delta: rssiDelta(e.rssi, stageMean) })));
 }

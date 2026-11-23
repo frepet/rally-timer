@@ -14,6 +14,8 @@
 	import { TrashBinOutline } from 'flowbite-svelte-icons';
 	import type { PageProps } from './$types';
 	import { kcFetch } from '../../../../lib/kcFetch';
+	import { rssiDeltaText } from '../../../../lib/domain/rssi';
+	import { rssiDeltaClass } from '../../../../lib/rssiColor';
 	import { t } from '../../../../lib/stores/locale.svelte';
 
 	let { data }: PageProps = $props();
@@ -25,6 +27,7 @@
 		driver_name?: string | null;
 		tag?: string | null;
 		rssi?: number | null;
+		rssi_delta?: number | null;
 	};
 
 	type Gate = {
@@ -221,7 +224,9 @@
 						</TableBodyCell>
 
 						<TableBodyCell class="font-mono">
-							{e.rssi != null ? `${e.rssi} dBm` : '—'}
+							{#if e.rssi != null}{e.rssi} dBm{#if e.rssi_delta != null}
+									(<span class={rssiDeltaClass(e.rssi_delta)}>{rssiDeltaText(e.rssi_delta)}</span
+									>){/if}{:else}—{/if}
 						</TableBodyCell>
 
 						<TableBodyCell class="flex justify-end gap-2">

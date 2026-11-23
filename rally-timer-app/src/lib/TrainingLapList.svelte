@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { TrashBinOutline } from 'flowbite-svelte-icons';
 	import type { TrainingLap } from './domain/training';
+	import { rssiDeltaText } from './domain/rssi';
+	import { rssiDeltaClass } from './rssiColor';
 	import { formatMs } from './results';
 	import { t } from './stores/locale.svelte';
 
@@ -76,7 +78,12 @@
 			</div>
 			<div class="flex items-center gap-3">
 				{#if lap.rssi !== null}
-					<span class="stat text-surface-400">{t.trainingRssi} {lap.rssi}</span>
+					<span class="stat text-surface-400"
+						>{t.trainingRssi}
+						{lap.rssi}{#if lap.rssi_delta != null}
+							(<span class={rssiDeltaClass(lap.rssi_delta)}>{rssiDeltaText(lap.rssi_delta)}</span
+							>){/if}</span
+					>
 				{/if}
 				{#if canDelete && ondelete}
 					<button

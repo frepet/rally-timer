@@ -1,3 +1,5 @@
+import { meanRssi, rssiDelta } from './rssi';
+
 export type TrainingPass = {
 	gate_event_id: number;
 	timestamp: number;
@@ -9,6 +11,8 @@ export type TrainingLap = {
 	timestamp: number;
 	lap_ms: number;
 	rssi: number | null;
+	// RSSI minus the event-wide average over all drivers' passes; set by buildTrainingLeaderboard.
+	rssi_delta?: number | null;
 };
 
 export type TrainingDriverInput = {
@@ -108,7 +112,17 @@ export function buildTrainingLeaderboard(
 	drivers: TrainingDriverInput[],
 	cooldownMs: number
 ): TrainingDriverResult[] {
-	const results = drivers.map((d) => computeTrainingDriverResult(d, cooldownMs));
+	// The gate is moved between events, so "typical" signal is per event.
+	const eventMean = meanRssi(
+		drivers.flatMap((d) => filterPassesByCooldown(d.passes, cooldownMs).map((p) => p.rssi))
+	);
+	const results = drivers.map((d) => {
+		const result = computeTrainingDriverResult(d, cooldownMs);
+		return {
+			...result,
+			laps: result.laps.map((lap) => ({ ...lap, rssi_delta: rssiDelta(lap.rssi, eventMean) }))
+		};
+	});
 	return results.sort((a, b) => {
 		const aBest = a.best_lap_ms;
 		const bBest = b.best_lap_ms;
