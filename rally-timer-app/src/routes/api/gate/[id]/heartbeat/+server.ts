@@ -2,6 +2,7 @@ import { json, error, type RequestEvent } from '@sveltejs/kit';
 
 import { sql } from '../../../../../lib/server/db';
 import { requireGateCrypto } from '../../../../../lib/server/gateAuth';
+import { gateHeartbeats } from '../../../../../lib/server/metrics';
 
 export async function POST(event: RequestEvent): Promise<Response> {
 	const { id } = event.params;
@@ -16,6 +17,7 @@ export async function POST(event: RequestEvent): Promise<Response> {
 
 	const now = Date.now();
 	await sql`UPDATE gates SET last_seen = ${now} WHERE id = ${id}`;
+	gateHeartbeats.inc({ gate_id: id });
 
 	return json({ ok: true });
 }

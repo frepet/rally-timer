@@ -3,6 +3,7 @@ import { requireMutableEvent } from '$lib/server/eventContext';
 import { json, error, type RequestEvent } from '@sveltejs/kit';
 import { sql as db } from '../../../../lib/server/db';
 import { throwIfNotAdmin } from '../../../../lib/server/keycloak';
+import { submissions } from '../../../../lib/server/metrics';
 import { submitRallySchema } from '../../../../lib/server/schemas';
 import { fetchClosedHeatResults } from '../../../../lib/server/rallycrossData';
 import { buildRallycrossSubmission } from '../../../../lib/domain/rallycross';
@@ -21,7 +22,7 @@ export async function POST(event: RequestEvent): Promise<Response> {
 	if (!parsed.success) return json({ errors: parsed.error.flatten() }, { status: 400 });
 
 	const { championship_ids } = parsed.data;
-	return db.begin(async (tx) => {
+	const response = await db.begin(async (tx) => {
 		const sql = tx as unknown as typeof db;
 		const eventId = Number(event.url.searchParams.get('event_id'));
 		await sql`SELECT id FROM events WHERE id = ${eventId} FOR UPDATE`;
@@ -103,4 +104,6 @@ export async function POST(event: RequestEvent): Promise<Response> {
 		await sql`UPDATE events SET is_locked = true WHERE id = ${appEvent.id}`;
 		return json({ id: submittedRallyId! }, { status: 201 });
 	});
+	submissions.inc({ type: 'rallycross' });
+	return response;
 }

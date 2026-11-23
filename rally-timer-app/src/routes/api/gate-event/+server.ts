@@ -3,6 +3,7 @@ import { sql } from '../../../lib/server/db';
 import { requireGateCrypto } from '../../../lib/server/gateAuth';
 import { gateEventSchema } from '../../../lib/server/schemas';
 import { emitGateEvent } from '../../../lib/server/gateEvents';
+import { gatePasses, gatePassRssi } from '../../../lib/server/metrics';
 import { captureGatePass } from '$lib/server/eventGates';
 import { heatIsComplete } from '$lib/domain/heatCompletion';
 
@@ -35,19 +36,32 @@ export async function POST(event: RequestEvent): Promise<Response> {
 			status: string;
 		}[]
 	>`SELECT id, stage_id, public_key, status FROM gates WHERE id = ${gate_id}`;
-	if (!gate) throw error(404, 'Gate not registered');
+	if (!gate) {
+		gatePasses.inc({ gate_id: 'unknown', result: 'unknown_gate' });
+		throw error(404, 'Gate not registered');
+	}
 
 	await requireGateCrypto(event, gate, rawBody);
 
-	const row = await sql.begin(async (transaction) => {
-		const tx = transaction as unknown as typeof sql;
-		const [inserted] =
-			await tx`INSERT INTO gate_events (gate_id,tag,timestamp,rssi,synced_at) VALUES (${gate_id},${tag},${timestamp_ms},${rssi ?? null},${now}) ON CONFLICT (gate_id,tag,timestamp) DO NOTHING RETURNING id`;
-		if (inserted) await captureGatePass(tx, gate_id, inserted.id, timestamp_ms, tag);
-		await tx`UPDATE gates SET last_seen=${now} WHERE id=${gate_id}`;
-		return inserted;
-	});
-	if (!row) return json({ stored: false, duplicate: true });
+	const row = await sql
+		.begin(async (transaction) => {
+			const tx = transaction as unknown as typeof sql;
+			const [inserted] =
+				await tx`INSERT INTO gate_events (gate_id,tag,timestamp,rssi,synced_at) VALUES (${gate_id},${tag},${timestamp_ms},${rssi ?? null},${now}) ON CONFLICT (gate_id,tag,timestamp) DO NOTHING RETURNING id`;
+			if (inserted) await captureGatePass(tx, gate_id, inserted.id, timestamp_ms, tag);
+			await tx`UPDATE gates SET last_seen=${now} WHERE id=${gate_id}`;
+			return inserted;
+		})
+		.catch((e) => {
+			gatePasses.inc({ gate_id, result: 'failed' });
+			throw e;
+		});
+	if (!row) {
+		gatePasses.inc({ gate_id, result: 'duplicate' });
+		return json({ stored: false, duplicate: true });
+	}
+	gatePasses.inc({ gate_id, result: 'stored' });
+	if (rssi != null) gatePassRssi.observe({ gate_id }, rssi);
 
 	try {
 		await maybeAutoCloseHeat(gate_id, timestamp_ms, row.id);

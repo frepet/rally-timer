@@ -3,6 +3,7 @@ import { buildTrainingLeaderboard } from '$lib/domain/training';
 import { requireMutableEvent } from '$lib/server/eventContext';
 import { sql as db } from '$lib/server/db';
 import { throwIfNotAdmin } from '$lib/server/keycloak';
+import { submissions } from '$lib/server/metrics';
 import { submitRallySchema } from '$lib/server/schemas';
 import { fetchTrainingConfig, fetchTrainingDriverInputs } from '$lib/server/trainingData';
 import { error, json, type RequestEvent } from '@sveltejs/kit';
@@ -14,7 +15,7 @@ export async function POST(event: RequestEvent): Promise<Response> {
 	const parsed = submitRallySchema.safeParse(body);
 	if (!parsed.success) return json({ errors: parsed.error.flatten() }, { status: 400 });
 
-	return db.begin(async (transaction) => {
+	const response = await db.begin(async (transaction) => {
 		const sql = transaction as unknown as typeof db;
 		const eventId = Number(event.url.searchParams.get('event_id'));
 		await sql`SELECT id FROM events WHERE id = ${eventId} FOR UPDATE`;
@@ -68,4 +69,6 @@ export async function POST(event: RequestEvent): Promise<Response> {
 		await sql`UPDATE events SET is_locked = true WHERE id = ${appEvent.id}`;
 		return json({ id: submittedId }, { status: 201 });
 	});
+	submissions.inc({ type: 'training' });
+	return response;
 }

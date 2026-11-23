@@ -5,6 +5,7 @@ import { gateSyncSchema } from '../../../lib/server/schemas';
 import { emitGateEvent } from '../../../lib/server/gateEvents';
 import { captureGatePass } from '$lib/server/eventGates';
 import { log } from '../../../lib/server/log';
+import { gatePasses, gatePassRssi } from '../../../lib/server/metrics';
 
 export async function POST(event: RequestEvent): Promise<Response> {
 	let rawBody: string;
@@ -60,6 +61,7 @@ export async function POST(event: RequestEvent): Promise<Response> {
 		const gate = gates.get(evt.gate_id);
 		if (!gate) {
 			skipped++;
+			gatePasses.inc({ gate_id: 'unknown', result: 'unknown_gate' });
 			continue;
 		}
 		try {
@@ -76,8 +78,10 @@ export async function POST(event: RequestEvent): Promise<Response> {
 					finishAdded++;
 				return true;
 			});
+			gatePasses.inc({ gate_id: evt.gate_id, result: inserted ? 'stored' : 'duplicate' });
 			if (inserted) {
 				stored++;
+				if (evt.rssi != null) gatePassRssi.observe({ gate_id: evt.gate_id }, evt.rssi);
 				emit.push({
 					gate_id: evt.gate_id,
 					tag: evt.tag,
@@ -87,6 +91,7 @@ export async function POST(event: RequestEvent): Promise<Response> {
 			}
 		} catch (e) {
 			failed++;
+			gatePasses.inc({ gate_id: evt.gate_id, result: 'failed' });
 			log.error('gate-sync event insert failed', { gate_id: evt.gate_id, error: String(e) });
 		}
 	}
