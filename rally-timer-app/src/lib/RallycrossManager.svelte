@@ -27,11 +27,12 @@
 	import { kcFetch as authenticatedFetch } from '$lib/kcFetch';
 	import { startLiveRefresh } from '$lib/liveRefresh';
 	import { primeAudio, getAudioCurrentTime, scheduleBeepAt } from '$lib/beep';
+	import { speak, primeSpeech } from '$lib/speech';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { formatMs } from '$lib/results';
 	import { t } from '$lib/stores/locale.svelte';
 	import { getHeatResults, type OverallResult, type HeatResult } from '$lib/domain/rallycross';
-	import { buildRxDisplay } from '$lib/domain/rallycrossDisplay';
+	import { buildRxDisplay, newFinishers } from '$lib/domain/rallycrossDisplay';
 	import RallycrossLeaderboard from '$lib/RallycrossLeaderboard.svelte';
 
 	type Gate = {
@@ -142,6 +143,46 @@
 	);
 
 	const tooManySelected = $derived(selectedDriverIds.size > rx.max_per_heat);
+
+	// Finish announcements: speak each driver's name as they complete the heat.
+	// Speech needs a user gesture first, so it is enabled by the toggle or by
+	// starting a heat. Plain (non-reactive) bookkeeping of who has been announced.
+	let announceFinishers = $state(false);
+	let announcedHeatId: number | null = null;
+	let announcedIds: number[] = [];
+
+	function enableAnnouncements(heatId: number | null, alreadyFinished: number[]) {
+		primeSpeech();
+		announcedHeatId = heatId;
+		announcedIds = alreadyFinished;
+		announceFinishers = true;
+	}
+
+	function toggleAnnouncements(enabled: boolean) {
+		if (!enabled) {
+			announceFinishers = false;
+			return;
+		}
+		// Don't announce drivers who finished before the toggle was switched on.
+		enableAnnouncements(
+			rx.active_heat?.id ?? null,
+			activeHeatResults.filter((r) => r.finished).map((r) => r.driver_id)
+		);
+	}
+
+	$effect(() => {
+		const heatId = rx.active_heat?.id ?? null;
+		const results = activeHeatResults;
+		if (!announceFinishers || heatId === null) return;
+		if (announcedHeatId !== heatId) {
+			announcedHeatId = heatId;
+			announcedIds = [];
+		}
+		for (const f of newFinishers(results, announcedIds)) {
+			announcedIds.push(f.driver_id);
+			speak(t.speechRxFinished(f.driver_name, f.position));
+		}
+	});
 
 	async function loadState(syncForm = false) {
 		const res = await kcFetch('/api/rallycross');
@@ -294,6 +335,7 @@
 	}
 
 	async function startHeat(heatId: number) {
+		enableAnnouncements(heatId, []);
 		await primeAudio();
 		const t0 = getAudioCurrentTime();
 		for (let i = 5; i >= 1; i--) {
@@ -510,6 +552,14 @@
 				<div class="flex items-center gap-2">
 					<p class="font-semibold">{t.rxHeatLabel(rx.active_heat.number)}</p>
 					<Badge color="green">{t.rxStatusInProgress}</Badge>
+					<Toggle
+						size="small"
+						class="ml-2"
+						checked={announceFinishers}
+						onchange={(e) => toggleAnnouncements((e.currentTarget as HTMLInputElement).checked)}
+					>
+						{t.rxAnnounceFinishers}
+					</Toggle>
 				</div>
 				{#if auth.isAdmin}
 					<Button color="red" size="sm" onclick={() => (closeModalOpen = true)} disabled={closing}>

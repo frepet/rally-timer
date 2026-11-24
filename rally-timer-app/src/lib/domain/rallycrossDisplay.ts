@@ -79,6 +79,19 @@ export function rankHeatEntries(
 	});
 }
 
+export type RxFinisher = { driver_id: number; driver_name: string; position: number };
+
+/**
+ * Drivers in a heat (results sorted by heatResultComparator) who have finished
+ * but are not yet in `announced`, with their finishing position.
+ */
+export function newFinishers(results: HeatResult[], announced: readonly number[]): RxFinisher[] {
+	return results
+		.filter((r) => r.finished)
+		.map((r, i) => ({ driver_id: r.driver_id, driver_name: r.driver_name, position: i + 1 }))
+		.filter((f) => !announced.includes(f.driver_id));
+}
+
 export function buildRxDisplay(leaderboard: OverallResult[]): RxDisplay {
 	const standings: RxStandingDisplay[] = leaderboard.map((r) => ({
 		driver_uuid: r.driver_uuid || null,

@@ -6,7 +6,7 @@
 	import { kcFetch } from '../../../../lib/kcFetch';
 	import { classChipClass } from '../../../../lib/classColor';
 	import type { BundleResponse } from '../../../../lib/types';
-	import { t, getLocale } from '../../../../lib/stores/locale.svelte';
+	import { t } from '../../../../lib/stores/locale.svelte';
 	import { auth } from '../../../../lib/stores/auth.svelte';
 	import {
 		primeAudio,
@@ -15,6 +15,7 @@
 		scheduleBeepAt,
 		closeAudio
 	} from '../../../../lib/beep';
+	import { speak as speakText, primeSpeech } from '../../../../lib/speech';
 
 	type ScheduledStart = {
 		driver_id: number;
@@ -120,25 +121,9 @@
 		pendingOscs.push(scheduleBeepAt(t0 + leadSec, 1000, 0.6, 0.6));
 	}
 
-	function createUtterance(text: string) {
-		const utter = new SpeechSynthesisUtterance(text);
-		// Setting `lang` alone steers the engine's pronunciation even when no
-		// exact-match voice is installed, so it must match the text's language.
-		const lang = getLocale() === 'sv' ? 'sv-SE' : 'en-US';
-		utter.lang = lang;
-		const voices = speechSynthesis.getVoices();
-		const voice =
-			voices.find((v) => v.lang === lang) ??
-			voices.find((v) => v.lang.startsWith(lang.split('-')[0]));
-		if (voice) utter.voice = voice;
-		utter.rate = 1;
-		utter.pitch = 1.0;
-		return utter;
-	}
-
 	function speak(text: string) {
 		if (!soundEnabled) return;
-		speechSynthesis.speak(createUtterance(text));
+		speakText(text);
 	}
 
 	function speakNext(group: ScheduledStart[]) {
@@ -269,7 +254,7 @@
 		await primeAudio();
 		// Warm up speech synthesis inside the user gesture so later utterances
 		// (driven by the schedule, not a click) are allowed to play.
-		speechSynthesis.speak(createUtterance(''));
+		primeSpeech();
 		soundEnabled = true;
 		beepArmedTs = null;
 		spokenTs = null;

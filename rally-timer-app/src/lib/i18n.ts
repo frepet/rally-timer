@@ -305,6 +305,7 @@ export const sv = {
 	speechStageStarted: 'Sträckan startad',
 	speechStageStopped: 'Sträckan stoppad',
 	speechGo: 'kör',
+	speechRxFinished: (name: string, position: number) => `${name}, plats ${position}`,
 
 	// Rallycross - common
 	rxHeading: 'Rallycross',
@@ -349,6 +350,7 @@ export const sv = {
 	rxLapsColumn: 'Varv',
 	rxDeltaColumn: 'Diff',
 	rxStartHeat: 'Starta heat',
+	rxAnnounceFinishers: 'Läs upp målgång',
 	moveUp: 'Flytta upp',
 	moveDown: 'Flytta ner',
 	rxStartingHeat: 'Startar…',
@@ -362,7 +364,7 @@ export const sv = {
 	rxCompletedHeats: 'Genomförda heat',
 	rxCloseHeatTitle: 'Stäng heat',
 	rxCloseHeatDescription: (laps: number) =>
-		`Förare som inte slutfört ${laps} varv får DNF-tid (snabbaste fullbordade + 30 s).`,
+		`Förare som inte slutfört ${laps} varv får DNF och rankas efter antal körda varv.`,
 	rxCreateFailed: 'Kunde inte skapa heat: ',
 	rxStartFailed: 'Kunde inte starta heat: ',
 	rxCloseFailed: 'Kunde inte stänga heat: ',
@@ -769,6 +771,7 @@ export const en: typeof sv = {
 	speechStageStarted: 'Stage started',
 	speechStageStopped: 'Stage stopped',
 	speechGo: 'go',
+	speechRxFinished: (name: string, position: number) => `${name}, position ${position}`,
 
 	// Rallycross - common
 	rxHeading: 'Rallycross',
@@ -813,6 +816,7 @@ export const en: typeof sv = {
 	rxLapsColumn: 'Laps',
 	rxDeltaColumn: 'Gap',
 	rxStartHeat: 'Start heat',
+	rxAnnounceFinishers: 'Announce finishers',
 	moveUp: 'Move up',
 	moveDown: 'Move down',
 	rxStartingHeat: 'Starting…',
@@ -826,7 +830,7 @@ export const en: typeof sv = {
 	rxCompletedHeats: 'Completed heats',
 	rxCloseHeatTitle: 'Close heat',
 	rxCloseHeatDescription: (laps: number) =>
-		`Drivers who have not completed ${laps} lap${laps === 1 ? '' : 's'} will receive a DNF time (fastest finisher + 30 s).`,
+		`Drivers who have not completed ${laps} lap${laps === 1 ? '' : 's'} get a DNF and are ranked by laps completed.`,
 	rxCreateFailed: 'Could not create heat: ',
 	rxStartFailed: 'Could not start heat: ',
 	rxCloseFailed: 'Could not close heat: ',

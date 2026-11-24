@@ -4,7 +4,8 @@ import {
 	buildRxDisplay,
 	buildRxDisplayFromSubmission,
 	applyRxRatings,
-	isRallycrossSubmission
+	isRallycrossSubmission,
+	newFinishers
 } from './rallycrossDisplay';
 import type { HeatResult, OverallResult } from './rallycross';
 
@@ -96,6 +97,24 @@ describe('buildRxDisplay', () => {
 		expect(display.heats.map((h) => h.number)).toEqual([2, 1]);
 		expect(display.heats[1].entries.map((e) => e.driver_name)).toEqual(['Alice', 'Bob']);
 		expect(display.heats[1].entries.map((e) => e.position)).toEqual([1, 2]);
+	});
+});
+
+describe('newFinishers', () => {
+	const results = [
+		heatResult({ driver_id: 1, driver_name: 'Anna', finished: true }),
+		heatResult({ driver_id: 2, driver_name: 'Bertil', finished: true }),
+		heatResult({ driver_id: 3, driver_name: 'Cecilia', lap_count: 2 })
+	];
+
+	it('returns finishers not yet announced, with their finishing position', () => {
+		expect(newFinishers(results, [1])).toEqual([
+			{ driver_id: 2, driver_name: 'Bertil', position: 2 }
+		]);
+	});
+
+	it('ignores drivers still on track', () => {
+		expect(newFinishers(results, [1, 2])).toEqual([]);
 	});
 });
 
